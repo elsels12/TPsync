@@ -523,10 +523,23 @@
     transform:scale(0.95);
   }
   .sticky-sync-btn .sync-btn-icon{
-    font-size:17px;
-    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     color:var(--amber);
-    filter:drop-shadow(0 0 5px rgba(255,182,39,0.4));
+    line-height:1;
+  }
+  .sticky-sync-btn .sync-btn-icon svg{
+    width:15px;
+    height:15px;
+    filter:drop-shadow(0 0 4px rgba(255,182,39,0.5));
+    transition:transform .2s ease;
+  }
+  .sticky-sync-btn .sync-btn-icon.spinning svg{
+    animation:spinSync 0.75s linear infinite;
+  }
+  @keyframes spinSync{
+    100%{transform:rotate(360deg);}
   }
   .sticky-sync-btn .sticky-sync-txt{
     font-size:10px;
@@ -558,9 +571,16 @@
     transform:scale(0.95);
   }
   .sticky-jump-btn .jump-icon{
-    font-size:15px;
-    line-height:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
     color:var(--amber);
+    line-height:1;
+  }
+  .sticky-jump-btn .jump-icon svg{
+    width:14px;
+    height:14px;
+    transition:transform .2s ease;
   }
   .sticky-jump-btn .jump-txt{
     font-size:10px;
@@ -876,19 +896,18 @@
     <div style="display:flex;gap:6px;flex-shrink:0;">
       <button class="topbar-csv-btn" onclick="exportCSV()">CSV</button>
       <button class="topbar-csv-btn" onclick="copyCSVToClipboard()">COPY</button>
-      <button class="topbar-csv-btn" id="topbarJumpBtn" onclick="toggleScrollJump()" title="先頭／履歴へジャンプ">⬇ 履歴</button>
     </div>
   </div>
   <div class="sub">冷間・温間圧力 / 気温・路面温度トラッキング</div>
   <div class="guide-nav-row">
     <button type="button" class="guide-nav-btn" onclick="openGuideModal('usage')">
-      📖 使用方法
+      使用方法
     </button>
     <button type="button" class="guide-nav-btn" onclick="openGuideModal('cloud')">
-      ☁️ 共有使用
+      共有使用
     </button>
     <button type="button" class="guide-nav-btn" onclick="openGuideModal('backup')">
-      ⇄ バックアップ復元
+      バックアップ・復元
     </button>
   </div>
   <div class="car-selector-row">
@@ -1204,7 +1223,7 @@
   <div id="logList"></div>
 
   <div class="migration-note" onclick="openMigration()">
-    📱 機種変更するときは、右上の「⇄」からバックアップを保存し、新しい端末で復元するとデータを引き継げます。
+    📱 機種変更するときは、「バックアップ・復元」からバックアップを保存し、新しい端末で復元するとデータを引き継げます。
   </div>
 
 </div>
@@ -1213,12 +1232,20 @@
   <div id="bundleNoticeContainer" style="display:none;"></div>
   <div class="sticky-btn-group">
     <button type="button" id="stickySyncBtn" class="sticky-sync-btn" onclick="quickCloudSync()" title="クラウドから最新データを取得（同期）">
-      <span class="sync-btn-icon">🔄</span>
+      <span class="sync-btn-icon">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+        </svg>
+      </span>
       <span class="sticky-sync-txt">更新</span>
     </button>
     <button onclick="saveEntry()" id="saveEntryBtn" class="sticky-save-btn">記録する / LOG ENTRY</button>
-    <button type="button" id="stickyJumpBtn" class="sticky-jump-btn" onclick="toggleScrollJump()" title="先頭／履歴へジャンプ">
-      <span class="jump-icon" id="stickyJumpIcon">⬇</span>
+    <button type="button" id="stickyJumpBtn" class="sticky-jump-btn" onclick="toggleScrollJump()" title="先頭／履歴へスクロール">
+      <span class="jump-icon" id="stickyJumpIcon">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </span>
       <span class="jump-txt" id="stickyJumpTxt">履歴</span>
     </button>
   </div>
@@ -2570,8 +2597,8 @@ function renderLog(list_){
         ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
 
         <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:10px;">
-          ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${e.id}')">✂️ 別カードに分割</button>` : ''}
-          ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(255,182,39,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${e.id}')">🔗 冷間とまとめる</button>` : ''}
+          ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${e.id}')">別カードに分割</button>` : ''}
+          ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(255,182,39,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${e.id}')">冷間とまとめる</button>` : ''}
           <button class="edit-btn" onclick="openEditModal('${e.id}')">編集 EDIT</button>
           <button class="del-btn" onclick="confirmDelete('${e.id}')">削除 DELETE</button>
         </div>
@@ -3051,7 +3078,7 @@ async function quickCloudSync(isSilent){
   const gasUrl = getGasUrl();
   if(!gasUrl){
     if(!isSilent){
-      showToast('スプレッドシート連携URLが未設定です。「⇄」から設定してください');
+      showToast('スプレッドシート連携URLが未設定です。「共有使用」から設定してください');
       openMigration();
     }
     return;
@@ -3318,9 +3345,9 @@ function doGet(e) {
 
     <!-- 3-Tab Navigator -->
     <div class="modal-tab-bar">
-      <button type="button" class="modal-tab-btn" id="tabBtn-usage" onclick="switchGuideTab('usage')">📖 使用方法</button>
-      <button type="button" class="modal-tab-btn" id="tabBtn-cloud" onclick="switchGuideTab('cloud')">☁️ 共有使用</button>
-      <button type="button" class="modal-tab-btn" id="tabBtn-backup" onclick="switchGuideTab('backup')">⇄ バックアップ</button>
+      <button type="button" class="modal-tab-btn" id="tabBtn-usage" onclick="switchGuideTab('usage')">使用方法</button>
+      <button type="button" class="modal-tab-btn" id="tabBtn-cloud" onclick="switchGuideTab('cloud')">共有使用</button>
+      <button type="button" class="modal-tab-btn" id="tabBtn-backup" onclick="switchGuideTab('backup')">バックアップ・復元</button>
     </div>
 
     <!-- TAB 1: 使用方法 -->
@@ -3399,7 +3426,7 @@ function doGet(e) {
           1. スプレッドシート上のメニューにある「<strong>拡張機能</strong>」をタップします。<br>
           2. 「<strong>Apps Script</strong>」をタップします（別画面が開きます）。<br>
           3. 画面に最初から出ている英語（function myFunction...）を<strong>すべて消して真っ白</strong>にします。<br>
-          4. 下の「<strong>📋 コードをコピー</strong>」ボタンを押し、コピーしたコードを<strong>そのまま貼り付け</strong>ます。<br>
+          4. 下の「<strong>コードをコピー</strong>」ボタンを押し、コピーしたコードを<strong>そのまま貼り付け</strong>ます。<br>
           5. 画面上部の<strong>フロッピーマーク💾（プロジェクトを保存）</strong>をタップします。<br><br>
 
           <strong style="color:var(--amber);font-size:13px;">📌 ステップ3：ウェブアプリとして公開（最重要！1分）</strong><br>
@@ -3429,7 +3456,7 @@ function doGet(e) {
         <div style="margin-top:12px;background:#0d1013;border:1px solid #2d3542;border-radius:8px;padding:10px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);font-weight:700;">貼り付け用 GAS コード（排他制御ロック＆重複防止対応）</span>
-            <button id="copyGasCodeBtn" style="background:#232b36;border:1px solid #3d4a5c;color:#ffffff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;">📋 コードをコピー</button>
+            <button id="copyGasCodeBtn" style="background:#232b36;border:1px solid #3d4a5c;color:#ffffff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;">コードをコピー</button>
           </div>
           <textarea id="gasCodeTextarea" readonly style="width:100%;height:80px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${gasCodeEscaped}</textarea>
         </div>
@@ -3461,7 +3488,7 @@ function doGet(e) {
 
         <div style="margin-bottom:12px;">
           <button id="migPasteBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
-            📋 テキスト（コピー内容）を貼り付けて復元
+            テキスト貼り付けで復元
           </button>
         </div>
 
@@ -4041,6 +4068,9 @@ function scrollToHistory(){
 }
 
 let isScrolledDown = false;
+const JUMP_SVG_DOWN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+const JUMP_SVG_UP = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+
 function updateJumpButtons(){
   const scrollY = window.scrollY || window.pageYOffset || 0;
   const historyEl = document.getElementById('logSectionAnchor') || document.getElementById('logList');
@@ -4049,16 +4079,13 @@ function updateJumpButtons(){
 
   const stickyIcon = document.getElementById('stickyJumpIcon');
   const stickyTxt = document.getElementById('stickyJumpTxt');
-  const topbarBtn = document.getElementById('topbarJumpBtn');
 
   if(isScrolledDown){
-    if(stickyIcon) stickyIcon.textContent = '⬆';
+    if(stickyIcon) stickyIcon.innerHTML = JUMP_SVG_UP;
     if(stickyTxt) stickyTxt.textContent = '入力';
-    if(topbarBtn) topbarBtn.textContent = '⬆ 入力';
   } else {
-    if(stickyIcon) stickyIcon.textContent = '⬇';
+    if(stickyIcon) stickyIcon.innerHTML = JUMP_SVG_DOWN;
     if(stickyTxt) stickyTxt.textContent = '履歴';
-    if(topbarBtn) topbarBtn.textContent = '⬇ 履歴';
   }
 }
 
@@ -4204,14 +4231,14 @@ function openEditModal(id){
     ${(entry.coldPressures && entry.hotPressures) ? `
       <div style="margin-bottom:14px;">
         <button type="button" onclick="splitSession('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(255,182,39,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
-          ✂️ 冷間と温間を2つの別々カードに分割する
+          冷間と温間を別カードに分割
         </button>
       </div>
     ` : ''}
     ${(!entry.coldPressures && entry.hotPressures && findColdMatch(entry)) ? `
       <div style="margin-bottom:14px;">
         <button type="button" onclick="bundleWithEarlierCold('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(255,182,39,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
-          🔗 直前の冷間カードと1つにまとめる（結合）
+          直前の冷間カードとまとめる
         </button>
       </div>
     ` : ''}
