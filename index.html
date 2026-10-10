@@ -1,0 +1,4012 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Tire Pressure">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<meta name="theme-color" content="#15181c">
+<title>TPSync v1.00 — PIT WALL LOG</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --asphalt:#0c0e11;
+    --panel:#232933;
+    --panel-light:#2f3746;
+    --line:#363f4e;
+    --line-light:#465265;
+    --paper:#e9e6df;
+    --paper-dim:#b0b7c0;
+    --cold:#3fa9f5;
+    --hot:#ff5a2e;
+    --amber:#ffb627;
+    --ok:#4ade80;
+    --warn:#ffb627;
+    --danger:#ff5a2e;
+  }
+  *{
+    box-sizing:border-box;
+    -webkit-tap-highlight-color:transparent;
+  }
+  html,body{
+    margin:0;padding:0;
+    background:var(--asphalt);
+    color:var(--paper);
+    font-family:'Inter',sans-serif;
+    overflow-x:hidden;
+    width:100%;
+    max-width:100%;
+  }
+  body{
+    min-height:100vh;
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
+    padding-bottom:120px;
+  }
+  .topbar{
+    position:sticky;top:0;z-index:20;
+    background:linear-gradient(180deg, var(--asphalt) 70%, rgba(20,23,27,0.85));
+    border-bottom:1px solid var(--line);
+    padding:14px 14px 10px;
+    width:100%;
+  }
+  .topbar .eyebrow{
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;font-weight:700;letter-spacing:.14em;color:var(--amber);text-transform:uppercase;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .topbar h1{
+    font-family:'Oswald',sans-serif;font-weight:700;font-size:24px;letter-spacing:.01em;
+    margin:4px 0 0;color:var(--paper);text-transform:uppercase;
+  }
+  .topbar .sub{font-size:12px;color:var(--paper-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+  .topbar-csv-btn{
+    flex-shrink:0;background:transparent;border:1px solid var(--amber);color:var(--amber);
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;
+    padding:5px 10px;border-radius:20px;cursor:pointer;
+  }
+  .topbar-csv-btn:active{background:rgba(255,182,39,0.15);}
+  .topbar-sync-btn{padding:5px 8px;font-size:12px;}
+  .history-sync-btn{
+    background:rgba(255,182,39,0.08);
+    border:1px solid var(--amber);
+    color:var(--amber);
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    padding:6px 14px;
+    border-radius:20px;
+    cursor:pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .history-sync-btn:active{
+    background:rgba(255,182,39,0.22);
+    transform:scale(0.97);
+  }
+  .sync-btn-icon{
+    display:inline-block;
+    font-size:13px;
+    line-height:1;
+  }
+  .sync-btn-icon.spinning{
+    animation:spinAnim 0.75s linear infinite;
+  }
+  @keyframes spinAnim{
+    100%{ transform: rotate(360deg); }
+  }
+
+    .data-guide-bar-btn{
+    width:100%;
+    margin-top:8px;
+    padding:8px 10px;
+    background:rgba(255,182,39,0.08);
+    border:1px dashed var(--amber);
+    border-radius:8px;
+    color:var(--amber);
+    font-family:'Inter',sans-serif;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.02em;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:6px;
+    box-sizing:border-box;
+    transition:background .15s ease;
+  }
+  .data-guide-bar-btn:active{
+    background:rgba(255,182,39,0.2);
+  }
+  .car-selector-row{display:flex;gap:6px;margin-top:10px;}
+  .car-selector{
+    flex:1;background:var(--panel);border:1px solid var(--amber);border-radius:20px;
+    color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;
+    letter-spacing:.04em;padding:6px 12px;outline:none;min-width:0;
+  }
+
+  .wrap{
+    max-width:500px;
+    width:100%;
+    margin:0 auto;
+    padding:14px 10px;
+  }
+
+  /* --- Car diagram --- */
+  .car-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:16px 8px 14px;position:relative;overflow:hidden;width:100%;
+  }
+  .car-card::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(ellipse at 50% 0%, rgba(255,182,39,0.06), transparent 60%);
+    pointer-events:none;
+  }
+  .mode-toggle{
+    display:flex;gap:6px;margin-bottom:14px;position:relative;z-index:1;
+  }
+  .mode-btn{
+    flex:1;padding:10px 0;border-radius:8px;border:1px solid var(--line);
+    background:#16191e;color:var(--paper-dim);font-family:'JetBrains Mono',monospace;
+    font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
+    transition:all .15s ease;
+  }
+  .mode-btn.active[data-mode="cold"]{background:rgba(63,169,245,0.15);border-color:var(--cold);color:var(--cold);}
+  .mode-btn.active[data-mode="hot"]{background:rgba(255,90,46,0.15);border-color:var(--hot);color:var(--hot);}
+
+  .car-diagram{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) 68px minmax(0, 1fr);
+    grid-template-rows:auto auto auto auto;
+    grid-template-areas:
+      "labelF labelF labelF"
+      "fl      car    fr"
+      "rl      car    rr"
+      "labelR labelR labelR";
+    align-items:center;gap:6px;position:relative;z-index:1;width:100%;
+  }
+  .corner{
+    background:var(--panel-light);
+    border:1px solid #4a5568;
+    border-radius:10px;
+    padding:10px 4px;
+    text-align:center;
+    transition:border-color .2s ease;
+    min-width:0;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  #corner-FL{grid-area:fl;}
+  #corner-FR{grid-area:fr;}
+  #corner-RL{grid-area:rl;}
+  #corner-RR{grid-area:rr;}
+  .corner.flagged{border-color:var(--danger);}
+  .corner .label{
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;
+    color:var(--amber);line-height:1.2;margin-bottom:3px;
+  }
+  .corner .label .sub-code{
+    display:block;font-size:10px;font-weight:700;color:#94a3b8;
+  }
+  .corner .value-select{
+    width:100%;
+    background:transparent !important;
+    border:none !important;
+    color:#ffffff !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:32px;
+    font-weight:800;
+    text-align:center !important;
+    text-align-last:center !important;
+    padding:2px 0 0;
+    outline:none;
+    cursor:pointer;
+    -webkit-appearance:none !important;
+    -moz-appearance:none !important;
+    appearance:none !important;
+  }
+  .corner .value-select option{
+    background:#20252b;color:#ffffff;
+  }
+  .corner .unit{font-size:11px;font-weight:600;color:#94a3b8;margin-bottom:4px;}
+  .corner .value-input{
+    width:100%;background:transparent;border:1px solid rgba(255,255,255,0.14);border-radius:6px;
+    color:#ffffff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:center;
+    padding:5px 2px;outline:none;
+  }
+  .corner .value-input::placeholder{color:rgba(255,255,255,0.35);}
+  .corner .value-input:focus{border-color:var(--amber);}
+  .silhouette{
+    grid-area:car;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    height:100%;width:100%;
+  }
+  .silhouette svg{width:56px;height:auto;opacity:.65;}
+  .front-label{grid-area:labelF;}
+  .rear-label{grid-area:labelR;}
+  .front-label,.rear-label{
+    text-align:center;font-family:'JetBrains Mono',monospace;
+    font-size:12px;font-weight:800;letter-spacing:.25em;color:var(--amber);text-transform:uppercase;margin:3px 0;
+  }
+
+  /* --- Conditions --- */
+  .section-title{
+    font-family:'Oswald',sans-serif;font-size:15px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--paper);margin:20px 0 8px;display:flex;align-items:center;gap:8px;
+  }
+  .section-title::before{content:"";width:14px;height:1px;background:var(--amber);}
+  .filter-toggle-btn{
+    width:100%;display:flex;justify-content:space-between;align-items:center;
+    background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:12px 14px;margin:20px 0 8px;cursor:pointer;
+  }
+  .filter-toggle-btn .ft-label{
+    font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+    color:var(--paper);display:flex;align-items:center;gap:8px;
+  }
+  .filter-toggle-btn .ft-label::before{content:"";width:14px;height:1px;background:var(--amber);}
+  .filter-toggle-btn #filterToggleIcon{font-size:15px;color:var(--amber);transition:transform .2s ease;}
+  .filter-toggle-btn:active{background:#20252b;}
+
+  .grid2{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+    gap:8px;
+    width:100%;
+  }
+
+  /* Lighter boxes (気温, 路面温度, タイヤ銘柄, ラップタイム, 体感) */
+  .field{
+    background:var(--panel-light);
+    border:1px solid #4a5568;
+    border-radius:10px;
+    padding:12px 10px;
+    min-width:0;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+
+  /* Darker boxes (路面状態, 場所, タイヤサイズ, メモ) -> 背景より薄く、気温・銘柄より濃い */
+  .field.field-dark{
+    background:var(--panel);
+    border:1px solid #374151;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+  }
+
+  .field label{
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    color:var(--amber);
+    letter-spacing:.05em;
+    display:block;
+    margin-bottom:5px;
+  }
+
+  /* Input fields inside all boxes: NO WHITE BACKGROUND! Seamless with card background */
+  .field input, .field select, .field textarea{
+    width:100%;
+    background:transparent !important;
+    border:none !important;
+    color:#ffffff !important;
+    outline:none !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:16px;
+    font-weight:700;
+    padding:4px 0;
+    box-sizing:border-box;
+    -webkit-appearance:none;
+    appearance:none;
+  }
+  .field select{
+    font-family:'Inter',sans-serif;
+    font-size:15px;
+    font-weight:600;
+    cursor:pointer;
+    background:transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%239aa0a8' d='M0 0l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 4px center !important;
+    background-size:10px !important;
+    padding-right:18px !important;
+  }
+  .field select option{
+    background:#20252b;
+    color:#ffffff;
+  }
+  .field textarea{
+    font-family:'Inter',sans-serif;
+    font-size:14px;
+    font-weight:500;
+    min-height:42px;
+    resize:vertical;
+  }
+
+    .temp-clear-btn{
+    background:rgba(63,169,245,0.12);
+    border:1px solid rgba(63,169,245,0.4);
+    border-radius:4px;
+    color:#70baff; /* 水色・青 */
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    padding:3px 10px;
+    cursor:pointer;
+    transition:all .15s ease;
+    line-height:1.2;
+    white-space:nowrap !important;
+    flex-shrink:0 !important;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .temp-clear-btn:hover, .temp-clear-btn:active{
+    background:rgba(63,169,245,0.28);
+    border-color:#3fa9f5;
+    color:#ffffff;
+  }
+  .temp-select{
+    width:100%;background:transparent !important;border:none !important;color:#ffffff !important;
+    font-family:'JetBrains Mono',monospace;font-size:26px;font-weight:800;outline:none;
+    padding:2px 0;cursor:pointer;
+  }
+  .temp-select option{
+    background:#20252b;color:#ffffff;
+  }
+  .temp-input{
+    width:100%;background:transparent !important;border:1px solid rgba(255,255,255,0.14) !important;border-radius:6px;
+    color:#ffffff !important;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:center;
+    padding:6px 4px;outline:none;margin-top:4px;
+  }
+  .temp-input::placeholder{color:rgba(255,255,255,0.35);}
+  .temp-input:focus{border-color:var(--amber) !important;}
+
+  
+  /* Tire size input boxes with comfortable spacing */
+  .tire-size-boxes{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:8px;
+    width:100%;
+    margin-top:4px;
+    box-sizing:border-box;
+  }
+  .tire-size-boxes .size-seg{
+    flex:1;
+    min-width:0;
+    padding:8px 4px;
+    font-size:14px;
+    font-weight:700;
+    border-radius:8px;
+    border:1px solid #3d4654 !important;
+    background:#161a20 !important;
+    color:#ffffff !important;
+    text-align:center;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,0.4);
+    outline:none;
+    cursor:pointer;
+    transition:border-color .15s ease;
+  }
+  .tire-size-boxes .size-seg:focus, .tire-size-boxes .size-seg:active{
+    border-color:var(--amber) !important;
+  }
+  .tire-size-boxes .lap-sep{
+    font-size:15px;
+    font-weight:800;
+    color:var(--paper-dim);
+    flex-shrink:0;
+    padding:0 3px;
+  }
+
+  .size-preset-select{
+    background:rgba(255,182,39,0.1) !important;border:1px solid var(--amber) !important;border-radius:6px;
+    color:var(--amber) !important;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
+    padding:3px 8px;outline:none;cursor:pointer;white-space:nowrap !important;flex-shrink:0 !important;
+    max-width:130px;text-overflow:ellipsis;
+  }
+  .size-preset-select option{background:#20252b;color:#ffffff;}
+
+  .autocomplete-list{
+    display:none;position:absolute;top:100%;left:0;right:0;z-index:30;
+    background:#20252b;border:1px solid var(--amber);border-radius:8px;
+    margin-top:4px;max-height:160px;overflow-y:auto;
+    box-shadow:0 6px 20px rgba(0,0,0,0.6);
+  }
+  .autocomplete-list.show{display:block;}
+  .autocomplete-item{
+    padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;color:var(--paper);
+    border-bottom:1px solid var(--line);cursor:pointer;
+  }
+  .autocomplete-item:last-child{border-bottom:none;}
+  .autocomplete-item:active{background:rgba(255,182,39,0.25);}
+
+  .field.wide{grid-column:1/3;}
+
+  .laptime-boxes{
+    display:flex;align-items:center;justify-content:center;gap:2px;width:100%;min-width:0;
+  }
+  .lap-seg{
+    width:2em;background:transparent !important;border:1px solid rgba(255,255,255,0.15) !important;border-radius:6px;
+    color:#ffffff !important;font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;text-align:center;
+    padding:5px 0;outline:none;min-width:0;
+  }
+  .lap-seg:focus{border-color:var(--amber) !important;}
+  .lap-seg-3{width:2.8em;}
+  .lap-sep{font-family:'JetBrains Mono',monospace;font-size:16px;font-weight:700;color:var(--paper-dim);flex-shrink:0;}
+
+  .size-seg{
+    background:transparent !important;border:1px solid rgba(255,255,255,0.15) !important;border-radius:6px;
+    color:#ffffff !important;font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;text-align:center;
+    padding:5px 2px;outline:none;flex:1;min-width:0;
+  }
+  .size-seg:focus{border-color:var(--amber) !important;}
+  .size-seg option{background:#20252b;color:#ffffff;}
+
+  .save-btn{
+    width:100%;margin-top:16px;padding:14px 0;border-radius:10px;border:none;
+    background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-weight:600;
+    font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  }
+  .save-btn:active{transform:scale(0.98);}
+  .save-btn-sticky{
+    position:fixed;left:0;right:0;bottom:0;z-index:40;
+    max-width:500px;width:100%;margin:0 auto;
+    padding:10px 14px calc(18px + env(safe-area-inset-bottom, 8px));
+    background:linear-gradient(180deg, rgba(20,23,27,0) 0%, var(--asphalt) 40%);
+  }
+  .save-btn-sticky button{
+    width:100%;padding:14px 0;border-radius:10px;border:none;
+    background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-weight:700;
+    font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+    box-shadow:0 4px 18px rgba(0,0,0,0.4);
+  }
+  .save-btn-sticky button:active{transform:scale(0.98);}
+
+  /* --- Log --- */
+  /* --- Unified Session Card & 4-line layout --- */
+  .log-entry{
+    background:var(--panel);border:1px solid #384252;border-radius:14px;
+    padding:16px 14px 14px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);
+  }
+  .log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #282e38;}
+  .log-date{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--paper);}
+  
+  
+  .session-badge{
+    display:inline-flex;align-items:center;gap:4px;
+    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;
+    padding:2px 7px;border-radius:4px;letter-spacing:.03em;
+  }
+  .session-badge.is-both{
+    background:rgba(229,169,60,0.15);color:#ffda66;border:1px solid rgba(229,169,60,0.4);
+  }
+  .session-badge.is-cold{
+    background:rgba(77,163,255,0.15);color:#70baff;border:1px solid rgba(77,163,255,0.4);
+  }
+  .session-badge.is-hot{
+    background:rgba(255,122,48,0.15);color:#ff9d5c;border:1px solid rgba(255,122,48,0.4);
+  }
+
+  
+  
+  /* History entry action buttons */
+  .edit-btn{
+    background:transparent;
+    border:1px solid #384252;
+    color:#cbd5e1;
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.04em;
+    cursor:pointer;
+    padding:5px 12px;
+    border-radius:6px;
+    transition:all .15s ease;
+  }
+  .edit-btn:hover, .edit-btn:active{
+    border-color:var(--amber);
+    color:var(--amber);
+    background:rgba(229,169,60,0.08);
+  }
+
+  .del-btn{
+    background:transparent;
+    border:1px solid #384252;
+    color:#ff5252; /* 文字だけ赤 */
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:700;
+    letter-spacing:.04em;
+    cursor:pointer;
+    padding:5px 12px;
+    border-radius:6px;
+    transition:all .15s ease;
+  }
+  .del-btn:hover, .del-btn:active{
+    border-color:#ff5252;
+    color:#ff7875;
+    background:rgba(255,82,82,0.08);
+  }
+
+  /* Filter actions stacked & color-coded */
+  .filter-actions-stack{
+    display:flex;
+    flex-direction:column;
+    gap:10px;
+    margin-top:16px;
+    padding-top:14px;
+    border-top:1px solid #2d3542;
+  }
+
+  .reset-filter-btn{
+    width:100%;
+    padding:13px 18px;
+    border-radius:8px;
+    border:1px solid #4a5a70;
+    background:#222b38;
+    color:var(--amber); /* ラベルと同じような黄色 */
+    font-family:'Oswald',sans-serif;
+    font-size:15px;
+    font-weight:700;
+    letter-spacing:.06em;
+    cursor:pointer;
+    box-shadow:0 2px 8px rgba(0,0,0,0.3);
+    transition:all .15s ease;
+    text-align:center;
+  }
+  .reset-filter-btn:hover, .reset-filter-btn:active{
+    background:#2d3a4d;
+    border-color:var(--amber);
+    color:var(--amber);
+  }
+
+  .bulk-del-btn{
+    width:100%;
+    padding:9px 14px;
+    border-radius:8px;
+    border:1px solid rgba(239,68,68,0.45);
+    background:rgba(239,68,68,0.12);
+    color:#ff6b6b;
+    font-family:'JetBrains Mono',monospace;
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.04em;
+    cursor:pointer;
+    transition:all .15s ease;
+    text-align:center;
+  }
+  .bulk-del-btn:hover, .bulk-del-btn:active{
+    background:rgba(239,68,68,0.22);
+    border-color:#ef4444;
+    color:#ff8787;
+  }
+
+  .session-save-mode{
+    background:#161a20;
+    border:1px solid #384252;
+    border-radius:10px;
+    padding:8px 10px;
+    margin-bottom:8px;
+    box-shadow:0 3px 12px rgba(0,0,0,0.5);
+  }
+  .session-save-mode-title{
+    font-family:'JetBrains Mono',monospace;
+    font-size:11px;
+    font-weight:800;
+    color:var(--amber);
+    margin-bottom:6px;
+    letter-spacing:.04em;
+    display:flex;align-items:center;gap:6px;
+  }
+  .session-save-mode-options{
+    display:flex;
+    flex-direction:column;
+    gap:5px;
+  }
+  .session-save-opt{
+    display:flex;
+    align-items:flex-start;
+    gap:8px;
+    background:#1f252e;
+    border:1px solid #2d3542;
+    border-radius:6px;
+    padding:6px 8px;
+    cursor:pointer;
+    transition:all .15s ease;
+  }
+  .session-save-opt.active{
+    background:#2b3442;
+    border-color:var(--amber);
+  }
+  .session-save-opt input[type="radio"]{
+    margin-top:2px;
+    accent-color:var(--amber);
+    width:15px;
+    height:15px;
+    flex-shrink:0;
+    cursor:pointer;
+  }
+  .session-save-opt .opt-label{
+    font-size:12px;
+    font-weight:700;
+    color:#ffffff;
+    line-height:1.3;
+  }
+  .session-save-opt .opt-sub{
+    font-size:11px;
+    color:var(--paper-dim);
+    font-weight:normal;
+    margin-left:4px;
+  }
+
+  .bundle-notice{
+    background:#181d24;border:1px solid rgba(229,169,60,0.4);border-left:3px solid var(--amber);
+    border-radius:6px;padding:8px 10px;margin-bottom:8px;
+    display:flex;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(0,0,0,0.4);
+  }
+
+  .card-view-tabs{
+    display:inline-flex;background:#121519;border:1px solid #333c4a;border-radius:6px;padding:2px;gap:2px;
+  }
+  .card-view-btn{
+    background:transparent;border:none;color:#9aa4b2;font-size:11px;font-weight:700;padding:4px 9px;border-radius:4px;cursor:pointer;transition:all .15s ease;font-family:'Inter',sans-serif;
+  }
+  .card-view-btn.active{
+    background:#2b3442;color:#ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.4);
+  }
+  .card-view-btn.active.is-cold{
+    background:#1b3854;color:#70baff;
+  }
+  .card-view-btn.active.is-hot{
+    background:#4a2817;color:#ff9d5c;
+  }
+
+  .log-info-grid{
+    display:flex;flex-direction:column;gap:8px;
+    background:#16191e;border:1px solid #2d3440;border-radius:10px;
+    padding:12px 14px;margin-bottom:12px;
+  }
+  .log-info-row{
+    display:flex;align-items:baseline;flex-wrap:wrap;gap:12px 18px;
+    font-size:15px;line-height:1.45;
+    border-bottom:1px dashed rgba(255,255,255,0.06);padding-bottom:6px;
+  }
+  .log-info-row:last-child{
+    border-bottom:none;padding-bottom:0;
+  }
+  .info-tag{
+    display:inline-flex;align-items:baseline;gap:6px;
+  }
+  .info-tag .lbl{
+    color:var(--amber);font-weight:800;font-size:13px;letter-spacing:.02em;white-space:nowrap;
+  }
+  .info-tag .val-lg{
+    color:#ffffff;font-weight:700;font-size:16px;font-family:'Inter',sans-serif;
+  }
+  .info-tag .val-lg.mono{
+    font-family:'JetBrains Mono',monospace;font-size:16px;
+  }
+  .info-tag .val-lg.highlight{
+    color:#ffda66;font-weight:800;
+  }
+
+  .log-pressures-block{
+    display:flex;flex-direction:column;gap:8px;margin-bottom:10px;
+  }
+  .log-pressure-row{
+    background:#222731;border:1px solid #384252;border-radius:8px;padding:8px 10px;
+  }
+  .log-pressure-row.is-cold{border-left:4px solid var(--cold);}
+  .log-pressure-row.is-hot{border-left:4px solid var(--hot);}
+  .log-pressure-title{
+    display:flex;justify-content:space-between;align-items:center;
+    font-family:'JetBrains Mono',monospace;font-size:13px;font-weight:800;letter-spacing:.05em;margin-bottom:6px;
+  }
+  .log-pressure-title.cold-title{color:var(--cold);}
+  .log-pressure-title.hot-title{color:var(--hot);}
+  .log-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;}
+  .log-corner{background:#16191e;border-radius:6px;padding:8px 2px;}
+  .log-corner .lbl{font-size:12px;font-weight:800;color:var(--amber);font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+  .log-corner .val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:#ffffff;}
+  .log-corner .delta{font-size:12px;font-weight:800;color:var(--hot);margin-top:2px;font-family:'JetBrains Mono',monospace;}
+  .log-empty-hint{
+    font-size:12px;color:var(--paper-dim);padding:8px;text-align:center;background:#16191e;border-radius:6px;
+  }
+  .log-note{
+    margin-top:8px;padding:8px 10px;background:#16191e;border-left:3px solid var(--amber);
+    border-radius:4px;font-size:13px;color:#d0d5dc;
+  }
+
+
+
+  .migration-note{
+    margin-top:28px;padding:10px 12px;font-size:11px;line-height:1.6;
+    color:var(--paper-dim);opacity:.7;text-align:center;cursor:pointer;
+    border-top:1px dashed var(--line);
+  }
+  .empty{
+    text-align:center;padding:40px 20px;color:var(--paper-dim);font-family:'JetBrains Mono',monospace;font-size:13px;
+  }
+  .toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--amber);color:#1a1400;padding:10px 20px;border-radius:8px;
+    font-family:'Oswald',sans-serif;font-size:13px;font-weight:600;letter-spacing:.04em;
+    opacity:0;pointer-events:none;transition:opacity .25s ease, transform .25s ease;
+    z-index:50;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
+
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="eyebrow"><span>PIT WALL LOG v1.00</span><span id="entryCount">0 SESSIONS</span></div>
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+    <h1>TPSync</h1>
+    <div style="display:flex;gap:6px;flex-shrink:0;">
+      <button class="topbar-csv-btn topbar-sync-btn" onclick="quickCloudSync()" title="クラウドと同期・最新データに更新"><span class="sync-btn-icon">🔄</span></button>
+      <button class="topbar-csv-btn" onclick="exportCSV()">CSV</button>
+      <button class="topbar-csv-btn" onclick="copyCSVToClipboard()">COPY</button>
+      <button class="topbar-csv-btn" onclick="openMigration()">⇄</button>
+    </div>
+  </div>
+  <div class="sub">冷間・温間圧力 / 気温・路面温度トラッキング</div>
+  <button type="button" class="data-guide-bar-btn" onclick="openDataGuideModal()">
+    📖 ご利用方法・共同利用・データ共有ガイド
+  </button>
+  <div class="car-selector-row">
+    <select id="carSelector" class="car-selector" onchange="handleCarSelectorChange()"></select>
+    <button class="topbar-csv-btn" onclick="openCarManager()">車両管理</button>
+  </div>
+</div>
+
+<div class="wrap">
+
+  <div class="car-card">
+    <div class="mode-toggle">
+      <button class="mode-btn active" data-mode="cold" onclick="setMode('cold')">冷間 COLD</button>
+      <button class="mode-btn" data-mode="hot" onclick="setMode('hot')">温間 HOT</button>
+    </div>
+
+    <div class="car-diagram">
+      <div class="front-label">FRONT</div>
+      <div class="corner" id="corner-FL">
+        <div class="label">FRONT LEFT<span class="sub-code">(FL)</span></div>
+        <select class="value-select" id="FL-select"></select>
+        <div class="unit">kPa</div>
+        <input type="number" step="0.1" inputmode="decimal" class="value-input" id="FL" placeholder="手入力">
+      </div>
+      <div class="silhouette">
+        <svg viewBox="0 0 60 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="8" y="20" width="44" height="94" rx="14" stroke="#9aa0a8" stroke-width="1.5"/>
+          <path d="M16 34 L44 34 L40 20 L20 20 Z" stroke="#9aa0a8" stroke-width="1.2"/>
+          <path d="M17 96 L43 96 L46 114 L14 114 Z" stroke="#9aa0a8" stroke-width="1.2"/>
+          <line x1="30" y1="38" x2="30" y2="96" stroke="#9aa0a8" stroke-width="1" stroke-dasharray="2 3"/>
+          <rect x="2" y="30" width="6" height="18" rx="2" fill="#9aa0a8" opacity="0.6"/>
+          <rect x="52" y="30" width="6" height="18" rx="2" fill="#9aa0a8" opacity="0.6"/>
+          <rect x="2" y="82" width="6" height="18" rx="2" fill="#9aa0a8" opacity="0.6"/>
+          <rect x="52" y="82" width="6" height="18" rx="2" fill="#9aa0a8" opacity="0.6"/>
+        </svg>
+      </div>
+      <div class="corner" id="corner-FR">
+        <div class="label">FRONT RIGHT<span class="sub-code">(FR)</span></div>
+        <select class="value-select" id="FR-select"></select>
+        <div class="unit">kPa</div>
+        <input type="number" step="0.1" inputmode="decimal" class="value-input" id="FR" placeholder="手入力">
+      </div>
+
+      <div class="corner" id="corner-RL">
+        <div class="label">REAR LEFT<span class="sub-code">(RL)</span></div>
+        <select class="value-select" id="RL-select"></select>
+        <div class="unit">kPa</div>
+        <input type="number" step="0.1" inputmode="decimal" class="value-input" id="RL" placeholder="手入力">
+      </div>
+      <div class="corner" id="corner-RR">
+        <div class="label">REAR RIGHT<span class="sub-code">(RR)</span></div>
+        <select class="value-select" id="RR-select"></select>
+        <div class="unit">kPa</div>
+        <input type="number" step="0.1" inputmode="decimal" class="value-input" id="RR" placeholder="手入力">
+      </div>
+      <div class="rear-label">REAR</div>
+    </div>
+  </div>
+
+  <div class="section-title">条件 / CONDITIONS</div>
+  <div class="grid2">
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">気温</label>
+        <button type="button" class="temp-clear-btn" onclick="clearTemp('ambientTemp')" title="クリア">クリア</button>
+      </div>
+      <select class="temp-select" id="ambientTemp-select"></select>
+      <input type="number" step="0.5" class="temp-input" id="ambientTemp" placeholder="手入力" oninput="onTempInput('ambientTemp')">
+    </div>
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">路面温度</label>
+        <button type="button" class="temp-clear-btn" onclick="clearTemp('trackTemp')" title="クリア">クリア</button>
+      </div>
+      <select class="temp-select" id="trackTemp-select"></select>
+      <input type="number" step="0.5" class="temp-input" id="trackTemp" placeholder="手入力" oninput="onTempInput('trackTemp')">
+    </div>
+    <div class="field field-dark">
+      <label>路面状態</label>
+      <select id="condition">
+        <option value="Dry">ドライ</option>
+        <option value="HalfWet">ハーフウェット</option>
+        <option value="Wet">ウェット</option>
+        <option value="BabyWet">ベビーウェット</option>
+      </select>
+    </div>
+    <div class="field field-dark" style="position:relative;">
+      <label>場所</label>
+      <input type="text" id="track" placeholder="例: Autopolis" autocomplete="off">
+      <div class="autocomplete-list" id="track-suggest"></div>
+    </div>
+    <div class="field" style="position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">フロント銘柄</label>
+        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+      </div>
+      <input type="text" id="tireBrandFront" placeholder="例: RE-71RS" autocomplete="off">
+      <div class="autocomplete-list" id="tireBrandFront-suggest"></div>
+    </div>
+    <div class="field" style="position:relative;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">リア銘柄</label>
+        <button type="button" class="temp-clear-btn" onclick="clearTireBrand()" title="クリア">クリア</button>
+      </div>
+      <input type="text" id="tireBrandRear" placeholder="例: RE-71RS" autocomplete="off">
+      <div class="autocomplete-list" id="tireBrandRear-suggest"></div>
+    </div>
+    <div class="field wide field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+        <label style="margin-bottom:0;">フロント サイズ</label>
+        <select id="presetSizeFront" class="size-preset-select" onchange="applySizePreset('Front', this.value); this.value='';" style="display:none;"></select>
+      </div>
+      <div class="tire-size-boxes">
+        <select id="sizeFrontWidth" class="size-seg"></select>
+        <span class="lap-sep">/</span>
+        <select id="sizeFrontAspect" class="size-seg"></select>
+        <span class="lap-sep">R</span>
+        <select id="sizeFrontDiam" class="size-seg"></select>
+      </div>
+    </div>
+    <div class="field wide field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:4px;">
+        <label style="margin-bottom:0;">リア サイズ</label>
+        <select id="presetSizeRear" class="size-preset-select" onchange="applySizePreset('Rear', this.value); this.value='';" style="display:none;"></select>
+      </div>
+      <div class="tire-size-boxes">
+        <select id="sizeRearWidth" class="size-seg"></select>
+        <span class="lap-sep">/</span>
+        <select id="sizeRearAspect" class="size-seg"></select>
+        <span class="lap-sep">R</span>
+        <select id="sizeRearDiam" class="size-seg"></select>
+      </div>
+    </div>
+    <div class="field">
+      <label>ラップタイム</label>
+      <div class="laptime-boxes">
+        <input type="text" id="lapMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+        <span class="lap-sep">:</span>
+        <input type="text" id="lapSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00">
+        <span class="lap-sep">.</span>
+        <input type="text" id="lapHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000">
+      </div>
+    </div>
+    <div class="field">
+      <label>体感</label>
+      <select id="feel">
+        <option value="">選択</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="E">E</option>
+      </select>
+    </div>
+    <div class="field wide field-dark">
+      <label>メモ</label>
+      <textarea id="notes" placeholder="セットアップメモなど"></textarea>
+    </div>
+  </div>
+
+  <div class="filter-toggle-btn" id="filterToggle" onclick="toggleFilterPanel()">
+    <span class="ft-label">絞り込み / FILTER</span>
+    <span id="filterToggleIcon">▸</span>
+  </div>
+  <div id="filterSummary" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--paper-dim);margin-bottom:6px;"></div>
+  <div id="filterPanelBody" style="display:none;">
+  <div class="grid2">
+    <div class="field field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">場所</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('track')" title="クリア">クリア</button>
+      </div>
+      <select id="filterTrack" onchange="applyFilters()">
+        <option value="">すべて</option>
+      </select>
+    </div>
+
+    <div class="field field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">路面状態</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('condition')" title="クリア">クリア</button>
+      </div>
+      <select id="filterCondition" onchange="applyFilters()">
+        <option value="">すべて</option>
+        <option value="Dry">ドライ</option>
+        <option value="HalfWet">ハーフウェット</option>
+        <option value="Wet">ウェット</option>
+        <option value="BabyWet">ベビーウェット</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">気温 上限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tempMax')" title="クリア">クリア</button>
+      </div>
+      <select class="temp-select" id="filterTempMax-select"></select>
+      <input type="number" step="0.5" class="temp-input" id="filterTempMax" placeholder="手入力" oninput="onTempInput('filterTempMax'); applyFilters();">
+    </div>
+
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">気温 下限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tempMin')" title="クリア">クリア</button>
+      </div>
+      <select class="temp-select" id="filterTempMin-select"></select>
+      <input type="number" step="0.5" class="temp-input" id="filterTempMin" placeholder="手入力" oninput="onTempInput('filterTempMin'); applyFilters();">
+    </div>
+
+    <div class="field field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">タイヤ銘柄</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tireBrand')" title="クリア">クリア</button>
+      </div>
+      <select id="filterTireBrand" onchange="applyFilters()">
+        <option value="">すべて</option>
+      </select>
+    </div>
+
+    <div class="field field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">体感</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('feel')" title="クリア">クリア</button>
+      </div>
+      <select id="filterFeel" onchange="applyFilters()">
+        <option value="">すべて</option>
+        <option value="A">A</option>
+        <option value="B">B</option>
+        <option value="C">C</option>
+        <option value="D">D</option>
+        <option value="E">E</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">タイム 上限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMax')" title="クリア">クリア</button>
+      </div>
+      <div class="laptime-boxes">
+        <input type="text" id="filterLapMaxMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+        <span class="lap-sep">:</span>
+        <input type="text" id="filterLapMaxSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+        <span class="lap-sep">.</span>
+        <input type="text" id="filterLapMaxHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
+      </div>
+    </div>
+
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">タイム 下限</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMin')" title="クリア">クリア</button>
+      </div>
+      <div class="laptime-boxes">
+        <input type="text" id="filterLapMinMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+        <span class="lap-sep">:</span>
+        <input type="text" id="filterLapMinSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+        <span class="lap-sep">.</span>
+        <input type="text" id="filterLapMinHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
+      </div>
+    </div>
+
+    <div class="field wide field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+        <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">フロント タイヤサイズ</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeFront')" title="クリア">クリア</button>
+          <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';"></select>
+        </div>
+      </div>
+      <div class="tire-size-boxes">
+        <select id="filterSizeFrontWidth" class="size-seg" onchange="applyFilters()"></select>
+        <span class="lap-sep">/</span>
+        <select id="filterSizeFrontAspect" class="size-seg" onchange="applyFilters()"></select>
+        <span class="lap-sep">R</span>
+        <select id="filterSizeFrontDiam" class="size-seg" onchange="applyFilters()"></select>
+      </div>
+    </div>
+
+    <div class="field wide field-dark">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
+        <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">リア タイヤサイズ</label>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeRear')" title="クリア">クリア</button>
+          <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';"></select>
+        </div>
+      </div>
+      <div class="tire-size-boxes">
+        <select id="filterSizeRearWidth" class="size-seg" onchange="applyFilters()"></select>
+        <span class="lap-sep">/</span>
+        <select id="filterSizeRearAspect" class="size-seg" onchange="applyFilters()"></select>
+        <span class="lap-sep">R</span>
+        <select id="filterSizeRearDiam" class="size-seg" onchange="applyFilters()"></select>
+      </div>
+    </div>
+
+    <div class="field wide">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label style="margin-bottom:0;">メモ検索</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterField('notes')" title="クリア">クリア</button>
+      </div>
+      <input type="text" id="filterNotes" oninput="applyFilters()" placeholder="キーワード">
+    </div>
+  </div>
+  <div class="filter-actions-stack">
+    <button type="button" class="reset-filter-btn" onclick="resetFilters()">絞り込みリセット / RESET</button>
+    <button type="button" class="bulk-del-btn" onclick="bulkDeleteFiltered()">絞り込み結果を一括削除</button>
+  </div>
+  </div>
+
+  <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 10px;gap:8px;">
+    <div class="section-title" style="margin:0;">履歴 / SESSION LOG</div>
+    <button type="button" class="history-sync-btn" onclick="quickCloudSync()" title="スプレッドシートから最新データを取得">
+      <span class="sync-btn-icon">🔄</span> 最新に更新
+    </button>
+  </div>
+  <div id="logList"></div>
+
+  <div class="migration-note" onclick="openMigration()">
+    📱 機種変更するときは、右上の「⇄」からバックアップを保存し、新しい端末で復元するとデータを引き継げます。
+  </div>
+
+</div>
+
+<div class="save-btn-sticky">
+  <div id="bundleNoticeContainer" style="display:none;"></div>
+  <button onclick="saveEntry()" id="saveEntryBtn">記録する / LOG ENTRY</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+let currentMode = 'cold';
+let entries = [];
+let currentFilteredEntries = [];
+const STORE_KEY = 'tire_pressure_entries';
+const CAR_LIST_KEY = 'tire_pressure_cars';
+const CURRENT_CAR_KEY = 'tire_pressure_current_car';
+let carList = [];
+let currentCar = '';
+
+function persistCars(){
+  localStorage.setItem(CAR_LIST_KEY, JSON.stringify(carList));
+  localStorage.setItem(CURRENT_CAR_KEY, currentCar);
+}
+
+function initCars(){
+  try{
+    const rawList = localStorage.getItem(CAR_LIST_KEY);
+    carList = rawList ? JSON.parse(rawList) : [];
+  }catch(e){
+    carList = [];
+  }
+  currentCar = localStorage.getItem(CURRENT_CAR_KEY) || '';
+
+  if(carList.length === 0){
+    carList = ['マイカー'];
+    currentCar = 'マイカー';
+    persistCars();
+  }
+  if(!carList.includes(currentCar)){
+    currentCar = carList[0];
+    persistCars();
+  }
+
+  // 既存データ（車両未設定）を最初の車両に自動で割り当てる
+  let migrated = false;
+  entries.forEach(e=>{
+    if(!e.car){
+      e.car = carList[0];
+      migrated = true;
+    }
+  });
+  if(migrated){
+    persistEntries();
+  }
+}
+
+function getCarEntries(){
+  const targetCar = currentCar || 'マイカー';
+  return entries.filter(e => (e.car || 'マイカー') === targetCar);
+}
+
+function renderCarSelector(){
+  const sel = document.getElementById('carSelector');
+  sel.innerHTML = carList.map(c => `<option value="${c}"${c===currentCar?' selected':''}>🚗 ${c}</option>`).join('');
+}
+
+function handleCarSelectorChange(){
+  currentCar = document.getElementById('carSelector').value;
+  persistCars();
+  updateTrackFilterOptions();
+  restoreLastSessionDefaults(false);
+  restorePressuresForMode(currentMode);
+  applyFilters();
+  updateSessionBundleNotice();
+}
+
+function openCarManager(){
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1b1f24;border:1px solid #2b3038;border-radius:12px;padding:16px;max-width:480px;width:100%;';
+
+  const title = document.createElement('div');
+  title.textContent = '車両管理';
+  title.style.cssText = "color:#e9e6df;font-family:'Oswald',sans-serif;font-size:15px;font-weight:600;margin-bottom:6px;";
+
+  const tipBox = document.createElement('div');
+  tipBox.style.cssText = 'background:#262c36;border:1px solid #384252;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#cbd5e1;line-height:1.6;';
+  tipBox.innerHTML = '<strong>💡 チーム共有・シェア時の使い分け</strong><br>' +
+    '・<strong>1台を複数人で乗る場合（耐久など）</strong>：全員で<strong>全く同じ車両名</strong>（例: <code>GR86-耐久号</code>）に設定すると、別々のスマホで測った冷間・温間が12時間以内なら1つのカードに自動統合されます。<br>' +
+    '・<strong>各自が別々の車で走る場合</strong>：<code>ロードスター_佐藤</code> のように名前を付けると、走行データが混ざらず別々に管理できます。';
+
+  const list = document.createElement('div');
+  carList.forEach(car=>{
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+
+    const name = document.createElement('div');
+    name.textContent = (car === currentCar ? '🚗 ' : '　') + car;
+    name.style.cssText = "flex:1;color:#e9e6df;font-family:'Inter',sans-serif;font-size:14px;";
+
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = '名前変更';
+    renameBtn.style.cssText = 'background:transparent;border:1px solid #2b3038;color:#9aa0a8;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;';
+    renameBtn.onclick = ()=>{
+      const newName = prompt('新しい車両名を入力してください', car);
+      if(newName && newName.trim()){
+        const trimmed = newName.trim();
+        if(trimmed === car) return;
+        if(carList.includes(trimmed)){
+          const proceed = confirm(
+            `⚠️【注意】「${trimmed}」は既に登録されています。
+
+` +
+            `この名称に変更すると、既存の「${trimmed}」とデータが1つの車両に統合されます。よろしいですか？`
+          );
+          if(!proceed) return;
+          entries.forEach(e=>{ if(e.car === car) e.car = trimmed; });
+          carList = carList.filter(c => c !== car);
+          if(currentCar === car) currentCar = trimmed;
+        } else {
+          entries.forEach(e=>{ if(e.car === car) e.car = trimmed; });
+          carList = carList.map(c => c === car ? trimmed : c);
+          if(currentCar === car) currentCar = trimmed;
+        }
+        persistEntries();
+        persistCars();
+        document.body.removeChild(overlay);
+        renderCarSelector();
+        updateTrackFilterOptions();
+        applyFilters();
+        showToast('車両名を変更しました');
+      }
+    };
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '削除';
+    delBtn.style.cssText = 'background:transparent;border:1px solid var(--danger);color:#ff5a2e;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;';
+    delBtn.onclick = ()=>{
+      if(carList.length <= 1){
+        showToast('最後の1台は削除できません');
+        return;
+      }
+      const carEntryCount = entries.filter(e => e.car === car).length;
+      if(confirm(`「${car}」とその記録${carEntryCount}件を削除します。よろしいですか？`)){
+        entries = entries.filter(e => e.car !== car);
+        carList = carList.filter(c => c !== car);
+        if(currentCar === car) currentCar = carList[0];
+        persistEntries();
+        persistCars();
+        document.body.removeChild(overlay);
+        renderCarSelector();
+        updateTrackFilterOptions();
+        applyFilters();
+        showToast('車両を削除しました');
+      }
+    };
+
+    row.appendChild(name);
+    row.appendChild(renameBtn);
+    row.appendChild(delBtn);
+    list.appendChild(row);
+  });
+
+  const addForm = document.createElement('div');
+  addForm.id = 'addCarInlineForm';
+  addForm.style.cssText = 'display:none;background:#20252b;border:1px solid #384252;border-radius:8px;padding:12px;margin-top:10px;';
+  addForm.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      ＋ 新規車両の登録
+    </div>
+    <input type="text" id="newCarInput" placeholder="例: GR86-耐久号 または ロードスター_佐藤" style="width:100%;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:13px;box-sizing:border-box;outline:none;margin-bottom:6px;">
+    <div id="carInputNotice" style="display:none;font-size:11px;line-height:1.5;padding:6px 10px;border-radius:6px;margin-bottom:8px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" id="submitAddCarBtn" style="flex:1;padding:8px 0;background:var(--amber);color:#1a1400;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:12px;">登録する</button>
+      <button type="button" id="cancelAddCarBtn" style="padding:8px 12px;background:transparent;color:#94a3b8;border:1px solid #384252;border-radius:6px;cursor:pointer;font-size:12px;">戻る</button>
+    </div>
+  `;
+
+  const inputEl = addForm.querySelector('#newCarInput');
+  const noticeEl = addForm.querySelector('#carInputNotice');
+  const submitBtn = addForm.querySelector('#submitAddCarBtn');
+
+  inputEl.oninput = () => {
+    const val = inputEl.value.trim();
+    if(!val){
+      noticeEl.style.display = 'none';
+      submitBtn.textContent = '登録する';
+      submitBtn.style.background = 'var(--amber)';
+      return;
+    }
+    if(carList.includes(val)){
+      noticeEl.style.display = 'block';
+      noticeEl.style.background = 'rgba(255,182,39,0.12)';
+      noticeEl.style.border = '1px solid rgba(255,182,39,0.4)';
+      noticeEl.style.color = '#fef08a';
+      noticeEl.innerHTML = `⚠️ <strong>注意: 「${val}」は既に登録されています</strong><br>` +
+        `・<strong>1台を複数人でシェアする場合</strong>：このまま登録（選択）してOKです（同一車両として冷温間が自動統合されます）。<br>` +
+        `・<strong>別々の車として分ける場合</strong>：「${val}_佐藤」のようにドライバー名を付けて区別してください。`;
+      submitBtn.textContent = `「${val}」を選択（同一車両として共有）`;
+      submitBtn.style.background = '#eab308';
+    } else {
+      noticeEl.style.display = 'block';
+      noticeEl.style.background = 'rgba(74,222,128,0.1)';
+      noticeEl.style.border = '1px solid rgba(74,222,128,0.3)';
+      noticeEl.style.color = '#86efac';
+      noticeEl.innerHTML = `✔ 新しい車両名です（個別の車両として新規追加されます）`;
+      submitBtn.textContent = '登録して選択';
+      submitBtn.style.background = 'var(--amber)';
+    }
+  };
+
+  submitBtn.onclick = () => {
+    const val = inputEl.value.trim();
+    if(!val){
+      alert('車両名を入力してください');
+      return;
+    }
+    if(carList.includes(val)){
+      currentCar = val;
+      persistCars();
+      document.body.removeChild(overlay);
+      renderCarSelector();
+      updateTrackFilterOptions();
+      applyFilters();
+      showToast(`「${val}」を選択しました（同一車両として共有）`);
+    } else {
+      carList.push(val);
+      currentCar = val;
+      persistCars();
+      document.body.removeChild(overlay);
+      renderCarSelector();
+      updateTrackFilterOptions();
+      applyFilters();
+      showToast(`「${val}」を新規登録しました`);
+    }
+  };
+
+  const addBtn = document.createElement('button');
+  addBtn.textContent = '＋ 新しい車両を追加';
+  addBtn.style.cssText = 'width:100%;margin-top:6px;padding:12px 0;border-radius:8px;border:none;background:#ffb627;color:#1a1400;font-weight:600;cursor:pointer;';
+  addBtn.onclick = ()=>{
+    addBtn.style.display = 'none';
+    addForm.style.display = 'block';
+    inputEl.value = '';
+    inputEl.focus();
+    inputEl.oninput();
+  };
+
+  addForm.querySelector('#cancelAddCarBtn').onclick = () => {
+    addForm.style.display = 'none';
+    addBtn.style.display = 'block';
+  };
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '閉じる';
+  closeBtn.style.cssText = 'width:100%;margin-top:8px;padding:10px 0;border-radius:8px;border:1px solid #2b3038;background:transparent;color:#9aa0a8;cursor:pointer;';
+  closeBtn.onclick = () => document.body.removeChild(overlay);
+
+  box.appendChild(title);
+  box.appendChild(tipBox);
+  box.appendChild(list);
+  box.appendChild(addForm);
+  box.appendChild(addBtn);
+  box.appendChild(closeBtn);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+}
+function getCornerValue(c){
+  const inputVal = document.getElementById(c).value;
+  if(inputVal !== '') return parseFloat(inputVal);
+  const selVal = document.getElementById(c+'-select').value;
+  return selVal !== '' ? parseFloat(selVal) : NaN;
+}
+
+function checkBalance(){
+  const THRESHOLD = currentMode === 'hot' ? 30 : 15;
+  const fl = getCornerValue('FL');
+  const fr = getCornerValue('FR');
+  const rl = getCornerValue('RL');
+  const rr = getCornerValue('RR');
+
+  const frontImbalanced = !isNaN(fl) && !isNaN(fr) && Math.abs(fl - fr) >= THRESHOLD;
+  const rearImbalanced = !isNaN(rl) && !isNaN(rr) && Math.abs(rl - rr) >= THRESHOLD;
+
+  document.getElementById('corner-FL').classList.toggle('flagged', frontImbalanced);
+  document.getElementById('corner-FR').classList.toggle('flagged', frontImbalanced);
+  document.getElementById('corner-RL').classList.toggle('flagged', rearImbalanced);
+  document.getElementById('corner-RR').classList.toggle('flagged', rearImbalanced);
+}
+
+function buildRangeOptions(selectEl, min, max, step, unit, base, placeholder = ''){
+  let html = '';
+  if(placeholder){
+    html += `<option value=""${base === null || base === '' ? ' selected' : ''}>${placeholder}</option>`;
+  }
+  let v = min;
+  while(v < max){
+    const sel = (v === base) ? ' selected' : '';
+    html += `<option value="${v}"${sel}>${v}${unit}</option>`;
+    v += step;
+  }
+  const selMax = (max === base) ? ' selected' : '';
+  html += `<option value="${max}"${selMax}>${max}${unit}</option>`;
+  selectEl.innerHTML = html;
+}
+
+function buildTempRangeOptions(selectEl, min, max, unit){
+  let html = '<option value="" selected>選択</option>';
+  for(let v = min; v <= max; v++){
+    html += `<option value="${v}">${v}${unit}</option>`;
+  }
+  html += '<option value="">選択してください（未設定）</option>';
+  selectEl.innerHTML = html;
+}
+
+function setupTempPicker(selId, inputId, min, max, onChangeCallback){
+  const sel = document.getElementById(selId);
+  const input = document.getElementById(inputId);
+  if(!sel || !input) return;
+  buildTempRangeOptions(sel, min, max, '℃');
+  sel.value = '';
+
+  // When tapping while empty, pre-select 20C so the native picker/wheel opens centered on 20C!
+  const onTempTap = () => {
+    if(sel.value === ''){
+      sel.value = '20';
+    }
+  };
+  sel.addEventListener('pointerdown', onTempTap);
+  sel.addEventListener('touchstart', onTempTap, {passive: true});
+  sel.addEventListener('mousedown', onTempTap);
+
+  sel.addEventListener('change', () => {
+    if(sel.value !== ''){
+      input.value = '';
+    }
+    if(onChangeCallback) onChangeCallback();
+  });
+}
+
+function setupQuickSelects(){
+  ['FL','FR','RL','RR'].forEach(c=>{
+    const sel = document.getElementById(c+'-select');
+    buildRangeOptions(sel, 100, 600, 5, '', 200);
+    sel.value = '200';
+    sel.addEventListener('change', checkBalance);
+    const input = document.getElementById(c);
+    input.value = '';
+    input.addEventListener('focus', ()=>{ input.value = ''; });
+    input.addEventListener('input', checkBalance);
+  });
+  checkBalance();
+
+  setupTempPicker('ambientTemp-select', 'ambientTemp', -10, 50);
+  setupTempPicker('trackTemp-select', 'trackTemp', -10, 75);
+}
+setupQuickSelects();
+
+let tireSizeLinked = true;
+
+function buildTireSize(prefix){
+  const w = document.getElementById(`size${prefix}Width`).value;
+  const a = document.getElementById(`size${prefix}Aspect`).value;
+  const d = document.getElementById(`size${prefix}Diam`).value;
+  if(!w || !a || !d) return null;
+  return `${w}/${a}R${d}`;
+}
+
+function mirrorFrontSizeToRear(){
+  if(!tireSizeLinked) return;
+  document.getElementById('sizeRearWidth').value = document.getElementById('sizeFrontWidth').value;
+  document.getElementById('sizeRearAspect').value = document.getElementById('sizeFrontAspect').value;
+  document.getElementById('sizeRearDiam').value = document.getElementById('sizeFrontDiam').value;
+}
+
+function setupTireSizeSelects(){
+  buildRangeOptions(document.getElementById('sizeFrontWidth'), 125, 405, 10, '', 215);
+  buildRangeOptions(document.getElementById('sizeFrontAspect'), 20, 85, 5, '', 45);
+  buildRangeOptions(document.getElementById('sizeFrontDiam'), 10, 26, 1, '', 17);
+  buildRangeOptions(document.getElementById('sizeRearWidth'), 125, 405, 10, '', 215);
+  buildRangeOptions(document.getElementById('sizeRearAspect'), 20, 85, 5, '', 45);
+  buildRangeOptions(document.getElementById('sizeRearDiam'), 10, 26, 1, '', 17);
+
+  ['sizeFrontWidth','sizeFrontAspect','sizeFrontDiam'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', mirrorFrontSizeToRear);
+  });
+  ['sizeRearWidth','sizeRearAspect','sizeRearDiam'].forEach(id=>{
+    document.getElementById(id).addEventListener('change', ()=>{ tireSizeLinked = false; });
+  });
+}
+setupTireSizeSelects();
+
+
+
+function buildFilterRangeOptions(selectEl, min, max, step, unit){
+  let html = '<option value="">すべて</option>';
+  let v = min;
+  while(v < max){
+    html += `<option value="${v}">${v}${unit}</option>`;
+    v += step;
+  }
+  html += `<option value="${max}">${max}${unit}</option>`;
+  selectEl.innerHTML = html;
+}
+
+function setupFilterFields(){
+  setupTempPicker('filterTempMax-select', 'filterTempMax', -10, 50, applyFilters);
+  setupTempPicker('filterTempMin-select', 'filterTempMin', -10, 50, applyFilters);
+
+  ['Front', 'Rear'].forEach(prefix => {
+    buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
+    buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Aspect`), 20, 85, 5, '');
+    buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Diam`), 10, 26, 1, '');
+  });
+}
+setupFilterFields();
+
+function buildTimeFromBoxes(minId, secId, hundId){
+  const min = document.getElementById(minId).value;
+  const sec = document.getElementById(secId).value;
+  const hund = document.getElementById(hundId).value;
+  if(min === '' && sec === '' && hund === '') return null;
+  const m = (min || '0').padStart(2,'0');
+  const s = (sec || '0').padStart(2,'0');
+  const h = (hund || '0').padStart(3,'0');
+  return `${m}:${s}.${h}`;
+}
+
+function buildLapTime(){
+  return buildTimeFromBoxes('lapMin', 'lapSec', 'lapHund');
+}
+
+function setupTimeBoxes(minId, secId, hundId, onInput){
+  const min = document.getElementById(minId);
+  const sec = document.getElementById(secId);
+  const hund = document.getElementById(hundId);
+
+  function digitsOnly(el, maxLen){
+    el.value = el.value.replace(/[^0-9]/g, '').slice(0, maxLen);
+  }
+
+  min.addEventListener('input', ()=>{
+    digitsOnly(min, 2);
+    if(min.value.length === 2) sec.focus();
+    if(onInput) onInput();
+  });
+  sec.addEventListener('input', ()=>{
+    digitsOnly(sec, 2);
+    if(sec.value.length === 2) hund.focus();
+    if(onInput) onInput();
+  });
+  hund.addEventListener('input', ()=>{
+    digitsOnly(hund, 3);
+    if(onInput) onInput();
+  });
+
+  min.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); sec.focus(); } });
+  sec.addEventListener('keydown', (e)=>{ if(e.key === 'Enter'){ e.preventDefault(); hund.focus(); } });
+
+  [min, sec, hund].forEach(el => el.addEventListener('focus', ()=> el.select()));
+}
+
+setupTimeBoxes('lapMin', 'lapSec', 'lapHund');
+setupTimeBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund', applyFilters);
+setupTimeBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund', applyFilters);
+
+function setCornerPressure(c, val){
+  if(val === null || val === undefined || isNaN(val)) return;
+  const num = parseFloat(val);
+  const sel = document.getElementById(c + '-select');
+  const input = document.getElementById(c);
+  if(num >= 100 && num <= 600 && num % 5 === 0){
+    sel.value = String(num);
+    input.value = '';
+  } else {
+    sel.value = '200';
+    input.value = String(num);
+  }
+}
+
+
+function parseSizeString(str){
+  if(!str) return null;
+  const m = String(str).match(/^(\d+)\/(\d+)R(\d+)$/);
+  if(!m) return null;
+  return { width: m[1], aspect: m[2], diam: m[3] };
+}
+
+function restoreLastSessionDefaults(force = false){
+  const carEntries = getCarEntries();
+  const myDeviceId = getDeviceId();
+  // 1. 共有利用時でも「この端末自身で最後に記録した情報」を最優先で復元
+  let latest = carEntries.find(e => e.deviceId && e.deviceId === myDeviceId);
+  // 2. この端末での記録がまだ無ければ、他端末を含む最新セッションから取得
+  if(!latest){
+    latest = carEntries.length > 0 ? carEntries[0] : (entries.length > 0 ? entries[0] : null);
+  }
+  if(!latest) return;
+
+  const trackEl = document.getElementById('track');
+  if(latest.track && (force || !trackEl.value)){
+    trackEl.value = latest.track;
+  }
+  const tbfEl = document.getElementById('tireBrandFront');
+  if(latest.tireBrandFront && (force || !tbfEl.value)){
+    tbfEl.value = latest.tireBrandFront;
+  }
+  const tbrEl = document.getElementById('tireBrandRear');
+  if(latest.tireBrandRear && (force || !tbrEl.value)){
+    tbrEl.value = latest.tireBrandRear;
+  }
+  if(latest.sizeFront && (force || !document.getElementById('sizeFrontWidth').value)){
+    const sf = parseSizeString(latest.sizeFront);
+    if(sf){
+      document.getElementById('sizeFrontWidth').value = sf.width;
+      document.getElementById('sizeFrontAspect').value = sf.aspect;
+      document.getElementById('sizeFrontDiam').value = sf.diam;
+    }
+  }
+  if(latest.sizeRear && (force || !document.getElementById('sizeRearWidth').value)){
+    const sr = parseSizeString(latest.sizeRear);
+    if(sr){
+      document.getElementById('sizeRearWidth').value = sr.width;
+      document.getElementById('sizeRearAspect').value = sr.aspect;
+      document.getElementById('sizeRearDiam').value = sr.diam;
+    }
+  }
+  tireSizeLinked = (latest.sizeFront === latest.sizeRear);
+  tireLinkActive = (latest.tireBrandFront === latest.tireBrandRear);
+}
+
+function restorePressuresForMode(mode){
+  const carEntries = getCarEntries();
+  if(carEntries.length === 0) return;
+
+  const myDeviceId = getDeviceId();
+  // 1. 共有利用時でも「この端末自身で記録された直前セッション」の数値を最優先で復元
+  let targetPressures = null;
+  for(let i=0; i<carEntries.length; i++){
+    const e = carEntries[i];
+    if(e.deviceId && e.deviceId === myDeviceId){
+      if(mode === 'cold' && e.coldPressures){
+        targetPressures = e.coldPressures;
+        break;
+      } else if(mode === 'hot' && e.hotPressures){
+        targetPressures = e.hotPressures;
+        break;
+      } else if(e.pressures && e.mode === mode){
+        targetPressures = e.pressures;
+        break;
+      }
+    }
+  }
+
+  // 2. この端末での記録がまだ無ければ、他端末を含む最新セッションから取得
+  if(!targetPressures){
+    for(let i=0; i<carEntries.length; i++){
+      const e = carEntries[i];
+      if(mode === 'cold' && e.coldPressures){
+        targetPressures = e.coldPressures;
+        break;
+      } else if(mode === 'hot' && e.hotPressures){
+        targetPressures = e.hotPressures;
+        break;
+      } else if(e.pressures && e.mode === mode){
+        targetPressures = e.pressures;
+        break;
+      }
+    }
+  }
+
+  if(targetPressures){
+    ['FL','FR','RL','RR'].forEach(c => {
+      setCornerPressure(c, targetPressures[c]);
+    });
+    checkBalance();
+  }
+}
+
+
+function updateSessionBundleNotice(){
+  const container = document.getElementById('bundleNoticeContainer');
+  const btn = document.getElementById('saveEntryBtn');
+  if(!container) return;
+
+  const carEntries = getCarEntries();
+  const BUNDLE_WINDOW_MS = 12 * 60 * 60 * 1000; // 長時間の耐久レース等も考慮した12時間枠
+  const now = Date.now();
+
+  if(carEntries.length === 0){
+    container.innerHTML = '';
+    container.style.display = 'none';
+    if(btn) btn.textContent = currentMode === 'cold' ? '記録する / LOG ENTRY (冷間)' : '記録する / LOG ENTRY (温間)';
+    return;
+  }
+
+  const latest = carEntries[0];
+  const diff = now - new Date(latest.timestamp).getTime();
+
+  // 12時間を超えている場合は別セッション扱い（ポップアップ非表示）
+  if(diff < 0 || diff >= BUNDLE_WINDOW_MS){
+    container.innerHTML = '';
+    container.style.display = 'none';
+    if(btn) btn.textContent = currentMode === 'cold' ? '記録する / LOG ENTRY (冷間)' : '記録する / LOG ENTRY (温間)';
+    return;
+  }
+  const isFromOtherDevice = latest.deviceId && latest.deviceId !== getDeviceId();
+  const shareTag = isFromOtherDevice ? ' <span style="font-size:10px;color:var(--amber);font-weight:normal;">[共有セッション]</span>' : '';
+
+  const hasCold = latest.coldPressures && Object.values(latest.coldPressures).some(v => v !== null && v !== undefined);
+  const hasHot = latest.hotPressures && Object.values(latest.hotPressures).some(v => v !== null && v !== undefined);
+
+  const date = new Date(latest.timestamp);
+  const timeStr = date.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
+  const trackStr = latest.track ? ` ${latest.track}` : '';
+
+  // 1. 温間 HOT 記録時:
+  // - 直前が「冷間のみ（hasCold && !hasHot）」の場合のみポップアップを表示
+  // - 直前が「両方揃っている」または「温間のみ」の場合は非表示
+  if(currentMode === 'hot'){
+    if(hasCold && !hasHot){
+      container.style.display = 'block';
+      container.innerHTML = `
+        <div class="session-save-mode">
+          <div class="session-save-mode-title">⚡ 温間の保存方法を選択</div>
+          <div class="session-save-mode-options">
+            <label class="session-save-opt active" id="optBundle">
+              <input type="radio" name="saveSessionType" value="bundle" checked onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">前回の冷間とまとめる${shareTag}<span class="opt-sub">（${timeStr}${trackStr}のカードに温間を追加）</span></span>
+            </label>
+            <label class="session-save-opt" id="optSeparate">
+              <input type="radio" name="saveSessionType" value="separate" onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">新規セッションとして区切る<span class="opt-sub">（温間のみ別カードで新規作成）</span></span>
+            </label>
+          </div>
+        </div>
+      `;
+      if(btn) btn.textContent = '記録する / LOG ENTRY';
+      return;
+    } else {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      if(btn) btn.textContent = '記録する / LOG ENTRY (温間)';
+      return;
+    }
+  }
+
+  // 2. 冷間 COLD 記録時:
+  // - 直前が「温間のみ（!hasCold && hasHot）」の場合のみポップアップを表示
+  // - 直前が「冷間のみ」または「両方揃っている」場合は非表示
+  if(currentMode === 'cold'){
+    if(!hasCold && hasHot){
+      container.style.display = 'block';
+      container.innerHTML = `
+        <div class="session-save-mode">
+          <div class="session-save-mode-title">⚡ 冷間の保存方法を選択</div>
+          <div class="session-save-mode-options">
+            <label class="session-save-opt active" id="optBundle">
+              <input type="radio" name="saveSessionType" value="bundle" checked onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">前回の温間とまとめる${shareTag}<span class="opt-sub">（${timeStr}${trackStr}のカードに冷間を追加）</span></span>
+            </label>
+            <label class="session-save-opt" id="optSeparate">
+              <input type="radio" name="saveSessionType" value="separate" onchange="toggleSaveOptUI(this)">
+              <span class="opt-label">新規セッションとして区切る<span class="opt-sub">（冷間のみ別カードで新規作成）</span></span>
+            </label>
+          </div>
+        </div>
+      `;
+      if(btn) btn.textContent = '記録する / LOG ENTRY';
+      return;
+    } else {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      if(btn) btn.textContent = '記録する / LOG ENTRY (冷間)';
+      return;
+    }
+  }
+
+  container.innerHTML = '';
+  container.style.display = 'none';
+  if(btn) btn.textContent = '記録する / LOG ENTRY';
+}
+
+function toggleSaveOptUI(radio){
+  const optBundle = document.getElementById('optBundle');
+  const optSeparate = document.getElementById('optSeparate');
+  if(optBundle) optBundle.classList.toggle('active', radio.value === 'bundle');
+  if(optSeparate) optSeparate.classList.toggle('active', radio.value === 'separate');
+}
+
+
+function setMode(mode){
+  currentMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b=>{
+    b.classList.toggle('active', b.dataset.mode === mode);
+  });
+  restorePressuresForMode(mode);
+  checkBalance();
+  updateSessionBundleNotice();
+}
+
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1600);
+}
+
+async function loadEntries(){
+  try{
+    const raw = localStorage.getItem(STORE_KEY);
+    entries = raw ? JSON.parse(raw) : [];
+  }catch(e){
+    entries = [];
+  }
+  initCars();
+  renderCarSelector();
+  updateTrackFilterOptions();
+  restoreLastSessionDefaults(true);
+  restorePressuresForMode(currentMode);
+  applyFilters();
+  updateSessionBundleNotice();
+}
+
+async function persistEntries(){
+  try{
+    localStorage.setItem(STORE_KEY, JSON.stringify(entries));
+  }catch(e){
+    showToast('保存エラー');
+  }
+}
+
+function exportBackupJSON(){
+  if(!entries || entries.length === 0){
+    showToast('バックアップするデータがありません');
+    return;
+  }
+  const defaultName = currentCar || 'マイカー';
+  const safeLabel = defaultName.replace(/[/\\?%*:|"<>]/g, '_');
+
+  const json = JSON.stringify(entries, null, 2);
+  const blob = new Blob([json], {type: 'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `tire_pressure_backup_${safeLabel}_${dateStr}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('バックアップを保存しました');
+}
+
+function csvEscape(val){
+  if(val === null || val === undefined) return '';
+  const str = String(val);
+  if(/[",\n]/.test(str)){
+    return '"' + str.replace(/"/g, '""') + '"';
+  }
+  return str;
+}
+
+function buildCSVString(data, defaultName){
+  const headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ'];
+  const rows = data.map(e => {
+    const cp = e.coldPressures || (e.mode === 'cold' ? e.pressures : {}) || {};
+    const hp = e.hotPressures || (e.mode === 'hot' ? e.pressures : {}) || {};
+    return [
+      e.timestamp,
+      defaultName || e.car || '',
+      e.track || '',
+      CONDITION_LABELS[e.condition] || e.condition || '',
+      e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp : '',
+      e.trackTemp !== null && e.trackTemp !== undefined ? e.trackTemp : '',
+      e.lapTime || '',
+      e.feel || '',
+      e.tireBrandFront || '',
+      e.tireBrandRear || '',
+      e.sizeFront || '',
+      e.sizeRear || '',
+      (cp.FL !== undefined && cp.FL !== null) ? cp.FL : '',
+      (cp.FR !== undefined && cp.FR !== null) ? cp.FR : '',
+      (cp.RL !== undefined && cp.RL !== null) ? cp.RL : '',
+      (cp.RR !== undefined && cp.RR !== null) ? cp.RR : '',
+      (hp.FL !== undefined && hp.FL !== null) ? hp.FL : '',
+      (hp.FR !== undefined && hp.FR !== null) ? hp.FR : '',
+      (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
+      (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
+      e.notes || ''
+    ].map(csvEscape).join(',');
+  });
+
+  return '\uFEFF' + headers.map(csvEscape).join(',') + '\n' + rows.join('\n');
+}
+
+function exportCSV(){
+  const data = currentFilteredEntries;
+  if(!data || data.length === 0){
+    showToast('エクスポートするデータがありません');
+    return;
+  }
+
+  const defaultName = currentCar || 'マイカー';
+  const safeLabel = defaultName.replace(/[/\\?%*:|"<>]/g, '_');
+
+  const csv = buildCSVString(data, defaultName);
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const dateStr = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `tire_pressure_${safeLabel}_${dateStr}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('CSVを書き出しました');
+}
+
+function copyCSVToClipboard(){
+  const data = currentFilteredEntries;
+  if(!data || data.length === 0){
+    showToast('コピーするデータがありません');
+    return;
+  }
+  const csv = buildCSVString(data, currentCar);
+
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(csv).then(()=>{
+      showToast('CSVをコピーしました');
+    }).catch(()=>{
+      fallbackCopy(csv);
+    });
+  }else{
+    fallbackCopy(csv);
+  }
+
+  function fallbackCopy(text){
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    let success = false;
+    try{
+      success = document.execCommand('copy');
+    }catch(e){
+      success = false;
+    }
+    document.body.removeChild(ta);
+
+    if(success){
+      showToast('CSVをコピーしました');
+    }else{
+      showManualCopyOverlay(text);
+    }
+  }
+}
+
+function showManualCopyOverlay(csv){
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1b1f24;border:1px solid #2b3038;border-radius:12px;padding:16px;max-width:480px;width:100%;';
+
+  const label = document.createElement('div');
+  label.textContent = '自動コピーができませんでした。下のテキストを長押しして「すべてを選択」→「コピー」してください。';
+  label.style.cssText = "color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;margin-bottom:10px;";
+
+  const textarea = document.createElement('textarea');
+  textarea.value = csv;
+  textarea.readOnly = true;
+  textarea.style.cssText = "width:100%;height:200px;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:8px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:11px;";
+
+  const closeBtn = document.createElement('button');
+  closeBtn.textContent = '閉じる';
+  closeBtn.style.cssText = 'width:100%;margin-top:10px;padding:12px 0;border-radius:8px;border:none;background:#ffb627;color:#1a1400;font-weight:600;';
+  closeBtn.onclick = () => document.body.removeChild(overlay);
+
+  box.appendChild(label);
+  box.appendChild(textarea);
+  box.appendChild(closeBtn);
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  textarea.focus();
+  textarea.select();
+}
+
+function parseLapTime(str){
+  if(!str) return null;
+  str = String(str).trim();
+  if(str === '') return null;
+  let min = 0, secPart;
+  const parts = str.split(':');
+  if(parts.length === 2){
+    min = parseInt(parts[0], 10) || 0;
+    secPart = parts[1];
+  }else{
+    secPart = parts[0];
+  }
+  const secSplit = secPart.split('.');
+  const sec = parseInt(secSplit[0], 10) || 0;
+  let ms = 0;
+  if(secSplit[1] !== undefined){
+    ms = parseInt(secSplit[1].padEnd(3,'0').slice(0,3), 10) || 0;
+  }
+  return min*60000 + sec*1000 + ms;
+}
+
+
+function toggleFilterPanel(){
+  const body = document.getElementById('filterPanelBody');
+  const icon = document.getElementById('filterToggleIcon');
+  if(!body) return;
+  const isHidden = body.style.display === 'none';
+  body.style.display = isHidden ? 'block' : 'none';
+  if(icon) icon.textContent = isHidden ? '▾' : '▸';
+}
+
+function clearFilterField(field){
+  switch(field){
+    case 'track':
+      const t = document.getElementById('filterTrack');
+      if(t) t.value = '';
+      break;
+    case 'condition':
+      const c = document.getElementById('filterCondition');
+      if(c) c.value = '';
+      break;
+    case 'tempMax':
+      clearTemp('filterTempMax');
+      return;
+    case 'tempMin':
+      clearTemp('filterTempMin');
+      return;
+    case 'tireBrand':
+      const b = document.getElementById('filterTireBrand');
+      if(b) b.value = '';
+      break;
+    case 'feel':
+      const f = document.getElementById('filterFeel');
+      if(f) f.value = '';
+      break;
+    case 'lapMax':
+      ['filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      break;
+    case 'lapMin':
+      ['filterLapMinMin','filterLapMinSec','filterLapMinHund'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      break;
+    case 'sizeFront':
+      ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      const psf = document.getElementById('filterPresetSizeFront');
+      if(psf) psf.value = '';
+      break;
+    case 'sizeRear':
+      ['filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam'].forEach(id => {
+        const el = document.getElementById(id); if(el) el.value = '';
+      });
+      const psr = document.getElementById('filterPresetSizeRear');
+      if(psr) psr.value = '';
+      break;
+    case 'notes':
+      const n = document.getElementById('filterNotes');
+      if(n) n.value = '';
+      break;
+  }
+  applyFilters();
+}
+
+function resetFilters(){
+
+  const track = document.getElementById('filterTrack'); if(track) track.value = '';
+  const cond = document.getElementById('filterCondition'); if(cond) cond.value = '';
+  const brand = document.getElementById('filterTireBrand'); if(brand) brand.value = '';
+  const tmin = document.getElementById('filterTempMin'); if(tmin) tmin.value = '';
+  const tmins = document.getElementById('filterTempMin-select'); if(tmins) tmins.value = '';
+  const tmax = document.getElementById('filterTempMax'); if(tmax) tmax.value = '';
+  const tmaxs = document.getElementById('filterTempMax-select'); if(tmaxs) tmaxs.value = '';
+  const feel = document.getElementById('filterFeel'); if(feel) feel.value = '';
+  ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam','filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam','filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  const notes = document.getElementById('filterNotes'); if(notes) notes.value = '';
+  applyFilters();
+}
+
+function bulkDeleteFiltered(){
+  if(!currentFilteredEntries || currentFilteredEntries.length === 0){
+    showToast('削除対象がありません');
+    return;
+  }
+  const count = currentFilteredEntries.length;
+  if(!confirm(`現在絞り込まれている ${count} 件の記録をすべて削除しますか？\n（この操作は元に戻せません）`)){
+    return;
+  }
+  const deleteIds = new Set(currentFilteredEntries.map(e => e.id));
+  entries = entries.filter(e => !deleteIds.has(e.id));
+  persistEntries();
+  updateTrackFilterOptions();
+  applyFilters();
+  updateSessionBundleNotice();
+  showToast(`${count} 件の記録を削除しました`);
+}
+
+function splitSession(id){
+  const idx = entries.findIndex(e => e.id === id);
+  if(idx === -1) return;
+  const entry = entries[idx];
+  if(!entry.coldPressures || !entry.hotPressures){
+    showToast('分割できるデータ（冷間と温間の両方）がありません');
+    return;
+  }
+  if(!confirm('このセッションを「冷間のみ」と「温間のみ」の2つの別々カードに分割しますか？')){
+    return;
+  }
+
+  const hotEntry = {
+    ...JSON.parse(JSON.stringify(entry)),
+    id: Date.now(),
+    coldPressures: null,
+    notes: entry.notes ? (entry.notes + ' (温間)') : null
+  };
+
+  entry.hotPressures = null;
+  entry.lapTime = null;
+
+  entries.splice(idx, 0, hotEntry);
+  persistEntries();
+  updateTrackFilterOptions();
+  applyFilters();
+  updateSessionBundleNotice();
+
+  const overlay = document.getElementById('editModalOverlay');
+  if(overlay) document.body.removeChild(overlay);
+  showToast('冷間と温間を別々のセッションに分割しました');
+}
+
+function applyFilters(){
+
+  const carEntries = getCarEntries();
+  const track = document.getElementById('filterTrack').value;
+  const condition = document.getElementById('filterCondition').value;
+  const tireBrand = document.getElementById('filterTireBrand').value;
+  const tempMinV = getCornerValue('filterTempMin');
+  const tempMaxV = getCornerValue('filterTempMax');
+  const feel = document.getElementById('filterFeel').value;
+  const fWidth = document.getElementById('filterSizeFrontWidth').value;
+  const fAspect = document.getElementById('filterSizeFrontAspect').value;
+  const fDiam = document.getElementById('filterSizeFrontDiam').value;
+  const rWidth = document.getElementById('filterSizeRearWidth').value;
+  const rAspect = document.getElementById('filterSizeRearAspect').value;
+  const rDiam = document.getElementById('filterSizeRearDiam').value;
+  const lapMinRaw = buildTimeFromBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund');
+  const lapMaxRaw = buildTimeFromBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund');
+  const lapMinVal = parseLapTime(lapMinRaw);
+  const lapMaxVal = parseLapTime(lapMaxRaw);
+  const notesQuery = document.getElementById('filterNotes').value.trim().toLowerCase();
+
+  let filtered = carEntries.filter(e=>{
+    if(track && e.track !== track) return false;
+    if(condition && e.condition !== condition) return false;
+    if(tireBrand && e.tireBrandFront !== tireBrand && e.tireBrandRear !== tireBrand) return false;
+    if(feel && String(e.feel) !== feel) return false;
+    if(!isNaN(tempMinV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) < tempMinV)) return false;
+    if(!isNaN(tempMaxV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) > tempMaxV)) return false;
+    if(fWidth || fAspect || fDiam){
+      const fSize = parseSizeString(e.sizeFront);
+      if(!fSize) return false;
+      if(fWidth && fSize.width !== fWidth) return false;
+      if(fAspect && fSize.aspect !== fAspect) return false;
+      if(fDiam && fSize.diam !== fDiam) return false;
+    }
+    if(rWidth || rAspect || rDiam){
+      const rSize = parseSizeString(e.sizeRear);
+      if(!rSize) return false;
+      if(rWidth && rSize.width !== rWidth) return false;
+      if(rAspect && rSize.aspect !== rAspect) return false;
+      if(rDiam && rSize.diam !== rDiam) return false;
+    }
+    if(lapMinVal !== null){
+      const entryLap = parseLapTime(e.lapTime);
+      if(entryLap === null || entryLap < lapMinVal) return false;
+    }
+    if(lapMaxVal !== null){
+      const entryLap = parseLapTime(e.lapTime);
+      if(entryLap === null || entryLap > lapMaxVal) return false;
+    }
+    if(notesQuery && (!e.notes || !e.notes.toLowerCase().includes(notesQuery))) return false;
+    return true;
+  });
+
+  const activeFilters = track || condition || tireBrand || feel || !isNaN(tempMinV) || !isNaN(tempMaxV) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
+  const summary = document.getElementById('filterSummary');
+  if(summary){
+    summary.textContent = activeFilters ? `${filtered.length} / ${carEntries.length} 件表示中` : '';
+  }
+
+  currentFilteredEntries = filtered;
+  renderLog(filtered);
+}
+
+function findColdMatch(hotEntry){
+  const sameTrack = entries.find(e => (e.coldPressures || e.mode==='cold') && e.track === hotEntry.track && e.timestamp < hotEntry.timestamp);
+  if(sameTrack) return sameTrack;
+  return entries.find(e => (e.coldPressures || e.mode==='cold') && e.timestamp < hotEntry.timestamp);
+}
+
+
+const cardViews = {};
+
+function setCardView(id, viewMode){
+  cardViews[id] = viewMode;
+  const card = document.getElementById('card-' + id);
+  if(!card) return;
+  
+  const btns = card.querySelectorAll('.card-view-btn');
+  btns.forEach(b => {
+    b.classList.toggle('active', b.dataset.view === viewMode);
+  });
+
+  const coldRow = card.querySelector('.log-pressure-row.is-cold');
+  const hotRow = card.querySelector('.log-pressure-row.is-hot');
+
+  if(viewMode === 'both'){
+    if(coldRow) coldRow.style.display = 'block';
+    if(hotRow) hotRow.style.display = 'block';
+  } else if(viewMode === 'cold'){
+    if(coldRow) coldRow.style.display = 'block';
+    if(hotRow) hotRow.style.display = 'none';
+  } else if(viewMode === 'hot'){
+    if(coldRow) coldRow.style.display = 'none';
+    if(hotRow) hotRow.style.display = 'block';
+  }
+}
+
+function renderLog(list_){
+  const carEntries = getCarEntries();
+  const data = list_ || carEntries;
+  document.getElementById('entryCount').textContent = carEntries.length + ' SESSIONS';
+  const list = document.getElementById('logList');
+
+  if(carEntries.length === 0){
+    list.innerHTML = '<div class="empty">まだ記録がありません<br>上のフォームから最初のログを記録してください</div>';
+    return;
+  }
+  if(data.length === 0){
+    list.innerHTML = '<div class="empty">条件に一致する記録がありません</div>';
+    return;
+  }
+
+  list.innerHTML = data.map(e=>{
+    const date = new Date(e.timestamp);
+    const dateStr = date.toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'}) + ' ' + date.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+
+    const currentCardView = cardViews[e.id] || 'both';
+
+    // Resolve Cold and Hot pressures
+    let coldP = e.coldPressures || (e.mode === 'cold' ? e.pressures : null);
+    let hotP = e.hotPressures || (e.mode === 'hot' ? e.pressures : null);
+
+    // If legacy hot record and no cold in same entry, attempt to find nearest earlier cold
+    if(!coldP && hotP && e.mode === 'hot'){
+      const coldRef = findColdMatch(e);
+      if(coldRef) coldP = coldRef.coldPressures || (coldRef.mode === 'cold' ? coldRef.pressures : null);
+    }
+
+    const hasCold = !!(coldP && Object.values(coldP).some(v => v !== null && v !== undefined));
+    const hasHot = !!(hotP && Object.values(hotP).some(v => v !== null && v !== undefined));
+
+    // Badge & Tabs
+    let badgeHtml = '';
+    let tabsHtml = '';
+
+    if(hasCold && hasHot){
+      badgeHtml = `<span class="session-badge is-both">冷温</span>`;
+      tabsHtml = `
+        <div class="card-view-tabs">
+          <button type="button" class="card-view-btn ${currentCardView === 'both' ? 'active' : ''}" data-view="both" onclick="setCardView('${e.id}', 'both')">上下並び</button>
+          <button type="button" class="card-view-btn is-cold ${currentCardView === 'cold' ? 'active' : ''}" data-view="cold" onclick="setCardView('${e.id}', 'cold')">冷間</button>
+          <button type="button" class="card-view-btn is-hot ${currentCardView === 'hot' ? 'active' : ''}" data-view="hot" onclick="setCardView('${e.id}', 'hot')">温間</button>
+        </div>
+      `;
+    } else if(hasCold && !hasHot){
+      badgeHtml = `<span class="session-badge is-cold">冷間のみ</span>`;
+    } else if(!hasCold && hasHot){
+      badgeHtml = `<span class="session-badge is-hot">温間のみ</span>`;
+    }
+
+    // Line 1: 場所　気温　路面
+    const line1 = `
+      <div class="log-info-row">
+        <span class="info-tag"><span class="lbl">場所</span><span class="val-lg">${e.track || '—'}</span></span>
+        <span class="info-tag"><span class="lbl">気温</span><span class="val-lg mono">${e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp + '℃' : '—'}</span></span>
+        <span class="info-tag"><span class="lbl">路面</span><span class="val-lg mono">${e.trackTemp !== null && e.trackTemp !== undefined ? e.trackTemp + '℃' : '—'}</span></span>
+      </div>
+    `;
+
+    // Line 2: 路面状態　タイム
+    const line2 = `
+      <div class="log-info-row">
+        <span class="info-tag"><span class="lbl">路面状態</span><span class="val-lg">${CONDITION_LABELS[e.condition] || e.condition || '—'}</span></span>
+        <span class="info-tag"><span class="lbl">タイム</span><span class="val-lg mono highlight">${e.lapTime ? e.lapTime : '—'}</span></span>
+      </div>
+    `;
+
+    // Line 3: 銘柄前　後　体感
+    const line3 = `
+      <div class="log-info-row">
+        <span class="info-tag"><span class="lbl">銘柄前</span><span class="val-lg">${e.tireBrandFront || '—'}</span></span>
+        <span class="info-tag"><span class="lbl">後</span><span class="val-lg">${e.tireBrandRear || '—'}</span></span>
+        <span class="info-tag"><span class="lbl">体感</span><span class="val-lg mono">${e.feel ? e.feel : '—'}</span></span>
+      </div>
+    `;
+
+    // Line 4: サイズ　前　後
+    const line4 = `
+      <div class="log-info-row">
+        <span class="info-tag"><span class="lbl">サイズ 前</span><span class="val-lg mono">${e.sizeFront || '—'}</span></span>
+        <span class="info-tag"><span class="lbl">後</span><span class="val-lg mono">${e.sizeRear || '—'}</span></span>
+      </div>
+    `;
+
+    // Cold Block
+    let coldBlockHtml = '';
+    if(hasCold){
+      const cornersCold = ['FL','FR','RL','RR'].map(c=>{
+        const v = coldP[c];
+        return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div></div>`;
+      }).join('');
+      coldBlockHtml = `
+        <div class="log-pressure-row is-cold" style="${(hasHot && currentCardView === 'hot') ? 'display:none;' : ''}">
+          <div class="log-pressure-title cold-title"><span>冷間 COLD</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
+          <div class="log-grid">${cornersCold}</div>
+        </div>
+      `;
+    }
+
+    // Hot Block
+    let hotBlockHtml = '';
+    if(hasHot){
+      const cornersHot = ['FL','FR','RL','RR'].map(c=>{
+        const v = hotP[c];
+        let deltaHtml = '';
+        if(v !== null && v !== undefined && hasCold && coldP[c] !== null && coldP[c] !== undefined){
+          const deltaNum = v - coldP[c];
+          const sign = deltaNum > 0 ? '+' : '';
+          deltaHtml = `<div class="delta">${sign}${deltaNum.toFixed(1)}</div>`;
+        }
+        return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div>${deltaHtml}</div>`;
+      }).join('');
+      hotBlockHtml = `
+        <div class="log-pressure-row is-hot" style="${(hasCold && currentCardView === 'cold') ? 'display:none;' : ''}">
+          <div class="log-pressure-title hot-title"><span>温間 HOT</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
+          <div class="log-grid">${cornersHot}</div>
+        </div>
+      `;
+    }
+
+    let pressuresHtml = coldBlockHtml + hotBlockHtml;
+    if(!pressuresHtml){
+      pressuresHtml = '<div class="log-empty-hint">空気圧データなし</div>';
+    }
+
+    return `
+      <div class="log-entry" id="card-${e.id}">
+        <div class="log-head">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+            <span class="log-date">${dateStr}</span>
+            ${badgeHtml}
+          </div>
+          ${tabsHtml}
+        </div>
+
+        <div class="log-info-grid">
+          ${line1}
+          ${line2}
+          ${line3}
+          ${line4}
+        </div>
+
+        <div class="log-pressures-block">
+          ${pressuresHtml}
+        </div>
+
+        ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
+
+        <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+          <button class="edit-btn" onclick="openEditModal('${e.id}')">編集 EDIT</button>
+          <button class="del-btn" onclick="confirmDelete('${e.id}')">削除 DELETE</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+
+function parseCSVToEntries(text){
+  text = text.replace(/^﻿/, '').trim();
+  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
+  if(lines.length < 2) return null;
+
+  function parseRow(rowStr){
+    const row = [];
+    let insideQuote = false;
+    let entry = '';
+    for(let i=0; i<rowStr.length; i++){
+      const c = rowStr[i];
+      if(c === '"'){
+        if(insideQuote && rowStr[i+1] === '"'){
+          entry += '"';
+          i++;
+        } else {
+          insideQuote = !insideQuote;
+        }
+      } else if(c === ',' && !insideQuote){
+        row.push(entry.trim());
+        entry = '';
+      } else {
+        entry += c;
+      }
+    }
+    row.push(entry.trim());
+    return row;
+  }
+
+  const headers = parseRow(lines[0]);
+  const hMap = {};
+  headers.forEach((h, idx) => { hMap[h] = idx; });
+
+  const getCol = (cols, name) => {
+    const idx = hMap[name];
+    if(idx !== undefined && idx < cols.length){
+      const val = cols[idx].trim();
+      return val === '' ? null : val;
+    }
+    return null;
+  };
+  const getFloat = (cols, name) => {
+    const val = getCol(cols, name);
+    if(val === null) return null;
+    const n = parseFloat(val);
+    return isNaN(n) ? null : n;
+  };
+
+  const isUnified = hMap['冷間_FL'] !== undefined || hMap['温間_FL'] !== undefined;
+
+  const entriesList = [];
+  for(let i=1; i<lines.length; i++){
+    const cols = parseRow(lines[i]);
+    if(cols.length < 3) continue;
+
+    if(isUnified){
+      const timestamp = getCol(cols, '日時') || new Date().toISOString();
+      const car = getCol(cols, '登録名') || getCol(cols, '車両') || 'マイカー';
+      const track = getCol(cols, '場所');
+      const condition = getCol(cols, '路面状況') || getCol(cols, 'コンディション') || 'Dry';
+      const ambientTemp = getFloat(cols, '気温');
+      const trackTemp = getFloat(cols, '路面温度');
+      const lapTime = getCol(cols, 'タイム');
+      const feel = getCol(cols, '体感');
+      const tireBrandFront = getCol(cols, '銘柄_前') || getCol(cols, '銘柄前');
+      const tireBrandRear = getCol(cols, '銘柄_後') || getCol(cols, '銘柄後');
+      const sizeFront = getCol(cols, 'サイズ_前') || getCol(cols, 'サイズ前');
+      const sizeRear = getCol(cols, 'サイズ_後') || getCol(cols, 'サイズ後');
+      const notes = getCol(cols, 'メモ');
+
+      const cfl = getFloat(cols, '冷間_FL');
+      const cfr = getFloat(cols, '冷間_FR');
+      const crl = getFloat(cols, '冷間_RL');
+      const crr = getFloat(cols, '冷間_RR');
+      const hasCold = cfl !== null || cfr !== null || crl !== null || crr !== null;
+
+      const hfl = getFloat(cols, '温間_FL');
+      const hfr = getFloat(cols, '温間_FR');
+      const hrl = getFloat(cols, '温間_RL');
+      const hrr = getFloat(cols, '温間_RR');
+      const hasHot = hfl !== null || hfr !== null || hrl !== null || hrr !== null;
+
+      entriesList.push({
+        id: Date.now() + i,
+        timestamp,
+        car,
+        coldPressures: hasCold ? { FL: cfl, FR: cfr, RL: crl, RR: crr } : null,
+        hotPressures: hasHot ? { FL: hfl, FR: hfr, RL: hrl, RR: hrr } : null,
+        track,
+        tireBrandFront,
+        tireBrandRear,
+        sizeFront,
+        sizeRear,
+        condition,
+        ambientTemp,
+        trackTemp,
+        lapTime,
+        feel,
+        notes
+      });
+    } else {
+      let colIdx = 0;
+      const timestamp = cols[colIdx++] || new Date().toISOString();
+      const hasCar = hMap['登録名'] !== undefined || hMap['車両'] !== undefined;
+      const car = hasCar ? (cols[colIdx++] || 'マイカー') : 'マイカー';
+      const modeRaw = cols[colIdx++] || '';
+      const mode = (modeRaw === '温間' || modeRaw.toLowerCase() === 'hot') ? 'hot' : 'cold';
+      const track = cols[colIdx++] || null;
+      const tireBrandFront = cols[colIdx++] || null;
+      const tireBrandRear = cols[colIdx++] || null;
+      const sizeFront = cols[colIdx++] || null;
+      const sizeRear = cols[colIdx++] || null;
+      const condition = cols[colIdx++] || 'Dry';
+      const ambientTemp = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+      const trackTemp = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+      const lapTime = cols[colIdx++] || null;
+      const feel = cols[colIdx++] || null;
+      const fl = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+      const fr = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+      const rl = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+      const rr = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
+      const notes = cols[colIdx++] || null;
+
+      const pObj = {
+        FL: isNaN(fl) ? null : fl,
+        FR: isNaN(fr) ? null : fr,
+        RL: isNaN(rl) ? null : rl,
+        RR: isNaN(rr) ? null : rr
+      };
+      entriesList.push({
+        id: Date.now() + i,
+        timestamp,
+        car,
+        coldPressures: mode === 'cold' ? pObj : null,
+        hotPressures: mode === 'hot' ? pObj : null,
+        mode,
+        pressures: pObj,
+        track,
+        tireBrandFront,
+        tireBrandRear,
+        sizeFront,
+        sizeRear,
+        condition,
+        ambientTemp: isNaN(ambientTemp) ? null : ambientTemp,
+        trackTemp: isNaN(trackTemp) ? null : trackTemp,
+        lapTime,
+        feel,
+        notes
+      });
+    }
+  }
+  return entriesList;
+}
+
+
+function importBackupContent(rawText, sourceName){
+  try {
+    let cleaned = rawText.replace(/^\uFEFF/, '').trim();
+    let imported = null;
+
+    // 1. Try parsing as JSON (handles BOM, array, or object with entries)
+    if(cleaned.startsWith('[') || cleaned.startsWith('{')){
+      try {
+        const parsed = JSON.parse(cleaned);
+        if(Array.isArray(parsed)){
+          imported = parsed;
+        } else if(parsed && Array.isArray(parsed.entries)){
+          imported = parsed.entries;
+        }
+      } catch(jsonErr) {
+        // will fallback to CSV
+      }
+    }
+
+    // 2. Fallback to parsing as CSV
+    if(!imported){
+      imported = parseCSVToEntries(cleaned);
+    }
+
+    if(!imported || !Array.isArray(imported) || imported.length === 0){
+      throw new Error('有効なデータが見つかりませんでした。JSONまたはCSVファイルをお確かめください。');
+    }
+
+    const importedCars = [...new Set(imported.map(e => e.car || 'マイカー'))];
+    showImportConfirmModal(imported, importedCars, sourceName || 'データ');
+  } catch(err) {
+    alert('読み込みエラー: ' + (err.message || 'データ形式を確認してください'));
+  }
+}
+
+function importBackupFile(file){
+  const reader = new FileReader();
+  reader.onload = async ()=>{
+    importBackupContent(reader.result, file.name);
+  };
+  reader.onerror = ()=>{
+    alert('ファイルアクセスエラー: 端末内のファイルを開くことができませんでした');
+  };
+  reader.readAsText(file, 'utf-8');
+}
+
+function showImportConfirmModal(imported, importedCars, filename){
+  const overlay = document.createElement('div');
+  overlay.id = 'importConfirmOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:440px;width:100%;color:#e9e6df;box-shadow:0 8px 30px rgba(0,0,0,0.6);';
+
+  const defaultNewCarName = importedCars[0] === currentCar ? `${importedCars[0]}_共有` : (importedCars[0] || '他者データ');
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      📥 データの復元・取り込み
+    </div>
+    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">
+      データが見つかりました（<strong>${imported.length}件</strong>）<br>
+      データ内の登録名: <span style="color:var(--amber);font-weight:700;">「${importedCars.join(', ')}」</span>
+    </div>
+
+    <!-- 1. 普通の引き継ぎの説明 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:12px;color:#cbd5e1;line-height:1.6;">
+      <strong style="color:var(--paper);font-size:13px;">📱 ご自身の引き継ぎ（機種変更）</strong><br>
+      名称はそのままで問題ありません。下のボタンを押すとそのまま復元されます。
+    </div>
+
+    <!-- 2. 変更せずそのまま取り込むボタン -->
+    <div style="margin-bottom:18px;">
+      <button id="importOriginalBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+        変更せずそのまま取り込む
+      </button>
+    </div>
+
+    <!-- 3. データ共有の説明 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#cbd5e1;line-height:1.6;">
+      <strong style="color:var(--amber);font-size:13px;">👥 他者とのデータ共有</strong><br>
+      車名などの後に名前やニックネーム（例: ロードスター_佐藤）を入れると、ご自身のデータと混ざらず別車両として管理できます。
+    </div>
+
+    <!-- 4. 打ち替え用ボックス -->
+    <div style="margin-bottom:10px;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);display:block;margin-bottom:4px;">
+        新しい登録名（打ち替え用）
+      </label>
+      <input type="text" id="importNewCarName" value="${defaultNewCarName}" style="width:100%;background:#262c36;border:1px solid var(--amber);border-radius:6px;padding:9px 10px;color:#ffffff;font-size:14px;font-weight:700;box-sizing:border-box;outline:none;">
+    </div>
+
+    <!-- 5. 変更して取り込むボタン -->
+    <div style="margin-bottom:14px;">
+      <button id="importWithRenameBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:#ffd166;color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+        変更して取り込む
+      </button>
+    </div>
+
+    <button id="importCancelBtn" style="width:100%;padding:9px 0;border-radius:8px;border:none;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
+      キャンセル
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('importCancelBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById('importOriginalBtn').onclick = async () => {
+    document.body.removeChild(overlay);
+    await executeImport(imported, null);
+  };
+
+  document.getElementById('importWithRenameBtn').onclick = async () => {
+    const newName = document.getElementById('importNewCarName').value.trim();
+    if(!newName){
+      alert('登録名を入力してください');
+      return;
+    }
+    document.body.removeChild(overlay);
+    await executeImport(imported, newName);
+  };
+}
+
+async function executeImport(imported, newCarName){
+  const existingMap = new Map();
+  entries.forEach((e, idx) => {
+    if(e && e.id) existingMap.set(String(e.id), idx);
+  });
+
+  let addedCount = 0;
+  let updatedCount = 0;
+
+  imported.forEach((e) => {
+    if(!e) return;
+    if(newCarName){
+      e.car = newCarName;
+    } else if(!e.car){
+      e.car = 'マイカー';
+    }
+
+    const key = e.id ? String(e.id) : '';
+    if(!newCarName && key && existingMap.has(key)){
+      const targetIdx = existingMap.get(key);
+      entries[targetIdx] = e;
+      updatedCount++;
+    } else {
+      if(newCarName && key && existingMap.has(key)){
+        e.id = Date.now() + Math.floor(Math.random() * 1000);
+      }
+      entries.push(e);
+      if(e.id) existingMap.set(String(e.id), entries.length - 1);
+      addedCount++;
+    }
+  });
+
+  entries.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+  if(newCarName){
+    if(!carList.includes(newCarName)){
+      carList.push(newCarName);
+    }
+    currentCar = newCarName;
+  } else {
+    imported.forEach(e => {
+      if(e && e.car && !carList.includes(e.car)){
+        carList.push(e.car);
+      }
+    });
+  }
+
+  persistCars();
+  await persistEntries();
+  renderCarSelector();
+  updateTrackFilterOptions();
+  restoreLastSessionDefaults(true);
+  restorePressuresForMode(currentMode);
+  applyFilters();
+
+  if(newCarName){
+    showToast(`${addedCount}件を「${newCarName}」として登録しました`);
+  } else {
+    if(addedCount > 0 && updatedCount > 0){
+      showToast(`${addedCount}件の新規セッションを取得、${updatedCount}件更新しました！`);
+    } else if(addedCount > 0 && updatedCount === 0){
+      showToast(`${addedCount}件の最新セッションを取得しました！`);
+    } else if(updatedCount > 0 && addedCount === 0){
+      showToast(`${updatedCount}件のデータを最新に更新しました！`);
+    } else {
+      showToast('最新の状態です（新しいデータはありません）');
+    }
+  }
+}
+
+function getDeviceId(){
+  let id = localStorage.getItem('tire_device_id');
+  if(!id){
+    id = 'dev_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 8);
+    localStorage.setItem('tire_device_id', id);
+  }
+  return id;
+}
+
+function generateSessionId(){
+  const rand = Math.random().toString(36).slice(2, 9);
+  const dev = getDeviceId().slice(-4);
+  return `${Date.now()}_${dev}_${rand}`;
+}
+
+const GAS_URL_KEY = 'tire_pressure_gas_url';
+
+function getGasUrl(){
+  return (localStorage.getItem(GAS_URL_KEY) || '').trim();
+}
+
+function setGasUrl(url){
+  localStorage.setItem(GAS_URL_KEY, (url || '').trim());
+}
+
+async function syncEntryToCloud(entry){
+  const gasUrl = getGasUrl();
+  if(!gasUrl) return;
+
+  try {
+    await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', entry: entry })
+    });
+  } catch (err) {
+    console.warn('Background cloud sync failed:', err);
+  }
+}
+
+async function uploadAllToCloud(){
+  const gasUrl = getGasUrl();
+  if(!gasUrl){
+    showToast('スプレッドシート連携URLを設定してください');
+    return;
+  }
+  if(!entries || entries.length === 0){
+    showToast('送信するデータがありません');
+    return;
+  }
+  showToast('スプレッドシートへ送信中...');
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'bulk_upload', entries: entries })
+    });
+    const json = await res.json().catch(() => null);
+    if(json && json.status === 'ok'){
+      if(json.updated > 0 && json.appended > 0){
+        showToast(`${json.appended}件新規追加、${json.updated}件更新（重複なし）`);
+      } else if(json.updated > 0 && json.appended === 0){
+        showToast(`${json.updated}件すべて最新に更新しました（重複なし）`);
+      } else {
+        showToast(`${json.appended || entries.length}件をスプレッドシートへ送信しました！`);
+      }
+    } else {
+      showToast(`${entries.length}件のデータをスプレッドシートへ送信しました！`);
+    }
+  } catch(err) {
+    console.error(err);
+    showToast('送信エラー: ' + err.message);
+  }
+}
+
+async function quickCloudSync(isSilent){
+  const gasUrl = getGasUrl();
+  if(!gasUrl){
+    if(!isSilent){
+      showToast('スプレッドシート連携URLが未設定です。「⇄」から設定してください');
+      openMigration();
+    }
+    return;
+  }
+
+  const icons = document.querySelectorAll('.sync-btn-icon');
+  icons.forEach(ic => ic.classList.add('spinning'));
+
+  if(!isSilent){
+    showToast('最新データを取得中...');
+  }
+
+  try {
+    const res = await fetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
+    const json = await res.json();
+    if(json && json.status === 'ok' && Array.isArray(json.entries)){
+      if(json.entries.length === 0){
+        if(!isSilent) showToast('スプレッドシートにデータがありませんでした');
+      } else {
+        await executeImport(json.entries, null);
+      }
+    } else {
+      if(!isSilent) showToast('データの取得に失敗しました');
+    }
+  } catch(err) {
+    console.error('quickCloudSync error:', err);
+    if(!isSilent) showToast('更新エラー: ' + err.message);
+  } finally {
+    icons.forEach(ic => ic.classList.remove('spinning'));
+  }
+}
+
+async function restoreFromCloud(){
+
+  const gasUrl = getGasUrl();
+  if(!gasUrl){
+    showToast('スプレッドシート連携URLを設定してください');
+    return;
+  }
+  showToast('スプレッドシートから読み込み中...');
+  try {
+    const res = await fetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
+    const json = await res.json();
+    if(json && json.status === 'ok' && Array.isArray(json.entries)){
+      if(json.entries.length === 0){
+        showToast('スプレッドシートにデータがありませんでした');
+        return;
+      }
+      executeImport(json.entries, null);
+      showToast(`スプレッドシートから${json.entries.length}件を同期・復元しました！`);
+    } else {
+      showToast('データの取得に失敗しました');
+    }
+  } catch(err) {
+    console.error(err);
+    showToast('同期エラー: ' + err.message);
+  }
+}
+
+function saveGasUrlFromInput(){
+  const input = document.getElementById('gasUrlInput');
+  if(!input) return;
+  const url = input.value.trim();
+  setGasUrl(url);
+  updateCloudStatusUI();
+  showToast(url ? '連携URLを保存しました' : '連携を解除しました');
+}
+
+function updateCloudStatusUI(){
+  const statusEl = document.getElementById('cloudStatusIndicator');
+  const url = getGasUrl();
+  if(statusEl){
+    if(url){
+      statusEl.innerHTML = '<span style="color:#4ade80;">● 連携中（クラウド自動保存 有効）</span>';
+    } else {
+      statusEl.innerHTML = '<span style="color:#94a3b8;">○ 未連携（端末ローカル保存のみ）</span>';
+    }
+  }
+}
+
+function openDataGuideModal(initialSection){
+  const overlay = document.createElement('div');
+  overlay.id = 'dataGuideOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1a1e24;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.7);';
+
+  const gasCodeEscaped = `function doPost(e) {
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(30000); // 100人同時書き込みでも安全に順次処理（競合防止）
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID','端末ID'];
+    if (sheet.getLastRow() === 0) {
+      sheet.appendRow(headers);
+    }
+    var data = JSON.parse(e.postData.contents);
+    if (data.action === 'save' && data.entry) {
+      var entry = data.entry;
+      var cp = entry.coldPressures || {};
+      var hp = entry.hotPressures || {};
+      var row = [
+        entry.timestamp || '',
+        entry.car || 'マイカー',
+        entry.track || '',
+        entry.condition || '',
+        entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : '',
+        entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : '',
+        entry.lapTime || '',
+        entry.feel || '',
+        entry.tireBrandFront || '',
+        entry.tireBrandRear || '',
+        entry.sizeFront || '',
+        entry.sizeRear || '',
+        (cp.FL !== undefined && cp.FL !== null) ? cp.FL : '',
+        (cp.FR !== undefined && cp.FR !== null) ? cp.FR : '',
+        (cp.RL !== undefined && cp.RL !== null) ? cp.RL : '',
+        (cp.RR !== undefined && cp.RR !== null) ? cp.RR : '',
+        (hp.FL !== undefined && hp.FL !== null) ? hp.FL : '',
+        (hp.FR !== undefined && hp.FR !== null) ? hp.FR : '',
+        (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
+        (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
+        entry.notes || '',
+        String(entry.id || ''),
+        String(entry.deviceId || '')
+      ];
+      var lastRow = sheet.getLastRow();
+      var updated = false;
+      if (lastRow > 1 && entry.id) {
+        var idCol = 22;
+        var idValues = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
+        for (var i = 0; i < idValues.length; i++) {
+          if (String(idValues[i][0]).trim() === String(entry.id).trim()) {
+            sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
+            updated = true;
+            break;
+          }
+        }
+      }
+      if (!updated) {
+        sheet.appendRow(row);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: updated })).setMimeType(ContentService.MimeType.JSON);
+    }
+    if (data.action === 'bulk_upload' && Array.isArray(data.entries)) {
+      var lastRow = sheet.getLastRow();
+      var idCol = 22;
+      var existingIdMap = {};
+      if (lastRow > 1) {
+        var idValues = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
+        for (var i = 0; i < idValues.length; i++) {
+          var idStr = String(idValues[i][0]).trim();
+          if (idStr) {
+            existingIdMap[idStr] = i + 2;
+          }
+        }
+      }
+      var toAppend = [];
+      var updatedCount = 0;
+      data.entries.forEach(function(entry) {
+        var cp = entry.coldPressures || {};
+        var hp = entry.hotPressures || {};
+        var row = [
+          entry.timestamp || '',
+          entry.car || 'マイカー',
+          entry.track || '',
+          entry.condition || '',
+          entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : '',
+          entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : '',
+          entry.lapTime || '',
+          entry.feel || '',
+          entry.tireBrandFront || '',
+          entry.tireBrandRear || '',
+          entry.sizeFront || '',
+          entry.sizeRear || '',
+          (cp.FL !== undefined && cp.FL !== null) ? cp.FL : '',
+          (cp.FR !== undefined && cp.FR !== null) ? cp.FR : '',
+          (cp.RL !== undefined && cp.RL !== null) ? cp.RL : '',
+          (cp.RR !== undefined && cp.RR !== null) ? cp.RR : '',
+          (hp.FL !== undefined && hp.FL !== null) ? hp.FL : '',
+          (hp.FR !== undefined && hp.FR !== null) ? hp.FR : '',
+          (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
+          (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
+          entry.notes || '',
+          String(entry.id || ''),
+          String(entry.deviceId || '')
+        ];
+        var entryId = String(entry.id || '').trim();
+        if (entryId && existingIdMap[entryId]) {
+          sheet.getRange(existingIdMap[entryId], 1, 1, row.length).setValues([row]);
+          updatedCount++;
+        } else {
+          toAppend.push(row);
+        }
+      });
+      if (toAppend.length > 0) {
+        sheet.getRange(sheet.getLastRow() + 1, 1, toAppend.length, toAppend[0].length).setValues(toAppend);
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: updatedCount, appended: toAppend.length })).setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_action' })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+function doGet(e) {
+  try {
+    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    var lastRow = sheet.getLastRow();
+    if (lastRow <= 1) {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [] })).setMimeType(ContentService.MimeType.JSON);
+    }
+    var values = sheet.getRange(2, 1, lastRow - 1, 23).getValues();
+    var entries = values.map(function(row) {
+      var cfl = parseFloat(row[12]);
+      var cfr = parseFloat(row[13]);
+      var crl = parseFloat(row[14]);
+      var crr = parseFloat(row[15]);
+      var hasCold = !isNaN(cfl) || !isNaN(cfr) || !isNaN(crl) || !isNaN(crr);
+      var hfl = parseFloat(row[16]);
+      var hfr = parseFloat(row[17]);
+      var hrl = parseFloat(row[18]);
+      var hrr = parseFloat(row[19]);
+      var hasHot = !isNaN(hfl) || !isNaN(hfr) || !isNaN(hrl) || !isNaN(hrr);
+      var amb = parseFloat(row[4]);
+      var trk = parseFloat(row[5]);
+      return {
+        id: row[21] ? String(row[21]).trim() : (Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
+        deviceId: row[22] ? String(row[22]).trim() : null,
+        timestamp: String(row[0] || new Date().toISOString()),
+        car: String(row[1] || 'マイカー'),
+        track: row[2] ? String(row[2]) : null,
+        condition: row[3] ? String(row[3]) : 'Dry',
+        ambientTemp: isNaN(amb) ? null : amb,
+        trackTemp: isNaN(trk) ? null : trk,
+        lapTime: row[6] ? String(row[6]) : null,
+        feel: row[7] ? String(row[7]) : null,
+        tireBrandFront: row[8] ? String(row[8]) : null,
+        tireBrandRear: row[9] ? String(row[9]) : null,
+        sizeFront: row[10] ? String(row[10]) : null,
+        sizeRear: row[11] ? String(row[11]) : null,
+        coldPressures: hasCold ? { FL: isNaN(cfl)?null:cfl, FR: isNaN(cfr)?null:cfr, RL: isNaN(crl)?null:crl, RR: isNaN(crr)?null:crr } : null,
+        hotPressures: hasHot ? { FL: isNaN(hfl)?null:hfl, FR: isNaN(hfr)?null:hfr, RL: isNaN(hrl)?null:hrl, RR: isNaN(hrr)?null:hrr } : null,
+        notes: row[20] ? String(row[20]) : null
+      };
+    });
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  }
+}`;
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #282e38;padding-bottom:10px;">
+      <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);">
+        📖 取扱説明・共同利用・クラウドガイド (TPSync v1.00)
+      </div>
+      <button id="closeGuideTopBtn" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 8px;">✕</button>
+    </div>
+
+    <!-- 1. 通常の使用方法（1人で使う場合） -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+        🏎️ 1. 通常の使用方法（1人での基本運用）
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        <strong style="color:#ffffff;">【走行前の測定】</strong><br>
+        1. 「<strong>冷間 COLD</strong>」を選び、4輪の空気圧・気温・路面温度等を入力して「<strong>記録する</strong>」を押します。<br>
+        2. 履歴に「<span style="color:#70baff;">冷間のみ</span>」の新しいセッションカードが作成されます。<br><br>
+        <strong style="color:#ffffff;">【走行後の測定】</strong><br>
+        1. ピットイン後、「<strong>温間 HOT</strong>」を選んで4輪空気圧やラップタイムを入力します。<br>
+        2. 「<strong>前回の冷間とまとめる</strong>」が選ばれた状態で「記録する」を押すと、先ほどの冷間カードに温間が自動追加され、<strong>各タイヤの昇圧差分（例: +35.0 kPa）</strong>が表示されます。<br>
+        ※別の走行枠として分けたい場合は「<strong>新規セッションとして区切る</strong>」を選んで記録してください。<br><br>
+        <strong style="color:#ffffff;">【冷間のみ／温間のみ】</strong><br>
+        どちらか片方しか測れなかった場合でも、余計な空欄を出さず自然に記録されます。
+      </div>
+    </div>
+
+    <!-- 2. クラウド保存（Googleスプレッドシート連携） -->
+    <div id="guideSectionCloud" style="background:#14171b;border:1px solid rgba(245,166,35,0.4);border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+        ☁️ 2. クラウド保存（Googleスプレッドシート連携）
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        アプリで記録するたびに、ご自身のGoogleスプレッドシートへ自動で永久保存される機能です（無料）。端末初期化やスマホ紛失でも<strong>データが絶対に消えません</strong>。<br><br><div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:6px 10px;margin-bottom:10px;color:#cbd5e1;font-size:11px;line-height:1.5;"><strong style="color:#4ade80;">安心の重複防止設計：</strong> 各セッションに固有IDが割り振られているため、「一括送信」を何度実行しても重複して行が増えることはありません（既存行は最新状態で上書き更新され、新しいデータのみが末尾に追加されます）。</div>
+        <strong style="color:#ffffff;">【かんたん3ステップ導入手順】</strong><br>
+        <strong>ステップ1：</strong> PCまたはスマホでGoogleドライブを開き、新規「<strong>Googleスプレッドシート</strong>」を作成します。<br>
+        <strong>ステップ2：</strong> メニューの「<strong>拡張機能</strong>」→「<strong>Apps Script</strong>」を開き、既存のコードを消して下のコードを貼り付けます。<br>
+        <strong>ステップ3：</strong> 右上の「<strong>デプロイ</strong>」→「<strong>新しいデプロイ</strong>」を押し、種類の歯車から「<strong>ウェブアプリ</strong>」を選択。アクセスできるユーザーを「<strong>全員</strong>」にしてデプロイします。発行された「<strong>ウェブアプリURL</strong>」をコピーします。<br>
+        <strong>ステップ4：</strong> このアプリの「<strong>⇄</strong>」ボタン内の設定枠にURLを貼り付けて保存すれば完了！
+      </div>
+
+      <!-- GAS Code box -->
+      <div style="margin-top:10px;background:#0d1013;border:1px solid #2d3542;border-radius:8px;padding:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);font-weight:700;">貼り付け用 GAS コード</span>
+          <button id="copyGasCodeBtn" style="background:#232b36;border:1px solid #3d4a5c;color:#ffffff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;">📋 コードをコピー</button>
+        </div>
+        <textarea id="gasCodeTextarea" readonly style="width:100%;height:90px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${gasCodeEscaped}</textarea>
+      </div>
+    </div>
+
+    <!-- 3. 共同で使う方法（複数人・チーム共有） -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:12px;">
+      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+        👥 3. 共同で使う方法（複数人・チーム共有）
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        <strong style="color:#ffffff;">【パターンA：1台の車を複数人でシェアする場合（耐久レースなど）】</strong><br>
+        チーム全員のアプリで<strong>同じ車両名（例: GR86-耐久号）</strong>を選択して運用します。<br>
+        Aさんが走行前に測った「冷間」に対し、ピットイン時にBさんが自分のスマホで「温間」を記録すると、<strong>自動的に前回の冷間カードに合体・昇圧計算（差分）</strong>されます！<br>
+        ※ドライバー名の違いはメモ欄に記録すれば（例: 佐藤走行 / 田中ピット）、カードやスプレッドシート上で綺麗に管理できます。<br><br>
+        <strong style="color:#ffffff;">【パターンB：各自が別々の愛車で走る場合】</strong><br>
+        同じチームスプレッドシートを共有しつつ、登録車両名を「<strong>GR86_佐藤</strong>」「<strong>ロードスター_田中</strong>」のように名前を付けて分けて記録します。<br>
+        全員のデータが1つのシートに集約されながらも、アプリ内では各自の車両ごとに独立して管理・絞り込みができます。<br><br>
+        <strong style="color:#ffffff;">【もし誤って同じ車名にしてしまっても安心】</strong><br>
+        記録時に「前回の冷間とまとめる」か「新規セッションとして区切る」かの選択ボタンが表示されます。別枠として記録したい場合は「新規セッションとして区切る」を選ぶだけで、簡単に別カードとして保存できます。
+      </div>
+    </div>
+
+    <!-- 4. 機種変更・ファイル共有 -->
+    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+        📱 4. 機種変更・バックアップファイルでの引き継ぎ
+      </div>
+      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
+        スプレッドシートを使わない場合でも、ファイルによるバックアップと引き継ぎが可能です。<br>
+        「<strong>⇄</strong>」→「<strong>バックアップを保存</strong>」でダウンロードしたファイルを新端末に送り、「<strong>ファイルを選んで復元</strong>」で取り込めば一瞬で復元できます。<br>
+        仲間のバックアップを取り込む際は「<strong>登録名を変更して取り込む</strong>」を選ぶと、自分のデータと混ざらず別車両として綺麗に並べて見比べることができます。
+      </div>
+    </div>
+
+    <button id="closeGuideBottomBtn" style="width:100%;padding:12px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+      閉じる
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('closeGuideTopBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+  document.getElementById('closeGuideBottomBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  const copyBtn = document.getElementById('copyGasCodeBtn');
+  if(copyBtn){
+    copyBtn.onclick = () => {
+      const textarea = document.getElementById('gasCodeTextarea');
+      if(textarea){
+        textarea.select();
+        if(navigator.clipboard && navigator.clipboard.writeText){
+          navigator.clipboard.writeText(textarea.value).then(() => {
+            showToast('GASコードをコピーしました');
+          });
+        } else {
+          document.execCommand('copy');
+          showToast('GASコードをコピーしました');
+        }
+      }
+    };
+  }
+
+  if(initialSection === 'cloud'){
+    setTimeout(() => {
+      const el = document.getElementById('guideSectionCloud');
+      if(el) el.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  }
+}
+
+
+function openMigration(){
+  const overlay = document.createElement('div');
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;';
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      ⇄ データの共有・クラウド連携・バックアップ
+    </div>
+    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">
+      機種変更時の引き継ぎ、Googleスプレッドシート連携、サーキット仲間とのデータ共有に使用します。<br>
+      ・<strong>ご自身の引き継ぎ</strong>：名称はそのままで問題ありません。<br>
+      ・<strong>他者と共有する場合</strong>：車名などの後に名前（例: ロードスター_佐藤）を入れると、項目分けができて判別しやすくなります。
+    </div>
+
+    <button id="migOpenGuideBtn" style="width:100%;margin-bottom:16px;padding:12px 14px;border-radius:8px;border:1px solid rgba(255,182,39,0.5);background:rgba(255,182,39,0.12);color:var(--amber);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
+      📖 通常の使い方・共同利用・クラウド設定ガイドを開く
+    </button>
+
+    <div style="background:#262c36;border:1px solid #384252;border-radius:10px;padding:14px;margin-bottom:16px;">
+      <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:var(--amber);letter-spacing:.04em;margin-bottom:6px;">
+        ☁️ Googleスプレッドシート連携（クラウド自動保存・共有）
+      </div>
+      <div id="cloudStatusIndicator" style="font-size:12px;margin-bottom:8px;"></div>
+      <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;">
+        連携すると、セッション記録時にバックグラウンドで自動的にスプレッドシートへ追記・更新されます（オフライン時もローカルに安全保持）。複数端末や仲間とリアルタイム共有できます。
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <input type="text" id="gasUrlInput" placeholder="ウェブアプリURL (https://script.google.com/macros/s/.../exec)" style="flex:1;background:#1a1e24;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:12px;box-sizing:border-box;outline:none;">
+        <button id="saveGasUrlBtn" style="padding:8px 14px;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">
+          保存
+        </button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button id="migUploadAllBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,182,39,0.3);background:rgba(255,182,39,0.06);color:var(--amber);font-size:12px;font-weight:600;cursor:pointer;">
+          過去データをスプレッドシートへ一括送信（アップロード）
+        </button>
+        <button id="migRestoreCloudBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;">
+          スプレッドシートから読み込む（同期・復元）
+        </button>
+      </div>
+      <div style="text-align:right;margin-top:10px;">
+        <a id="migGuideLink" href="#" style="font-size:11px;color:var(--amber);text-decoration:none;">
+          📖 詳しい作成手順とコピペ用コードはこちら →
+        </a>
+      </div>
+    </div>
+
+    <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:8px;letter-spacing:.04em;">
+      📁 ファイル・テキストでのバックアップと共有
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <button id="migExportJsonBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+        バックアップを保存（ファイル書き出し）
+      </button>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <input type="file" id="migFileInput" accept=".json,.csv,.txt,text/*,application/json,text/csv,text/plain,application/octet-stream" style="display:none;">
+      <button id="migImportFileBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid var(--amber);background:rgba(255,182,39,0.08);color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+        ファイルを選んで復元・取り込み
+      </button>
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <button id="migPasteBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+        📋 テキスト（コピー内容）を貼り付けて復元
+      </button>
+    </div>
+
+    <div id="migPasteArea" style="display:none;margin-bottom:16px;">
+      <textarea id="migPasteText" placeholder="LINEやメールで共有されたJSONまたはCSVテキストをここに貼り付けてください" style="width:100%;height:100px;background:#262c36;border:1px solid #384252;border-radius:6px;padding:8px;color:#ffffff;font-family:'JetBrains Mono',monospace;font-size:12px;box-sizing:border-box;outline:none;resize:vertical;"></textarea>
+      <button id="migExecPasteBtn" style="width:100%;margin-top:8px;padding:10px 0;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;cursor:pointer;">
+        このテキストから取り込む
+      </button>
+    </div>
+
+    <button id="migCloseBtn" style="width:100%;padding:10px 0;border-radius:8px;border:1px solid #282e38;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
+      閉じる
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('migOpenGuideBtn').onclick = () => {
+    document.body.removeChild(overlay);
+    openDataGuideModal();
+  };
+
+  document.getElementById('migGuideLink').onclick = (e) => {
+    e.preventDefault();
+    document.body.removeChild(overlay);
+    openDataGuideModal('cloud');
+  };
+
+  const gasInput = document.getElementById('gasUrlInput');
+  if(gasInput) gasInput.value = getGasUrl();
+  updateCloudStatusUI();
+
+  document.getElementById('saveGasUrlBtn').onclick = saveGasUrlFromInput;
+  document.getElementById('migUploadAllBtn').onclick = uploadAllToCloud;
+  document.getElementById('migRestoreCloudBtn').onclick = async () => {
+    await restoreFromCloud();
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById('migExportJsonBtn').onclick = exportBackupJSON;
+
+  const fileInput = document.getElementById('migFileInput');
+  fileInput.onchange = () => {
+    if(fileInput.files && fileInput.files[0]){
+      importBackupFile(fileInput.files[0]);
+      document.body.removeChild(overlay);
+    }
+  };
+  document.getElementById('migImportFileBtn').onclick = () => fileInput.click();
+
+  document.getElementById('migPasteBtn').onclick = () => {
+    const area = document.getElementById('migPasteArea');
+    area.style.display = area.style.display === 'none' ? 'block' : 'none';
+  };
+
+  document.getElementById('migExecPasteBtn').onclick = () => {
+    const val = document.getElementById('migPasteText').value.trim();
+    if(!val){
+      alert('貼り付け用テキストが入力されていません');
+      return;
+    }
+    document.body.removeChild(overlay);
+    importBackupContent(val, '貼り付けテキスト');
+  };
+
+  document.getElementById('migCloseBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+}
+function saveEntry(){
+  try{
+    const cornerVals = {};
+    ['FL','FR','RL','RR'].forEach(c=>{
+      const v = getCornerValue(c);
+      cornerVals[c] = isNaN(v) ? null : v;
+    });
+
+    const hasAny = Object.values(cornerVals).some(v => v !== null);
+    if(!hasAny){
+      showToast('圧力を入力してください');
+      return;
+    }
+
+    const now = new Date();
+    const trackVal = document.getElementById('track').value.trim() || null;
+    const brandFVal = document.getElementById('tireBrandFront').value.trim() || null;
+    const brandRVal = document.getElementById('tireBrandRear').value.trim() || null;
+    const sizeFVal = buildTireSize('Front');
+    const sizeRVal = buildTireSize('Rear');
+    const condVal = document.getElementById('condition').value;
+    const ambVal = (()=>{ const v = getCornerValue('ambientTemp'); return isNaN(v) ? null : v; })();
+    const trkTempVal = (()=>{ const v = getCornerValue('trackTemp'); return isNaN(v) ? null : v; })();
+    const feelVal = document.getElementById('feel').value || null;
+    const lapVal = buildLapTime();
+    const notesVal = document.getElementById('notes').value.trim() || null;
+
+    const carEntries = getCarEntries();
+    const BUNDLE_WINDOW_MS = 12 * 60 * 60 * 1000; // 12時間枠
+    let matchingSession = null;
+
+    const container = document.getElementById('bundleNoticeContainer');
+    const isPopupVisible = container && container.style.display !== 'none';
+
+    let chosenType = 'separate';
+    if(isPopupVisible){
+      const saveTypeRadios = document.getElementsByName('saveSessionType');
+      for(let r of saveTypeRadios){
+        if(r.checked){ chosenType = r.value; break; }
+      }
+    } else {
+      chosenType = 'separate';
+    }
+
+    // 結合判定：ポップアップが表示されていてユーザーが「まとめる (bundle)」を選んだ場合のみ直前セッションと統合
+    if(isPopupVisible && chosenType === 'bundle' && carEntries.length > 0){
+      const latest = carEntries[0];
+      const diff = now.getTime() - new Date(latest.timestamp).getTime();
+      if(diff >= 0 && diff < BUNDLE_WINDOW_MS){
+        const hasC = latest.coldPressures && Object.values(latest.coldPressures).some(v => v !== null && v !== undefined);
+        const hasH = latest.hotPressures && Object.values(latest.hotPressures).some(v => v !== null && v !== undefined);
+
+        if(currentMode === 'hot' && hasC && !hasH){
+          matchingSession = latest;
+        } else if(currentMode === 'cold' && !hasC && hasH){
+          matchingSession = latest;
+        }
+      }
+    }
+
+    let savedEntry = null;
+    if(matchingSession){
+      savedEntry = matchingSession;
+      if(currentMode === 'hot'){
+        matchingSession.hotPressures = cornerVals;
+        if(ambVal !== null) matchingSession.ambientTemp = ambVal;
+        if(trkTempVal !== null) matchingSession.trackTemp = trkTempVal;
+        if(lapVal) matchingSession.lapTime = lapVal;
+        if(feelVal) matchingSession.feel = feelVal;
+        if(trackVal) matchingSession.track = trackVal;
+        if(brandFVal) matchingSession.tireBrandFront = brandFVal;
+        if(brandRVal) matchingSession.tireBrandRear = brandRVal;
+        if(sizeFVal) matchingSession.sizeFront = sizeFVal;
+        if(sizeRVal) matchingSession.sizeRear = sizeRVal;
+        if(condVal) matchingSession.condition = condVal;
+        if(notesVal){
+          matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
+        }
+        showToast('前回の冷間カードに温間を追加しました');
+      } else {
+        matchingSession.coldPressures = cornerVals;
+        if(ambVal !== null && matchingSession.ambientTemp === null) matchingSession.ambientTemp = ambVal;
+        if(trkTempVal !== null && matchingSession.trackTemp === null) matchingSession.trackTemp = trkTempVal;
+        if(trackVal && !matchingSession.track) matchingSession.track = trackVal;
+        if(brandFVal && !matchingSession.tireBrandFront) matchingSession.tireBrandFront = brandFVal;
+        if(brandRVal && !matchingSession.tireBrandRear) matchingSession.tireBrandRear = brandRVal;
+        if(sizeFVal && !matchingSession.sizeFront) matchingSession.sizeFront = sizeFVal;
+        if(sizeRVal && !matchingSession.sizeRear) matchingSession.sizeRear = sizeRVal;
+        if(condVal && !matchingSession.condition) matchingSession.condition = condVal;
+        if(notesVal){
+          matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
+        }
+        showToast('前回の温間カードに冷間を追加しました');
+      }
+    } else {
+      const newEntry = {
+        id: generateSessionId(),
+        deviceId: getDeviceId(),
+        timestamp: now.toISOString(),
+        car: currentCar,
+        coldPressures: currentMode === 'cold' ? cornerVals : null,
+        hotPressures: currentMode === 'hot' ? cornerVals : null,
+        ambientTemp: ambVal,
+        trackTemp: trkTempVal,
+        condition: condVal,
+        track: trackVal,
+        tireBrandFront: brandFVal,
+        tireBrandRear: brandRVal,
+        sizeFront: sizeFVal,
+        sizeRear: sizeRVal,
+        feel: feelVal,
+        lapTime: lapVal,
+        notes: notesVal
+      };
+      entries.unshift(newEntry);
+      savedEntry = newEntry;
+      showToast(currentMode === 'cold' ? '冷間セッションを新規記録しました' : '温間セッションを新規記録しました');
+    }
+
+    persistEntries();
+    syncEntryToCloud(savedEntry);
+    updateTrackFilterOptions();
+    applyFilters();
+    updateSessionBundleNotice();
+
+    // preserve corner inputs across sessions
+    checkBalance();
+    document.getElementById('notes').value = '';
+    ['lapMin','lapSec','lapHund'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('feel').value = '';
+    clearTemp('ambientTemp');
+    clearTemp('trackTemp');
+  } catch(err){
+    console.error('Error in saveEntry:', err);
+    showToast('記録エラー: ' + err.message);
+  }
+}
+
+const CONDITION_LABELS = {
+  Dry: 'ドライ',
+  HalfWet: 'ハーフウェット',
+  Wet: 'ウェット',
+  BabyWet: 'ベビーウェット'
+};
+
+let trackHistory = [];
+let tireBrandHistory = [];
+let sizeHistory = [];
+
+function updateTrackFilterOptions(){
+  const allEntries = entries;
+  const carEntries = getCarEntries();
+
+  // Track history from all entries
+  trackHistory = [...new Set(allEntries.map(e=>e.track).filter(Boolean))].sort();
+  const filterTrack = document.getElementById('filterTrack');
+  const currentTrack = filterTrack.value;
+  filterTrack.innerHTML = '<option value="">すべて</option>' + trackHistory.map(t=>`<option value="${t}">${t}</option>`).join('');
+  if(trackHistory.includes(currentTrack)) filterTrack.value = currentTrack;
+
+  // Tire brand history from all entries
+  tireBrandHistory = [...new Set([
+    ...allEntries.map(e=>e.tireBrandFront).filter(Boolean),
+    ...allEntries.map(e=>e.tireBrandRear).filter(Boolean)
+  ])].sort();
+  const filterBrand = document.getElementById('filterTireBrand');
+  const currentBrand = filterBrand.value;
+  filterBrand.innerHTML = '<option value="">すべて</option>' + tireBrandHistory.map(b=>`<option value="${b}">${b}</option>`).join('');
+  if(tireBrandHistory.includes(currentBrand)) filterBrand.value = currentBrand;
+
+  // Tire size history from all entries
+  sizeHistory = [...new Set([
+    ...allEntries.map(e=>e.sizeFront).filter(Boolean),
+    ...allEntries.map(e=>e.sizeRear).filter(Boolean)
+  ])].sort();
+
+  renderSizePresets();
+}
+
+function renderSizePresets(){
+  ['Front', 'Rear'].forEach(prefix => {
+    const sel = document.getElementById(`presetSize${prefix}`);
+    if(sel){
+      sel.style.display = 'inline-block';
+      if(sizeHistory.length === 0){
+        sel.innerHTML = '<option value="">履歴サイズ（なし）</option>';
+      } else {
+        sel.innerHTML = '<option value="">履歴サイズ</option>' + 
+          sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+      }
+    }
+    const fSel = document.getElementById(`filterPresetSize${prefix}`);
+    if(fSel){
+      fSel.style.display = 'inline-block';
+      if(sizeHistory.length === 0){
+        fSel.innerHTML = '<option value="">履歴サイズ（なし）</option>';
+      } else {
+        fSel.innerHTML = '<option value="">履歴サイズ</option>' + 
+          sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+      }
+    }
+  });
+}
+
+function applyTrackPreset(val){
+  if(!val) return;
+  const input = document.getElementById('track');
+  if(input){
+    input.value = val;
+    input.dispatchEvent(new Event('input'));
+  }
+}
+
+function applyTireBrandPreset(prefix, val){
+  if(!val) return;
+  const frontInput = document.getElementById('tireBrandFront');
+  const rearInput = document.getElementById('tireBrandRear');
+  if(prefix === 'Front'){
+    frontInput.value = val;
+    if(tireLinkActive || rearInput.value === '' || frontInput.value === rearInput.value){
+      rearInput.value = val;
+      tireLinkActive = true;
+    }
+  } else {
+    rearInput.value = val;
+    if(tireLinkActive || frontInput.value === '' || frontInput.value === rearInput.value){
+      frontInput.value = val;
+      tireLinkActive = true;
+    }
+  }
+}
+
+function applyFilterSizePreset(prefix, val){
+  if(!val) return;
+  const p = parseSizeString(val);
+  if(!p) return;
+  document.getElementById(`filterSize${prefix}Width`).value = p.width;
+  document.getElementById(`filterSize${prefix}Aspect`).value = p.aspect;
+  document.getElementById(`filterSize${prefix}Diam`).value = p.diam;
+  applyFilters();
+}
+
+function applySizePreset(prefix, val){
+  if(!val) return;
+  const p = parseSizeString(val);
+  if(!p) return;
+  document.getElementById(`size${prefix}Width`).value = p.width;
+  document.getElementById(`size${prefix}Aspect`).value = p.aspect;
+  document.getElementById(`size${prefix}Diam`).value = p.diam;
+
+  if(prefix === 'Front' && tireSizeLinked){
+    document.getElementById('sizeRearWidth').value = p.width;
+    document.getElementById('sizeRearAspect').value = p.aspect;
+    document.getElementById('sizeRearDiam').value = p.diam;
+  } else if(prefix === 'Rear'){
+    tireSizeLinked = false;
+  }
+}
+
+
+
+function clearTireBrand(){
+  const f = document.getElementById('tireBrandFront');
+  const r = document.getElementById('tireBrandRear');
+  if(f) f.value = '';
+  if(r) r.value = '';
+  tireLinkActive = true;
+  const fList = document.getElementById('tireBrandFront-suggest');
+  const rList = document.getElementById('tireBrandRear-suggest');
+  if(fList) fList.classList.remove('show');
+  if(rList) rList.classList.remove('show');
+}
+
+function clearTemp(idPrefix){
+  const sel = document.getElementById(idPrefix + '-select');
+  const input = document.getElementById(idPrefix);
+  if(sel) sel.value = '';
+  if(input) input.value = '';
+  if(idPrefix.startsWith('filter')) applyFilters();
+}
+
+function onTempInput(idPrefix){
+  const sel = document.getElementById(idPrefix + '-select');
+  const input = document.getElementById(idPrefix);
+  if(input && input.value !== '' && sel){
+    sel.value = '';
+  }
+}
+
+function setupTrackAutocomplete(){
+
+  const input = document.getElementById('track');
+  const listEl = document.getElementById('track-suggest');
+
+  function render(showAll = false){
+    const q = showAll ? '' : input.value.trim().toLowerCase();
+    const history = trackHistory;
+    const matches = q === '' ? history : history.filter(v => v.toLowerCase().includes(q));
+    if(matches.length === 0){
+      listEl.classList.remove('show');
+      listEl.innerHTML = '';
+      return;
+    }
+    listEl.innerHTML = matches.slice(0, 10).map(v => `<div class="autocomplete-item">${v}</div>`).join('');
+    listEl.classList.add('show');
+  }
+
+  // Tapping clears the input and shows all past track candidates
+  input.addEventListener('focus', () => {
+    input.value = '';
+    render(true);
+  });
+  input.addEventListener('input', () => render(false));
+
+  document.addEventListener('pointerdown', (e) => {
+    if(!input.contains(e.target) && !listEl.contains(e.target)){
+      listEl.classList.remove('show');
+    }
+  });
+
+  const selectItem = (e) => {
+    const item = e.target.closest('.autocomplete-item');
+    if(!item) return;
+    e.preventDefault();
+    e.stopPropagation();
+    input.value = item.textContent;
+    input.dispatchEvent(new Event('input'));
+    listEl.classList.remove('show');
+    input.blur();
+  };
+  listEl.addEventListener('pointerdown', selectItem);
+  listEl.addEventListener('mousedown', selectItem);
+}
+
+let tireLinkActive = true;
+
+function setupTireBrandAutocomplete(){
+  const frontInput = document.getElementById('tireBrandFront');
+  const rearInput = document.getElementById('tireBrandRear');
+  const frontList = document.getElementById('tireBrandFront-suggest');
+  const rearList = document.getElementById('tireBrandRear-suggest');
+
+  function render(listEl, currentVal, showAll = false){
+    const q = showAll ? '' : currentVal.trim().toLowerCase();
+    const history = tireBrandHistory;
+    const matches = q === '' ? history : history.filter(v => v.toLowerCase().includes(q));
+    if(matches.length === 0){
+      listEl.classList.remove('show');
+      listEl.innerHTML = '';
+      return;
+    }
+    listEl.innerHTML = matches.slice(0, 10).map(v => `<div class="autocomplete-item">${v}</div>`).join('');
+    listEl.classList.add('show');
+  }
+
+  // Tapping Front
+  const handleFrontTap = () => {
+    // If currently linked (both equal and non-empty), tapping Front means user wants to edit Front separately
+    if(tireLinkActive && frontInput.value !== '' && frontInput.value === rearInput.value){
+      tireLinkActive = false;
+      frontInput.value = '';
+    } else if(!tireLinkActive && frontInput.value !== ''){
+      frontInput.value = '';
+    }
+    render(frontList, frontInput.value, true);
+  };
+  frontInput.addEventListener('focus', handleFrontTap);
+
+  // Tapping Rear
+  const handleRearTap = () => {
+    // If currently linked (both equal and non-empty), tapping Rear means user wants to edit Rear separately
+    if(tireLinkActive && rearInput.value !== '' && frontInput.value === rearInput.value){
+      tireLinkActive = false;
+      rearInput.value = '';
+    } else if(!tireLinkActive && rearInput.value !== ''){
+      rearInput.value = '';
+    }
+    render(rearList, rearInput.value, true);
+  };
+  rearInput.addEventListener('focus', handleRearTap);
+
+  // Typing in Front
+  frontInput.addEventListener('input', () => {
+    // If linked, or if rear is empty, or if user types matching value: sync to rear!
+    if(tireLinkActive || rearInput.value === '' || frontInput.value === rearInput.value){
+      rearInput.value = frontInput.value;
+      tireLinkActive = true;
+    }
+    render(frontList, frontInput.value, false);
+  });
+
+  // Typing in Rear
+  rearInput.addEventListener('input', () => {
+    // If linked, or if front is empty, or if user types matching value: sync to front!
+    if(tireLinkActive || frontInput.value === '' || frontInput.value === rearInput.value){
+      frontInput.value = rearInput.value;
+      tireLinkActive = true;
+    }
+    render(rearList, rearInput.value, false);
+  });
+
+  // Selecting from Front suggestions
+  const selectFrontItem = (e) => {
+    const item = e.target.closest('.autocomplete-item');
+    if(!item) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const val = item.textContent;
+    frontInput.value = val;
+    // If linked or rear is empty: sync to rear!
+    if(tireLinkActive || rearInput.value === ''){
+      rearInput.value = val;
+      tireLinkActive = true;
+    }
+    frontList.classList.remove('show');
+    frontInput.blur();
+  };
+  frontList.addEventListener('pointerdown', selectFrontItem);
+  frontList.addEventListener('mousedown', selectFrontItem);
+
+  // Selecting from Rear suggestions
+  const selectRearItem = (e) => {
+    const item = e.target.closest('.autocomplete-item');
+    if(!item) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const val = item.textContent;
+    rearInput.value = val;
+    // If linked or front is empty: sync to front!
+    if(tireLinkActive || frontInput.value === ''){
+      frontInput.value = val;
+      tireLinkActive = true;
+    }
+    rearList.classList.remove('show');
+    rearInput.blur();
+  };
+  rearList.addEventListener('pointerdown', selectRearItem);
+  rearList.addEventListener('mousedown', selectRearItem);
+
+  document.addEventListener('pointerdown', (e) => {
+    if(!frontInput.contains(e.target) && !frontList.contains(e.target)){
+      frontList.classList.remove('show');
+    }
+    if(!rearInput.contains(e.target) && !rearList.contains(e.target)){
+      rearList.classList.remove('show');
+    }
+  });
+}
+
+setupTrackAutocomplete();
+setupTireBrandAutocomplete();
+
+function openEditModal(id){
+  const entry = entries.find(e => String(e.id) === String(id));
+  if(!entry) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'editModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:flex;align-items:center;justify-content:center;padding:14px;';
+
+  const date = new Date(entry.timestamp);
+  const dateStr = date.toLocaleDateString('ja-JP', {year:'numeric', month:'2-digit', day:'2-digit'}) + ' ' + date.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1b1f24;border:1px solid #2b3038;border-radius:14px;padding:18px 16px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;';
+
+  const cp = entry.coldPressures || (entry.mode === 'cold' ? entry.pressures : {}) || {};
+  const hp = entry.hotPressures || (entry.mode === 'hot' ? entry.pressures : {}) || {};
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--amber);margin-bottom:4px;">
+      記録の編集 / EDIT SESSION
+    </div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--paper-dim);margin-bottom:14px;">
+      ${dateStr} (${entry.car || '車両'})
+    </div>
+
+    <!-- 冷間空気圧 -->
+    <div style="background:#222731;border:1px solid #384252;border-left:4px solid var(--cold);border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;color:var(--cold);margin-bottom:6px;">
+        冷間 COLD 空気圧 (kPa)
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FL</span><input type="number" step="0.1" id="editColdFL" value="${cp.FL !== undefined && cp.FL !== null ? cp.FL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FR</span><input type="number" step="0.1" id="editColdFR" value="${cp.FR !== undefined && cp.FR !== null ? cp.FR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RL</span><input type="number" step="0.1" id="editColdRL" value="${cp.RL !== undefined && cp.RL !== null ? cp.RL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RR</span><input type="number" step="0.1" id="editColdRR" value="${cp.RR !== undefined && cp.RR !== null ? cp.RR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+      </div>
+    </div>
+
+    <!-- 温間空気圧 -->
+    <div style="background:#222731;border:1px solid #384252;border-left:4px solid var(--hot);border-radius:8px;padding:10px;margin-bottom:12px;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;color:var(--hot);margin-bottom:6px;">
+        温間 HOT 空気圧 (kPa)
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FL</span><input type="number" step="0.1" id="editHotFL" value="${hp.FL !== undefined && hp.FL !== null ? hp.FL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FR</span><input type="number" step="0.1" id="editHotFR" value="${hp.FR !== undefined && hp.FR !== null ? hp.FR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RL</span><input type="number" step="0.1" id="editHotRL" value="${hp.RL !== undefined && hp.RL !== null ? hp.RL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RR</span><input type="number" step="0.1" id="editHotRR" value="${hp.RR !== undefined && hp.RR !== null ? hp.RR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+      </div>
+    </div>
+
+    <!-- 場所 -->
+    <div style="margin-bottom:12px;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">場所</label>
+      <input type="text" id="editTrack" value="${entry.track || ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+    </div>
+
+    <!-- 銘柄 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">フロント銘柄</label>
+        <input type="text" id="editTireBrandFront" value="${entry.tireBrandFront || ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+      </div>
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">リア銘柄</label>
+        <input type="text" id="editTireBrandRear" value="${entry.tireBrandRear || ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+      </div>
+    </div>
+
+    <!-- サイズ -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">フロントサイズ</label>
+        <input type="text" id="editSizeFront" value="${entry.sizeFront || ''}" placeholder="215/45R17" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+      </div>
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">リアサイズ</label>
+        <input type="text" id="editSizeRear" value="${entry.sizeRear || ''}" placeholder="215/45R17" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+      </div>
+    </div>
+
+    <!-- 気温 / 路面温度 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">気温 (℃)</label>
+        <input type="number" step="0.5" id="editAmbientTemp" value="${entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+      </div>
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">路面温度 (℃)</label>
+        <input type="number" step="0.5" id="editTrackTemp" value="${entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+      </div>
+    </div>
+
+    <!-- 路面状態 / 体感 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">路面状態</label>
+        <select id="editCondition" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+          <option value="Dry"${entry.condition==='Dry'?' selected':''}>ドライ</option>
+          <option value="HalfWet"${entry.condition==='HalfWet'?' selected':''}>ハーフウェット</option>
+          <option value="Wet"${entry.condition==='Wet'?' selected':''}>ウェット</option>
+          <option value="BabyWet"${entry.condition==='BabyWet'?' selected':''}>ベビーウェット</option>
+        </select>
+      </div>
+      <div>
+        <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">体感</label>
+        <select id="editFeel" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+          <option value="">未設定</option>
+          <option value="A"${entry.feel==='A'?' selected':''}>A</option>
+          <option value="B"${entry.feel==='B'?' selected':''}>B</option>
+          <option value="C"${entry.feel==='C'?' selected':''}>C</option>
+          <option value="D"${entry.feel==='D'?' selected':''}>D</option>
+          <option value="E"${entry.feel==='E'?' selected':''}>E</option>
+        </select>
+      </div>
+    </div>
+
+    <div style="margin-bottom:12px;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">ラップタイム</label>
+      <input type="text" id="editLapTime" value="${entry.lapTime || ''}" placeholder="02:05.123" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+    </div>
+
+    <div style="margin-bottom:16px;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">メモ</label>
+      <textarea id="editNotes" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'Inter',sans-serif;font-size:13px;resize:vertical;min-height:50px;">${entry.notes || ''}</textarea>
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button id="saveEditBtn" style="flex:1;padding:12px 0;background:var(--amber);color:#1a1400;border:none;border-radius:8px;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;letter-spacing:.05em;cursor:pointer;">
+        更新して保存
+      </button>
+      <button id="cancelEditBtn" style="flex:1;padding:12px 0;background:transparent;color:#9aa0a8;border:1px solid #2b3038;border-radius:8px;font-family:'Oswald',sans-serif;font-size:14px;cursor:pointer;">
+        キャンセル
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('cancelEditBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+
+  document.getElementById('saveEditBtn').onclick = () => {
+    // Read Cold Pressures
+    const cfl = parseFloat(document.getElementById('editColdFL').value);
+    const cfr = parseFloat(document.getElementById('editColdFR').value);
+    const crl = parseFloat(document.getElementById('editColdRL').value);
+    const crr = parseFloat(document.getElementById('editColdRR').value);
+    const hasCold = !isNaN(cfl) || !isNaN(cfr) || !isNaN(crl) || !isNaN(crr);
+    entry.coldPressures = hasCold ? {
+      FL: isNaN(cfl) ? null : cfl,
+      FR: isNaN(cfr) ? null : cfr,
+      RL: isNaN(crl) ? null : crl,
+      RR: isNaN(crr) ? null : crr
+    } : null;
+
+    // Read Hot Pressures
+    const hfl = parseFloat(document.getElementById('editHotFL').value);
+    const hfr = parseFloat(document.getElementById('editHotFR').value);
+    const hrl = parseFloat(document.getElementById('editHotRL').value);
+    const hrr = parseFloat(document.getElementById('editHotRR').value);
+    const hasHot = !isNaN(hfl) || !isNaN(hfr) || !isNaN(hrl) || !isNaN(hrr);
+    entry.hotPressures = hasHot ? {
+      FL: isNaN(hfl) ? null : hfl,
+      FR: isNaN(hfr) ? null : hfr,
+      RL: isNaN(hrl) ? null : hrl,
+      RR: isNaN(hrr) ? null : hrr
+    } : null;
+
+    entry.track = document.getElementById('editTrack').value.trim() || null;
+    entry.tireBrandFront = document.getElementById('editTireBrandFront').value.trim() || null;
+    entry.tireBrandRear = document.getElementById('editTireBrandRear').value.trim() || null;
+    entry.sizeFront = document.getElementById('editSizeFront').value.trim() || null;
+    entry.sizeRear = document.getElementById('editSizeRear').value.trim() || null;
+
+    const amb = parseFloat(document.getElementById('editAmbientTemp').value);
+    entry.ambientTemp = isNaN(amb) ? null : amb;
+    const trk = parseFloat(document.getElementById('editTrackTemp').value);
+    entry.trackTemp = isNaN(trk) ? null : trk;
+
+    entry.condition = document.getElementById('editCondition').value;
+    entry.feel = document.getElementById('editFeel').value || null;
+    entry.lapTime = document.getElementById('editLapTime').value.trim() || null;
+    entry.notes = document.getElementById('editNotes').value.trim() || null;
+
+    persistEntries();
+    updateTrackFilterOptions();
+    applyFilters();
+    document.body.removeChild(overlay);
+    showToast('記録を更新しました');
+  };
+}
+
+function confirmDelete(id){
+  if(confirm('この記録を削除しますか？')){
+    deleteEntry(id);
+  }
+}
+
+function deleteEntry(id){
+  entries = entries.filter(e => String(e.id) !== String(id));
+  persistEntries();
+  updateTrackFilterOptions();
+  applyFilters();
+}
+
+loadEntries();
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js?v=1.00').catch(() => {});
+  });
+}
+</script>
+
+</body>
+</html>
