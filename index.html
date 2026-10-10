@@ -400,6 +400,51 @@
   }
   .temp-input::placeholder{color:rgba(255,255,255,0.35);}
   .temp-input:focus{border-color:var(--amber) !important;}
+  .filter-temp-select{
+    flex:1;
+    min-width:0;
+    background:#1c2027 !important;
+    border:1px solid #384252 !important;
+    border-radius:6px;
+    color:#ffffff !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    outline:none;
+    padding:5px 4px;
+    cursor:pointer;
+  }
+  .filter-temp-select option{
+    background:#20252b;
+    color:#ffffff;
+  }
+  .filter-temp-input{
+    width:50px;
+    flex-shrink:0;
+    background:#1c2027 !important;
+    border:1px solid #384252 !important;
+    border-radius:6px;
+    color:#ffffff !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    text-align:center;
+    padding:5px 2px;
+    outline:none;
+    box-sizing:border-box;
+  }
+  .filter-temp-input::placeholder{
+    color:rgba(255,255,255,0.35);
+    font-size:10px;
+  }
+  .filter-temp-sep{
+    text-align:center;
+    font-size:12px;
+    font-weight:800;
+    color:var(--amber);
+    line-height:1;
+    padding:2px 0;
+  }
 
   
   /* Tire size input boxes with comfortable spacing */
@@ -1099,22 +1144,42 @@
       </select>
     </div>
 
+    <!-- 気温 (下限 〜 上限) -->
     <div class="field">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <label style="margin-bottom:0;">気温 上限</label>
-        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tempMax')" title="クリア">クリア</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label style="margin-bottom:0;">気温</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterAmbientTemp')" title="クリア">クリア</button>
       </div>
-      <select class="temp-select" id="filterTempMax-select"></select>
-      <input type="number" step="0.5" class="temp-input" id="filterTempMax" placeholder="手入力" oninput="onTempInput('filterTempMax'); applyFilters();">
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
+        <div style="display:flex;gap:4px;align-items:center;">
+          <select class="filter-temp-select" id="filterAmbientTempMin-select"></select>
+          <input type="number" step="0.5" class="filter-temp-input" id="filterAmbientTempMin" placeholder="下限" oninput="onTempInput('filterAmbientTempMin'); applyFilters();">
+        </div>
+        <div class="filter-temp-sep">〜</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <select class="filter-temp-select" id="filterAmbientTempMax-select"></select>
+          <input type="number" step="0.5" class="filter-temp-input" id="filterAmbientTempMax" placeholder="上限" oninput="onTempInput('filterAmbientTempMax'); applyFilters();">
+        </div>
+      </div>
     </div>
 
+    <!-- 路面温度 (下限 〜 上限) -->
     <div class="field">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-        <label style="margin-bottom:0;">気温 下限</label>
-        <button type="button" class="temp-clear-btn" onclick="clearFilterField('tempMin')" title="クリア">クリア</button>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label style="margin-bottom:0;">路面温度</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterTrackTemp')" title="クリア">クリア</button>
       </div>
-      <select class="temp-select" id="filterTempMin-select"></select>
-      <input type="number" step="0.5" class="temp-input" id="filterTempMin" placeholder="手入力" oninput="onTempInput('filterTempMin'); applyFilters();">
+      <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
+        <div style="display:flex;gap:4px;align-items:center;">
+          <select class="filter-temp-select" id="filterTrackTempMin-select"></select>
+          <input type="number" step="0.5" class="filter-temp-input" id="filterTrackTempMin" placeholder="下限" oninput="onTempInput('filterTrackTempMin'); applyFilters();">
+        </div>
+        <div class="filter-temp-sep">〜</div>
+        <div style="display:flex;gap:4px;align-items:center;">
+          <select class="filter-temp-select" id="filterTrackTempMax-select"></select>
+          <input type="number" step="0.5" class="filter-temp-input" id="filterTrackTempMax" placeholder="上限" oninput="onTempInput('filterTrackTempMax'); applyFilters();">
+        </div>
+      </div>
     </div>
 
     <div class="field field-dark">
