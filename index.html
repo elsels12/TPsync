@@ -105,10 +105,14 @@
     100%{ transform: rotate(360deg); }
   }
 
-    .data-guide-bar-btn{
-    width:100%;
+    .guide-nav-row{
+    display:grid;
+    grid-template-columns:1fr 1fr 1.2fr;
+    gap:6px;
     margin-top:8px;
-    padding:8px 10px;
+    width:100%;
+  }
+  .guide-nav-btn{
     background:rgba(255,182,39,0.08);
     border:1px dashed var(--amber);
     border-radius:8px;
@@ -116,17 +120,47 @@
     font-family:'Inter',sans-serif;
     font-size:11px;
     font-weight:700;
-    letter-spacing:.02em;
+    padding:8px 4px;
     cursor:pointer;
     display:flex;
     align-items:center;
     justify-content:center;
-    gap:6px;
+    gap:4px;
+    white-space:nowrap;
     box-sizing:border-box;
-    transition:background .15s ease;
+    transition:background .15s ease, border-color .15s ease;
   }
-  .data-guide-bar-btn:active{
-    background:rgba(255,182,39,0.2);
+  .guide-nav-btn:active{
+    background:rgba(255,182,39,0.22);
+  }
+  .modal-tab-bar{
+    display:grid;
+    grid-template-columns:1fr 1fr 1.2fr;
+    gap:4px;
+    background:#14171b;
+    padding:4px;
+    border-radius:10px;
+    margin-bottom:14px;
+    border:1px solid #2d3542;
+  }
+  .modal-tab-btn{
+    background:transparent;
+    border:none;
+    border-radius:6px;
+    color:#94a3b8;
+    font-family:'Inter',sans-serif;
+    font-size:12px;
+    font-weight:700;
+    padding:8px 4px;
+    cursor:pointer;
+    transition:all .15s ease;
+    white-space:nowrap;
+    text-align:center;
+  }
+  .modal-tab-btn.active{
+    background:var(--amber);
+    color:#1a1400;
+    box-shadow:0 2px 8px rgba(0,0,0,0.4);
   }
   .car-selector-row{display:flex;gap:6px;margin-top:10px;}
   .car-selector{
@@ -456,16 +490,69 @@
   .save-btn-sticky{
     position:fixed;left:0;right:0;bottom:0;z-index:40;
     max-width:500px;width:100%;margin:0 auto;
-    padding:10px 14px calc(18px + env(safe-area-inset-bottom, 8px));
-    background:linear-gradient(180deg, rgba(20,23,27,0) 0%, var(--asphalt) 40%);
+    padding:8px 12px calc(14px + env(safe-area-inset-bottom, 8px));
+    background:linear-gradient(180deg, rgba(20,23,27,0) 0%, var(--asphalt) 35%);
   }
-  .save-btn-sticky button{
-    width:100%;padding:14px 0;border-radius:10px;border:none;
-    background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-weight:700;
-    font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;
+  .sticky-btn-group{
+    display:flex;gap:8px;align-items:stretch;width:100%;
+  }
+  .sticky-sync-btn{
+    flex:0 0 68px;
+    height:50px;
+    border-radius:10px;
+    border:1px solid #4a5568;
+    background:#202631;
+    color:#e9e6df;
+    font-family:'Inter',sans-serif;
+    font-weight:700;
+    font-size:12px;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:1px;
+    box-shadow:0 4px 14px rgba(0,0,0,0.4);
+    transition:background .15s ease, transform .1s ease, border-color .15s ease;
+    box-sizing:border-box;
+  }
+  .sticky-sync-btn:active{
+    background:#2c3545;
+    border-color:var(--amber);
+    transform:scale(0.96);
+  }
+  .sticky-sync-btn .sync-btn-icon{
+    font-size:16px;
+    line-height:1;
+  }
+  .sticky-sync-btn .sticky-sync-txt{
+    font-size:11px;
+    font-weight:700;
+    color:var(--amber);
+    line-height:1;
+  }
+  .sticky-save-btn{
+    flex:1;
+    height:50px;
+    padding:0 8px;
+    border-radius:10px;
+    border:none;
+    background:var(--amber);
+    color:#1a1400;
+    font-family:'Oswald',sans-serif;
+    font-weight:700;
+    font-size:15px;
+    letter-spacing:.05em;
+    text-transform:uppercase;
+    cursor:pointer;
     box-shadow:0 4px 18px rgba(0,0,0,0.4);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:transform .1s ease;
+    box-sizing:border-box;
   }
-  .save-btn-sticky button:active{transform:scale(0.98);}
+  .sticky-save-btn:active{transform:scale(0.98);}
 
   /* --- Log --- */
   /* --- Unified Session Card & 4-line layout --- */
@@ -750,16 +837,23 @@
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
-      <button class="topbar-csv-btn topbar-sync-btn" onclick="quickCloudSync()" title="クラウドと同期・最新データに更新"><span class="sync-btn-icon">🔄</span></button>
       <button class="topbar-csv-btn" onclick="exportCSV()">CSV</button>
       <button class="topbar-csv-btn" onclick="copyCSVToClipboard()">COPY</button>
-      <button class="topbar-csv-btn" onclick="openMigration()">⇄</button>
+      <button class="topbar-csv-btn" onclick="openGuideModal('backup')">⇄</button>
     </div>
   </div>
   <div class="sub">冷間・温間圧力 / 気温・路面温度トラッキング</div>
-  <button type="button" class="data-guide-bar-btn" onclick="openDataGuideModal()">
-    📖 ご利用方法・共同利用・データ共有ガイド
-  </button>
+  <div class="guide-nav-row">
+    <button type="button" class="guide-nav-btn" onclick="openGuideModal('usage')">
+      📖 使用方法
+    </button>
+    <button type="button" class="guide-nav-btn" onclick="openGuideModal('cloud')">
+      ☁️ 共有使用
+    </button>
+    <button type="button" class="guide-nav-btn" onclick="openGuideModal('backup')">
+      ⇄ バックアップ復元
+    </button>
+  </div>
   <div class="car-selector-row">
     <select id="carSelector" class="car-selector" onchange="handleCarSelectorChange()"></select>
     <button class="topbar-csv-btn" onclick="openCarManager()">車両管理</button>
@@ -1068,12 +1162,7 @@
   </div>
   </div>
 
-  <div style="display:flex;justify-content:space-between;align-items:center;margin:24px 0 10px;gap:8px;">
-    <div class="section-title" style="margin:0;">履歴 / SESSION LOG</div>
-    <button type="button" class="history-sync-btn" onclick="quickCloudSync()" title="スプレッドシートから最新データを取得">
-      <span class="sync-btn-icon">🔄</span> 最新に更新
-    </button>
-  </div>
+  <div class="section-title" style="margin:24px 0 10px;">履歴 / SESSION LOG</div>
   <div id="logList"></div>
 
   <div class="migration-note" onclick="openMigration()">
@@ -1084,7 +1173,13 @@
 
 <div class="save-btn-sticky">
   <div id="bundleNoticeContainer" style="display:none;"></div>
-  <button onclick="saveEntry()" id="saveEntryBtn">記録する / LOG ENTRY</button>
+  <div class="sticky-btn-group">
+    <button type="button" id="stickySyncBtn" class="sticky-sync-btn" onclick="quickCloudSync()" title="クラウドから最新データを取得（同期）">
+      <span class="sync-btn-icon">🔄</span>
+      <span class="sticky-sync-txt">更新</span>
+    </button>
+    <button onclick="saveEntry()" id="saveEntryBtn" class="sticky-save-btn">記録する / LOG ENTRY</button>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2901,13 +2996,13 @@ function updateCloudStatusUI(){
   }
 }
 
-function openDataGuideModal(initialSection){
+function openGuideModal(initialTab = 'usage'){
   const overlay = document.createElement('div');
-  overlay.id = 'dataGuideOverlay';
+  overlay.id = 'guideModalOverlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:200;display:flex;align-items:center;justify-content:center;padding:14px;';
 
   const box = document.createElement('div');
-  box.style.cssText = 'background:#1a1e24;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.7);';
+  box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `function doPost(e) {
   var lock = LockService.getScriptLock();
@@ -3079,85 +3174,171 @@ function doGet(e) {
 
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #282e38;padding-bottom:10px;">
-      <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);">
-        📖 取扱説明・共同利用・クラウドガイド (TPSync v1.00)
+      <div style="font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--amber);letter-spacing:.03em;">
+        📖 TPSync ガイド ＆ 設定
       </div>
-      <button id="closeGuideTopBtn" style="background:transparent;border:none;color:#94a3b8;font-size:18px;cursor:pointer;padding:4px 8px;">✕</button>
+      <button id="closeGuideTopBtn" style="background:transparent;border:none;color:#94a3b8;font-size:20px;cursor:pointer;padding:2px 8px;">✕</button>
     </div>
 
-    <!-- 1. 通常の使用方法（1人で使う場合） -->
-    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
-        🏎️ 1. 通常の使用方法（1人での基本運用）
-      </div>
-      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
-        <strong style="color:#ffffff;">【走行前の測定】</strong><br>
-        1. 「<strong>冷間 COLD</strong>」を選び、4輪の空気圧・気温・路面温度等を入力して「<strong>記録する</strong>」を押します。<br>
-        2. 履歴に「<span style="color:#70baff;">冷間のみ</span>」の新しいセッションカードが作成されます。<br><br>
-        <strong style="color:#ffffff;">【走行後の測定】</strong><br>
-        1. ピットイン後、「<strong>温間 HOT</strong>」を選んで4輪空気圧やラップタイムを入力します。<br>
-        2. 「<strong>前回の冷間とまとめる</strong>」が選ばれた状態で「記録する」を押すと、先ほどの冷間カードに温間が自動追加され、<strong>各タイヤの昇圧差分（例: +35.0 kPa）</strong>が表示されます。<br>
-        ※別の走行枠として分けたい場合は「<strong>新規セッションとして区切る</strong>」を選んで記録してください。<br><br>
-        <strong style="color:#ffffff;">【冷間のみ／温間のみ】</strong><br>
-        どちらか片方しか測れなかった場合でも、余計な空欄を出さず自然に記録されます。
-      </div>
+    <!-- 3-Tab Navigator -->
+    <div class="modal-tab-bar">
+      <button type="button" class="modal-tab-btn" id="tabBtn-usage" onclick="switchGuideTab('usage')">📖 使用方法</button>
+      <button type="button" class="modal-tab-btn" id="tabBtn-cloud" onclick="switchGuideTab('cloud')">☁️ 共有使用</button>
+      <button type="button" class="modal-tab-btn" id="tabBtn-backup" onclick="switchGuideTab('backup')">⇄ バックアップ</button>
     </div>
 
-    <!-- 2. クラウド保存（Googleスプレッドシート連携） -->
-    <div id="guideSectionCloud" style="background:#14171b;border:1px solid rgba(245,166,35,0.4);border-radius:10px;padding:14px;margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
-        ☁️ 2. クラウド保存（Googleスプレッドシート連携）
-      </div>
-      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
-        アプリで記録するたびに、ご自身のGoogleスプレッドシートへ自動で永久保存される機能です（無料）。端末初期化やスマホ紛失でも<strong>データが絶対に消えません</strong>。<br><br><div style="background:rgba(74,222,128,0.1);border-left:3px solid #4ade80;padding:6px 10px;margin-bottom:10px;color:#cbd5e1;font-size:11px;line-height:1.5;"><strong style="color:#4ade80;">安心の重複防止設計：</strong> 各セッションに固有IDが割り振られているため、「一括送信」を何度実行しても重複して行が増えることはありません（既存行は最新状態で上書き更新され、新しいデータのみが末尾に追加されます）。</div>
-        <strong style="color:#ffffff;">【かんたん3ステップ導入手順】</strong><br>
-        <strong>ステップ1：</strong> PCまたはスマホでGoogleドライブを開き、新規「<strong>Googleスプレッドシート</strong>」を作成します。<br>
-        <strong>ステップ2：</strong> メニューの「<strong>拡張機能</strong>」→「<strong>Apps Script</strong>」を開き、既存のコードを消して下のコードを貼り付けます。<br>
-        <strong>ステップ3：</strong> 右上の「<strong>デプロイ</strong>」→「<strong>新しいデプロイ</strong>」を押し、種類の歯車から「<strong>ウェブアプリ</strong>」を選択。アクセスできるユーザーを「<strong>全員</strong>」にしてデプロイします。発行された「<strong>ウェブアプリURL</strong>」をコピーします。<br>
-        <strong>ステップ4：</strong> このアプリの「<strong>⇄</strong>」ボタン内の設定枠にURLを貼り付けて保存すれば完了！
-      </div>
-
-      <!-- GAS Code box -->
-      <div style="margin-top:10px;background:#0d1013;border:1px solid #2d3542;border-radius:8px;padding:10px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);font-weight:700;">貼り付け用 GAS コード</span>
-          <button id="copyGasCodeBtn" style="background:#232b36;border:1px solid #3d4a5c;color:#ffffff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;">📋 コードをコピー</button>
+    <!-- TAB 1: 使用方法 -->
+    <div id="tabContent-usage" style="display:none;">
+      <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+          🏎️ 通常の使用方法（冷間・温間の測定と記録）
         </div>
-        <textarea id="gasCodeTextarea" readonly style="width:100%;height:90px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${gasCodeEscaped}</textarea>
+        <div style="font-size:12px;color:#cbd5e1;line-height:1.7;">
+          <strong style="color:#ffffff;">【走行前の測定】</strong><br>
+          1. 「<strong>冷間 COLD</strong>」を選び、4輪の空気圧・気温・路面温度等を入力して下の「<strong>記録する</strong>」を押します。<br>
+          2. 履歴に「<span style="color:#70baff;">冷間のみ</span>」の新しい走行カードが作成されます。<br><br>
+          <strong style="color:#ffffff;">【走行後の測定】</strong><br>
+          1. ピットイン後、「<strong>温間 HOT</strong>」を選んで4輪空気圧やラップタイム・体感を入力します。<br>
+          2. 「<strong>前回の冷間とまとめる</strong>」が選ばれた状態で「記録する」を押すと、直前の冷間カードに温間が自動追加され、<strong>各タイヤの昇圧差分（例: +35.0 kPa）</strong>が表示されます。<br>
+          ※別の走行枠として分けたい場合は「<strong>新規セッションとして区切る</strong>」を選んで記録してください。<br><br>
+          <strong style="color:#ffffff;">【耐久レース対応：12時間以内まとめ】</strong><br>
+          長時間のインターバルや耐久レースでも、12時間以内であれば前回の冷間カードと自動でまとめることができます。
+        </div>
+      </div>
+
+      <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+          ⚖️ 4輪バランス判定と入力の便利機能
+        </div>
+        <div style="font-size:12px;color:#cbd5e1;line-height:1.7;">
+          ・<strong>バランス判定</strong>：前後の空気圧の高低差や対角バランスを自動計算し、車体イラスト横にステータスが表示されます。<br>
+          ・<strong>候補の自動引き継ぎ</strong>：一度入力した「サーキット名」「タイヤ銘柄」「サイズ」は自動で記憶され、次回からタップするだけで候補（サジェスト）やドロップダウンから1秒で入力できます。
+        </div>
       </div>
     </div>
 
-    <!-- 3. 共同で使う方法（複数人・チーム共有） -->
-    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:12px;">
-      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
-        👥 3. 共同で使う方法（複数人・チーム共有）
+    <!-- TAB 2: 共有使用（スプレッドシート連携） -->
+    <div id="tabContent-cloud" style="display:none;">
+      <!-- コネクション状態 & URL入力 -->
+      <div style="background:#202631;border:1px solid #384252;border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:var(--amber);letter-spacing:.04em;margin-bottom:6px;">
+          ☁️ スプレッドシート連携設定
+        </div>
+        <div id="cloudStatusIndicator" style="font-size:12px;margin-bottom:8px;"></div>
+        <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;">
+          ウェブアプリURLを設定すると、記録時に自動でスプレッドシートへリアルタイム追記されます（オフライン時もローカルに安全保持）。
+        </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;">
+          <input type="text" id="gasUrlInput" placeholder="ウェブアプリURL (https://script.google.com/macros/s/.../exec)" style="flex:1;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:12px;box-sizing:border-box;outline:none;">
+          <button id="saveGasUrlBtn" style="padding:8px 14px;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">
+            保存
+          </button>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <button id="migUploadAllBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,182,39,0.4);background:rgba(255,182,39,0.08);color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;">
+            過去データをスプレッドシートへ一括送信（アップロード）
+          </button>
+          <button id="migRestoreCloudBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;">
+            スプレッドシートから読み込む（同期・復元）
+          </button>
+        </div>
       </div>
-      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
-        <strong style="color:#ffffff;">【パターンA：1台の車を複数人でシェアする場合（耐久レースなど）】</strong><br>
-        チーム全員のアプリで<strong>同じ車両名（例: GR86-耐久号）</strong>を選択して運用します。<br>
-        Aさんが走行前に測った「冷間」に対し、ピットイン時にBさんが自分のスマホで「温間」を記録すると、<strong>自動的に前回の冷間カードに合体・昇圧計算（差分）</strong>されます！<br>
-        ※ドライバー名の違いはメモ欄に記録すれば（例: 佐藤走行 / 田中ピット）、カードやスプレッドシート上で綺麗に管理できます。<br><br>
-        <strong style="color:#ffffff;">【パターンB：各自が別々の愛車で走る場合】</strong><br>
-        同じチームスプレッドシートを共有しつつ、登録車両名を「<strong>GR86_佐藤</strong>」「<strong>ロードスター_田中</strong>」のように名前を付けて分けて記録します。<br>
-        全員のデータが1つのシートに集約されながらも、アプリ内では各自の車両ごとに独立して管理・絞り込みができます。<br><br>
-        <strong style="color:#ffffff;">【もし誤って同じ車名にしてしまっても安心】</strong><br>
-        記録時に「前回の冷間とまとめる」か「新規セッションとして区切る」かの選択ボタンが表示されます。別枠として記録したい場合は「新規セッションとして区切る」を選ぶだけで、簡単に別カードとして保存できます。
+
+      <!-- 初心者向け超詳細ガイド -->
+      <div style="background:#14171b;border:1px solid rgba(245,166,35,0.4);border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
+          🔰 初心者でも迷わない！共有開始の3ステップ手順
+        </div>
+        <div style="font-size:12px;color:#cbd5e1;line-height:1.7;">
+          <div style="background:rgba(255,182,39,0.1);padding:6px 10px;border-radius:6px;margin-bottom:10px;color:#fef08a;font-size:11px;">
+            💡 <strong>安心のポイント</strong>：この準備は<strong>チームの代表者1人が最初の1回だけ行えばOK</strong>です！他のメンバーは発行されたURLをアプリに貼るだけで即座に参加できます。
+          </div>
+
+          <strong style="color:var(--amber);font-size:13px;">📌 ステップ1：Googleスプレッドシートを作る（1分）</strong><br>
+          1. スマホやPCで <a href="https://drive.google.com/" target="_blank" style="color:var(--amber);text-decoration:underline;">Googleドライブ</a> を開きます。<br>
+          2. 画面の「<strong>＋（新規）</strong>」を押し、「<strong>Google スプレッドシート</strong>」を作成します。<br>
+          3. ファイル名を「TPSyncデータ」等に変更します（シートの中身は空っぽのままでOKです）。<br><br>
+
+          <strong style="color:var(--amber);font-size:13px;">📌 ステップ2：プログラム（コード）を貼る（1分）</strong><br>
+          1. スプレッドシート上のメニューにある「<strong>拡張機能</strong>」をタップします。<br>
+          2. 「<strong>Apps Script</strong>」をタップします（別画面が開きます）。<br>
+          3. 画面に最初から出ている英語（function myFunction...）を<strong>すべて消して真っ白</strong>にします。<br>
+          4. 下の「<strong>📋 コードをコピー</strong>」ボタンを押し、コピーしたコードを<strong>そのまま貼り付け</strong>ます。<br>
+          5. 画面上部の<strong>フロッピーマーク💾（プロジェクトを保存）</strong>をタップします。<br><br>
+
+          <strong style="color:var(--amber);font-size:13px;">📌 ステップ3：ウェブアプリとして公開（最重要！1分）</strong><br>
+          1. 画面右上の青い「<strong>デプロイ</strong>」→「<strong>新しいデプロイ</strong>」をタップします。<br>
+          2. 左側の歯車アイコン⚙を押し、「<strong>ウェブアプリ</strong>」を選択します。<br>
+          3. 設定を以下のように選びます：<br>
+             ・次のユーザーとして実行：<strong>「自分」</strong><br>
+             ・アクセスできるユーザー：<strong>必ず「全員 (Anyone)」を選ぶ！</strong><br>
+             <em style="color:#f87171;font-size:11px;">※「自分のみ」のままだとスマホからの書き込みがブロックされてしまいます。</em><br>
+          4. 右下の青い「<strong>デプロイ</strong>」ボタンを押します。<br>
+          5. Googleの承認画面が出たらアカウントを選び、「アクセスを許可」します。<br>
+          6. 完了画面に「<strong>ウェブアプリのURL</strong>」が表示されるので「<strong>コピー</strong>」を押します！<br><br>
+
+          <strong style="color:var(--amber);font-size:13px;">📌 ステップ4：このアプリに貼り付ける（完了！）</strong><br>
+          1. このアプリに戻り、上の入力枠にURLを貼り付けて「<strong>保存</strong>」を押します。<br>
+          2. これ以降、走行枠を記録するたびに自動でスプレッドシートへ送信・永久保存されます！<br><br>
+
+          <strong style="color:#ffffff;">👥 仲間に共有する方法：</strong><br>
+          代表者はコピーしたURLをLINE等で仲間に送ります。仲間は自分のTPSyncの「共有使用」欄にそのURLを貼って「保存」を押すだけで全員がリアルタイムで繋がります。<br><br>
+
+          <strong style="color:#ffffff;">🏎️ 耐久シェア vs 個人愛車の使い分け：</strong><br>
+          ・<strong>1台をシェア（耐久等）</strong>：全員で同じ車両名（例: <code>GR86-耐久号</code>）に設定すると、別々のスマホで測った冷温間が1つのカードに自動合体！<br>
+          ・<strong>別々の車で走る場合</strong>：<code>ロードスター_佐藤</code>、<code>GR86_山田</code> のように名前をつければデータが混ざりません。
+        </div>
+
+        <!-- GAS Code box -->
+        <div style="margin-top:12px;background:#0d1013;border:1px solid #2d3542;border-radius:8px;padding:10px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);font-weight:700;">貼り付け用 GAS コード（排他制御ロック＆重複防止対応）</span>
+            <button id="copyGasCodeBtn" style="background:#232b36;border:1px solid #3d4a5c;color:#ffffff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;">📋 コードをコピー</button>
+          </div>
+          <textarea id="gasCodeTextarea" readonly style="width:100%;height:80px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${gasCodeEscaped}</textarea>
+        </div>
       </div>
     </div>
 
-    <!-- 4. 機種変更・ファイル共有 -->
-    <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:16px;">
-      <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:8px;">
-        📱 4. 機種変更・バックアップファイルでの引き継ぎ
-      </div>
-      <div style="font-size:12px;color:#94a3b8;line-height:1.7;">
-        スプレッドシートを使わない場合でも、ファイルによるバックアップと引き継ぎが可能です。<br>
-        「<strong>⇄</strong>」→「<strong>バックアップを保存</strong>」でダウンロードしたファイルを新端末に送り、「<strong>ファイルを選んで復元</strong>」で取り込めば一瞬で復元できます。<br>
-        仲間のバックアップを取り込む際は「<strong>登録名を変更して取り込む</strong>」を選ぶと、自分のデータと混ざらず別車両として綺麗に並べて見比べることができます。
+    <!-- TAB 3: バックアップ・復元 -->
+    <div id="tabContent-backup" style="display:none;">
+      <div style="background:#14171b;border:1px solid #282e38;border-radius:10px;padding:14px;margin-bottom:14px;">
+        <div style="font-size:14px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+          📁 ファイル・テキストでのバックアップと共有
+        </div>
+        <div style="font-size:12px;color:#cbd5e1;line-height:1.6;margin-bottom:12px;">
+          スプレッドシートを使わない場合でも、ファイル（JSON/CSV）やLINE貼り付けによる手動バックアップ・機種変更引き継ぎが可能です。
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <button id="migExportJsonBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
+            バックアップを保存（ファイル書き出し）
+          </button>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <input type="file" id="migFileInput" accept=".json,.csv,.txt,text/*,application/json,text/csv,text/plain,application/octet-stream" style="display:none;">
+          <button id="migImportFileBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid var(--amber);background:rgba(255,182,39,0.08);color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+            ファイルを選んで復元・取り込み
+          </button>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <button id="migPasteBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
+            📋 テキスト（コピー内容）を貼り付けて復元
+          </button>
+        </div>
+
+        <div id="migPasteArea" style="display:none;margin-bottom:14px;">
+          <textarea id="migPasteText" placeholder="LINEやメールで共有されたJSONまたはCSVテキストをここに貼り付けてください" style="width:100%;height:100px;background:#262c36;border:1px solid #384252;border-radius:6px;padding:8px;color:#ffffff;font-family:'JetBrains Mono',monospace;font-size:12px;box-sizing:border-box;outline:none;resize:vertical;"></textarea>
+          <button id="migExecPasteBtn" style="width:100%;margin-top:8px;padding:10px 0;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;cursor:pointer;">
+            このテキストから取り込む
+          </button>
+        </div>
       </div>
     </div>
 
-    <button id="closeGuideBottomBtn" style="width:100%;padding:12px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+    <button id="closeGuideBottomBtn" style="width:100%;padding:11px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
       閉じる
     </button>
   `;
@@ -3165,13 +3346,27 @@ function doGet(e) {
   overlay.appendChild(box);
   document.body.appendChild(overlay);
 
-  document.getElementById('closeGuideTopBtn').onclick = () => {
-    document.body.removeChild(overlay);
-  };
-  document.getElementById('closeGuideBottomBtn').onclick = () => {
-    document.body.removeChild(overlay);
+  // Tab switching logic
+  window.switchGuideTab = function(tabName){
+    ['usage', 'cloud', 'backup'].forEach(t => {
+      const btn = document.getElementById(`tabBtn-${t}`);
+      const content = document.getElementById(`tabContent-${t}`);
+      if(btn) btn.classList.toggle('active', t === tabName);
+      if(content) content.style.display = t === tabName ? 'block' : 'none';
+    });
+    if(tabName === 'cloud'){
+      const input = document.getElementById('gasUrlInput');
+      if(input) input.value = getGasUrl();
+      updateCloudStatusUI();
+    }
   };
 
+  switchGuideTab(initialTab);
+
+  document.getElementById('closeGuideTopBtn').onclick = () => document.body.removeChild(overlay);
+  document.getElementById('closeGuideBottomBtn').onclick = () => document.body.removeChild(overlay);
+
+  // Copy code handler
   const copyBtn = document.getElementById('copyGasCodeBtn');
   if(copyBtn){
     copyBtn.onclick = () => {
@@ -3190,118 +3385,7 @@ function doGet(e) {
     };
   }
 
-  if(initialSection === 'cloud'){
-    setTimeout(() => {
-      const el = document.getElementById('guideSectionCloud');
-      if(el) el.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
-  }
-}
-
-
-function openMigration(){
-  const overlay = document.createElement('div');
-  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;';
-
-  const box = document.createElement('div');
-  box.style.cssText = 'background:#1c2027;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:480px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;';
-
-  box.innerHTML = `
-    <div style="font-family:'Oswald',sans-serif;font-size:18px;font-weight:700;color:var(--amber);margin-bottom:6px;">
-      ⇄ データの共有・クラウド連携・バックアップ
-    </div>
-    <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">
-      機種変更時の引き継ぎ、Googleスプレッドシート連携、サーキット仲間とのデータ共有に使用します。<br>
-      ・<strong>ご自身の引き継ぎ</strong>：名称はそのままで問題ありません。<br>
-      ・<strong>他者と共有する場合</strong>：車名などの後に名前（例: ロードスター_佐藤）を入れると、項目分けができて判別しやすくなります。
-    </div>
-
-    <button id="migOpenGuideBtn" style="width:100%;margin-bottom:16px;padding:12px 14px;border-radius:8px;border:1px solid rgba(255,182,39,0.5);background:rgba(255,182,39,0.12);color:var(--amber);font-family:'Inter',sans-serif;font-size:13px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;">
-      📖 通常の使い方・共同利用・クラウド設定ガイドを開く
-    </button>
-
-    <div style="background:#262c36;border:1px solid #384252;border-radius:10px;padding:14px;margin-bottom:16px;">
-      <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:var(--amber);letter-spacing:.04em;margin-bottom:6px;">
-        ☁️ Googleスプレッドシート連携（クラウド自動保存・共有）
-      </div>
-      <div id="cloudStatusIndicator" style="font-size:12px;margin-bottom:8px;"></div>
-      <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;">
-        連携すると、セッション記録時にバックグラウンドで自動的にスプレッドシートへ追記・更新されます（オフライン時もローカルに安全保持）。複数端末や仲間とリアルタイム共有できます。
-      </div>
-      <div style="display:flex;gap:6px;margin-bottom:10px;">
-        <input type="text" id="gasUrlInput" placeholder="ウェブアプリURL (https://script.google.com/macros/s/.../exec)" style="flex:1;background:#1a1e24;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:12px;box-sizing:border-box;outline:none;">
-        <button id="saveGasUrlBtn" style="padding:8px 14px;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">
-          保存
-        </button>
-      </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button id="migUploadAllBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,182,39,0.3);background:rgba(255,182,39,0.06);color:var(--amber);font-size:12px;font-weight:600;cursor:pointer;">
-          過去データをスプレッドシートへ一括送信（アップロード）
-        </button>
-        <button id="migRestoreCloudBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;">
-          スプレッドシートから読み込む（同期・復元）
-        </button>
-      </div>
-      <div style="text-align:right;margin-top:10px;">
-        <a id="migGuideLink" href="#" style="font-size:11px;color:var(--amber);text-decoration:none;">
-          📖 詳しい作成手順とコピペ用コードはこちら →
-        </a>
-      </div>
-    </div>
-
-    <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:#94a3b8;margin-bottom:8px;letter-spacing:.04em;">
-      📁 ファイル・テキストでのバックアップと共有
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <button id="migExportJsonBtn" style="width:100%;padding:13px 0;border-radius:8px;border:none;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;cursor:pointer;">
-        バックアップを保存（ファイル書き出し）
-      </button>
-    </div>
-
-    <div style="margin-bottom:12px;">
-      <input type="file" id="migFileInput" accept=".json,.csv,.txt,text/*,application/json,text/csv,text/plain,application/octet-stream" style="display:none;">
-      <button id="migImportFileBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid var(--amber);background:rgba(255,182,39,0.08);color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
-        ファイルを選んで復元・取り込み
-      </button>
-    </div>
-
-    <div style="margin-bottom:16px;">
-      <button id="migPasteBtn" style="width:100%;padding:11px 0;border-radius:8px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#e9e6df;font-family:'Inter',sans-serif;font-size:13px;font-weight:600;cursor:pointer;">
-        📋 テキスト（コピー内容）を貼り付けて復元
-      </button>
-    </div>
-
-    <div id="migPasteArea" style="display:none;margin-bottom:16px;">
-      <textarea id="migPasteText" placeholder="LINEやメールで共有されたJSONまたはCSVテキストをここに貼り付けてください" style="width:100%;height:100px;background:#262c36;border:1px solid #384252;border-radius:6px;padding:8px;color:#ffffff;font-family:'JetBrains Mono',monospace;font-size:12px;box-sizing:border-box;outline:none;resize:vertical;"></textarea>
-      <button id="migExecPasteBtn" style="width:100%;margin-top:8px;padding:10px 0;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;cursor:pointer;">
-        このテキストから取り込む
-      </button>
-    </div>
-
-    <button id="migCloseBtn" style="width:100%;padding:10px 0;border-radius:8px;border:1px solid #282e38;background:transparent;color:#94a3b8;font-size:13px;cursor:pointer;">
-      閉じる
-    </button>
-  `;
-
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  document.getElementById('migOpenGuideBtn').onclick = () => {
-    document.body.removeChild(overlay);
-    openDataGuideModal();
-  };
-
-  document.getElementById('migGuideLink').onclick = (e) => {
-    e.preventDefault();
-    document.body.removeChild(overlay);
-    openDataGuideModal('cloud');
-  };
-
-  const gasInput = document.getElementById('gasUrlInput');
-  if(gasInput) gasInput.value = getGasUrl();
-  updateCloudStatusUI();
-
+  // Cloud handlers
   document.getElementById('saveGasUrlBtn').onclick = saveGasUrlFromInput;
   document.getElementById('migUploadAllBtn').onclick = uploadAllToCloud;
   document.getElementById('migRestoreCloudBtn').onclick = async () => {
@@ -3309,8 +3393,8 @@ function openMigration(){
     document.body.removeChild(overlay);
   };
 
+  // Backup handlers
   document.getElementById('migExportJsonBtn').onclick = exportBackupJSON;
-
   const fileInput = document.getElementById('migFileInput');
   fileInput.onchange = () => {
     if(fileInput.files && fileInput.files[0]){
@@ -3334,11 +3418,16 @@ function openMigration(){
     document.body.removeChild(overlay);
     importBackupContent(val, '貼り付けテキスト');
   };
-
-  document.getElementById('migCloseBtn').onclick = () => {
-    document.body.removeChild(overlay);
-  };
 }
+
+function openDataGuideModal(sec){
+  openGuideModal(sec === 'cloud' ? 'cloud' : 'usage');
+}
+
+function openMigration(){
+  openGuideModal('backup');
+}
+
 function saveEntry(){
   try{
     const cornerVals = {};
@@ -4003,7 +4092,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.00').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.03').catch(() => {});
   });
 }
 </script>
