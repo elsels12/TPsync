@@ -1568,7 +1568,16 @@ function setupTempPicker(selId, inputId, min, max, onChangeCallback){
   buildTempRangeOptions(sel, min, max, '℃');
   sel.value = '';
 
-  // Clean picker without auto-forcing 20C on tap
+  // When tapping/opening dropdown while empty, pre-position centered on 20℃!
+  const onTempOpen = () => {
+    if(sel.value === '' && input.value === ''){
+      sel.value = '20';
+    }
+  };
+  sel.addEventListener('pointerdown', onTempOpen);
+  sel.addEventListener('touchstart', onTempOpen, {passive: true});
+  sel.addEventListener('mousedown', onTempOpen);
+  sel.addEventListener('focus', onTempOpen);
 
   sel.addEventListener('change', () => {
     if(sel.value !== ''){
@@ -1577,6 +1586,13 @@ function setupTempPicker(selId, inputId, min, max, onChangeCallback){
       input.value = '';
     }
     if(onChangeCallback) onChangeCallback();
+  });
+
+  sel.addEventListener('blur', () => {
+    // If the input was never set, restore select to empty so no phantom value remains
+    if(input.value === ''){
+      sel.value = '';
+    }
   });
 }
 
@@ -1668,8 +1684,10 @@ function buildFilterRangeOptions(selectEl, min, max, step, unit){
 }
 
 function setupFilterFields(){
-  setupTempPicker('filterTempMax-select', 'filterTempMax', -10, 50, applyFilters);
-  setupTempPicker('filterTempMin-select', 'filterTempMin', -10, 50, applyFilters);
+  setupTempPicker('filterAmbientTempMin-select', 'filterAmbientTempMin', -10, 50, applyFilters);
+  setupTempPicker('filterAmbientTempMax-select', 'filterAmbientTempMax', -10, 50, applyFilters);
+  setupTempPicker('filterTrackTempMin-select', 'filterTrackTempMin', -10, 75, applyFilters);
+  setupTempPicker('filterTrackTempMax-select', 'filterTrackTempMax', -10, 75, applyFilters);
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -2228,6 +2246,12 @@ function toggleFilterPanel(){
   if(icon) icon.textContent = isHidden ? '▾' : '▸';
 }
 
+function clearFilterRange(prefix){
+  clearTemp(prefix + 'Min');
+  clearTemp(prefix + 'Max');
+  applyFilters();
+}
+
 function clearFilterField(field){
   switch(field){
     case 'track':
@@ -2238,11 +2262,13 @@ function clearFilterField(field){
       const c = document.getElementById('filterCondition');
       if(c) c.value = '';
       break;
-    case 'tempMax':
-      clearTemp('filterTempMax');
-      return;
+    case 'ambientTemp':
     case 'tempMin':
-      clearTemp('filterTempMin');
+    case 'tempMax':
+      clearFilterRange('filterAmbientTemp');
+      return;
+    case 'trackTemp':
+      clearFilterRange('filterTrackTemp');
       return;
     case 'tireBrand':
       const b = document.getElementById('filterTireBrand');
@@ -2289,10 +2315,10 @@ function resetFilters(){
   const track = document.getElementById('filterTrack'); if(track) track.value = '';
   const cond = document.getElementById('filterCondition'); if(cond) cond.value = '';
   const brand = document.getElementById('filterTireBrand'); if(brand) brand.value = '';
-  const tmin = document.getElementById('filterTempMin'); if(tmin) tmin.value = '';
-  const tmins = document.getElementById('filterTempMin-select'); if(tmins) tmins.value = '';
-  const tmax = document.getElementById('filterTempMax'); if(tmax) tmax.value = '';
-  const tmaxs = document.getElementById('filterTempMax-select'); if(tmaxs) tmaxs.value = '';
+  clearTemp('filterAmbientTempMin');
+  clearTemp('filterAmbientTempMax');
+  clearTemp('filterTrackTempMin');
+  clearTemp('filterTrackTempMax');
   const feel = document.getElementById('filterFeel'); if(feel) feel.value = '';
   ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam','filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam','filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
     const el = document.getElementById(id);
@@ -2387,8 +2413,15 @@ function applyFilters(){
   const track = document.getElementById('filterTrack').value;
   const condition = document.getElementById('filterCondition').value;
   const tireBrand = document.getElementById('filterTireBrand').value;
-  const tempMinV = getCornerValue('filterTempMin');
-  const tempMaxV = getCornerValue('filterTempMax');
+  const ambMinRaw = document.getElementById('filterAmbientTempMin').value.trim();
+  const ambMaxRaw = document.getElementById('filterAmbientTempMax').value.trim();
+  const ambMin = ambMinRaw !== '' ? parseFloat(ambMinRaw) : NaN;
+  const ambMax = ambMaxRaw !== '' ? parseFloat(ambMaxRaw) : NaN;
+
+  const trkMinRaw = document.getElementById('filterTrackTempMin').value.trim();
+  const trkMaxRaw = document.getElementById('filterTrackTempMax').value.trim();
+  const trkMin = trkMinRaw !== '' ? parseFloat(trkMinRaw) : NaN;
+  const trkMax = trkMaxRaw !== '' ? parseFloat(trkMaxRaw) : NaN;
   const feel = document.getElementById('filterFeel').value;
   const fWidth = document.getElementById('filterSizeFrontWidth').value;
   const fAspect = document.getElementById('filterSizeFrontAspect').value;
@@ -2413,8 +2446,18 @@ function applyFilters(){
     }
     if(tireBrand && e.tireBrandFront !== tireBrand && e.tireBrandRear !== tireBrand) return false;
     if(feel && String(e.feel) !== feel) return false;
-    if(!isNaN(tempMinV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) < tempMinV)) return false;
-    if(!isNaN(tempMaxV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) > tempMaxV)) return false;
+    if(!isNaN(ambMin)){
+      if(e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) < ambMin) return false;
+    }
+    if(!isNaN(ambMax)){
+      if(e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) > ambMax) return false;
+    }
+    if(!isNaN(trkMin)){
+      if(e.trackTemp === null || e.trackTemp === undefined || parseFloat(e.trackTemp) < trkMin) return false;
+    }
+    if(!isNaN(trkMax)){
+      if(e.trackTemp === null || e.trackTemp === undefined || parseFloat(e.trackTemp) > trkMax) return false;
+    }
     if(fWidth || fAspect || fDiam){
       const fSize = parseSizeString(e.sizeFront);
       if(!fSize) return false;
@@ -2441,7 +2484,7 @@ function applyFilters(){
     return true;
   });
 
-  const activeFilters = track || condition || tireBrand || feel || !isNaN(tempMinV) || !isNaN(tempMaxV) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
+  const activeFilters = track || condition || tireBrand || feel || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
   const summary = document.getElementById('filterSummary');
   if(summary){
     summary.textContent = activeFilters ? `${filtered.length} / ${carEntries.length} 件表示中` : '';
