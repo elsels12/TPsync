@@ -6,7 +6,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Tire Pressure">
+<meta name="apple-mobile-web-app-title" content="TPSync">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
@@ -362,7 +362,36 @@
     resize:vertical;
   }
 
-    .temp-clear-btn{
+  
+  .filter-temp-select{
+    width:100%;
+    background:#1c2027 !important;
+    border:1px solid #384252 !important;
+    border-radius:6px;
+    color:#ffffff !important;
+    font-family:'JetBrains Mono',monospace;
+    font-size:13px;
+    font-weight:700;
+    outline:none;
+    padding:7px 8px;
+    cursor:pointer;
+    box-sizing:border-box;
+  }
+  .filter-temp-select option{
+    background:#20252b;
+    color:#ffffff;
+  }
+  .filter-temp-sep{
+    text-align:center;
+    font-size:12px;
+    font-weight:800;
+    color:var(--amber);
+    line-height:1;
+    padding:2px 0;
+    user-select:none;
+  }
+
+  .temp-clear-btn{
     background:rgba(63,169,245,0.12);
     border:1px solid rgba(63,169,245,0.4);
     border-radius:4px;
@@ -400,51 +429,6 @@
   }
   .temp-input::placeholder{color:rgba(255,255,255,0.35);}
   .temp-input:focus{border-color:var(--amber) !important;}
-  .filter-temp-select{
-    flex:1;
-    min-width:0;
-    background:#1c2027 !important;
-    border:1px solid #384252 !important;
-    border-radius:6px;
-    color:#ffffff !important;
-    font-family:'JetBrains Mono',monospace;
-    font-size:13px;
-    font-weight:700;
-    outline:none;
-    padding:5px 4px;
-    cursor:pointer;
-  }
-  .filter-temp-select option{
-    background:#20252b;
-    color:#ffffff;
-  }
-  .filter-temp-input{
-    width:50px;
-    flex-shrink:0;
-    background:#1c2027 !important;
-    border:1px solid #384252 !important;
-    border-radius:6px;
-    color:#ffffff !important;
-    font-family:'JetBrains Mono',monospace;
-    font-size:13px;
-    font-weight:700;
-    text-align:center;
-    padding:5px 2px;
-    outline:none;
-    box-sizing:border-box;
-  }
-  .filter-temp-input::placeholder{
-    color:rgba(255,255,255,0.35);
-    font-size:10px;
-  }
-  .filter-temp-sep{
-    text-align:center;
-    font-size:12px;
-    font-weight:800;
-    color:var(--amber);
-    line-height:1;
-    padding:2px 0;
-  }
 
   
   /* Tire size input boxes with comfortable spacing */
@@ -935,7 +919,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>PIT WALL LOG v1.00</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync v1.00</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1150,16 +1134,10 @@
         <label style="margin-bottom:0;">気温</label>
         <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterAmbientTemp')" title="クリア">クリア</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
-        <div style="display:flex;gap:4px;align-items:center;">
-          <select class="filter-temp-select" id="filterAmbientTempMin-select"></select>
-          <input type="number" step="0.5" class="filter-temp-input" id="filterAmbientTempMin" placeholder="下限" oninput="onTempInput('filterAmbientTempMin'); applyFilters();">
-        </div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">
+        <select class="filter-temp-select" id="filterAmbientTempMin" onchange="applyFilters()"></select>
         <div class="filter-temp-sep">〜</div>
-        <div style="display:flex;gap:4px;align-items:center;">
-          <select class="filter-temp-select" id="filterAmbientTempMax-select"></select>
-          <input type="number" step="0.5" class="filter-temp-input" id="filterAmbientTempMax" placeholder="上限" oninput="onTempInput('filterAmbientTempMax'); applyFilters();">
-        </div>
+        <select class="filter-temp-select" id="filterAmbientTempMax" onchange="applyFilters()"></select>
       </div>
     </div>
 
@@ -1169,16 +1147,10 @@
         <label style="margin-bottom:0;">路面温度</label>
         <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterTrackTemp')" title="クリア">クリア</button>
       </div>
-      <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
-        <div style="display:flex;gap:4px;align-items:center;">
-          <select class="filter-temp-select" id="filterTrackTempMin-select"></select>
-          <input type="number" step="0.5" class="filter-temp-input" id="filterTrackTempMin" placeholder="下限" oninput="onTempInput('filterTrackTempMin'); applyFilters();">
-        </div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">
+        <select class="filter-temp-select" id="filterTrackTempMin" onchange="applyFilters()"></select>
         <div class="filter-temp-sep">〜</div>
-        <div style="display:flex;gap:4px;align-items:center;">
-          <select class="filter-temp-select" id="filterTrackTempMax-select"></select>
-          <input type="number" step="0.5" class="filter-temp-input" id="filterTrackTempMax" placeholder="上限" oninput="onTempInput('filterTrackTempMax'); applyFilters();">
-        </div>
+        <select class="filter-temp-select" id="filterTrackTempMax" onchange="applyFilters()"></select>
       </div>
     </div>
 
@@ -1748,11 +1720,24 @@ function buildFilterRangeOptions(selectEl, min, max, step, unit){
   selectEl.innerHTML = html;
 }
 
+function buildFilterTempOptions(selectEl, min, max, unit, placeholder){
+  let html = `<option value="" selected>${placeholder}</option>`;
+  for(let v = min; v <= max; v++){
+    html += `<option value="${v}">${v}${unit}</option>`;
+  }
+  selectEl.innerHTML = html;
+}
+
 function setupFilterFields(){
-  setupTempPicker('filterAmbientTempMin-select', 'filterAmbientTempMin', -10, 50, applyFilters);
-  setupTempPicker('filterAmbientTempMax-select', 'filterAmbientTempMax', -10, 50, applyFilters);
-  setupTempPicker('filterTrackTempMin-select', 'filterTrackTempMin', -10, 75, applyFilters);
-  setupTempPicker('filterTrackTempMax-select', 'filterTrackTempMax', -10, 75, applyFilters);
+  const ambMin = document.getElementById('filterAmbientTempMin');
+  const ambMax = document.getElementById('filterAmbientTempMax');
+  const trkMin = document.getElementById('filterTrackTempMin');
+  const trkMax = document.getElementById('filterTrackTempMax');
+
+  if(ambMin) buildFilterTempOptions(ambMin, -10, 50, '℃', '下限なし');
+  if(ambMax) buildFilterTempOptions(ambMax, -10, 50, '℃', '上限なし');
+  if(trkMin) buildFilterTempOptions(trkMin, -10, 75, '℃', '下限なし');
+  if(trkMax) buildFilterTempOptions(trkMax, -10, 75, '℃', '上限なし');
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -2312,8 +2297,10 @@ function toggleFilterPanel(){
 }
 
 function clearFilterRange(prefix){
-  clearTemp(prefix + 'Min');
-  clearTemp(prefix + 'Max');
+  const minEl = document.getElementById(prefix + 'Min');
+  const maxEl = document.getElementById(prefix + 'Max');
+  if(minEl) minEl.value = '';
+  if(maxEl) maxEl.value = '';
   applyFilters();
 }
 
@@ -2380,10 +2367,10 @@ function resetFilters(){
   const track = document.getElementById('filterTrack'); if(track) track.value = '';
   const cond = document.getElementById('filterCondition'); if(cond) cond.value = '';
   const brand = document.getElementById('filterTireBrand'); if(brand) brand.value = '';
-  clearTemp('filterAmbientTempMin');
-  clearTemp('filterAmbientTempMax');
-  clearTemp('filterTrackTempMin');
-  clearTemp('filterTrackTempMax');
+  const ambMin = document.getElementById('filterAmbientTempMin'); if(ambMin) ambMin.value = '';
+  const ambMax = document.getElementById('filterAmbientTempMax'); if(ambMax) ambMax.value = '';
+  const trkMin = document.getElementById('filterTrackTempMin'); if(trkMin) trkMin.value = '';
+  const trkMax = document.getElementById('filterTrackTempMax'); if(trkMax) trkMax.value = '';
   const feel = document.getElementById('filterFeel'); if(feel) feel.value = '';
   ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam','filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam','filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
     const el = document.getElementById(id);
@@ -4486,7 +4473,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.04').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.25').catch(() => {});
   });
 }
 </script>
