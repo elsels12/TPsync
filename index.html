@@ -279,16 +279,18 @@
   .section-title::before{content:"";width:14px;height:1px;background:var(--amber);}
   .filter-toggle-btn{
     width:100%;display:flex;justify-content:space-between;align-items:center;
-    background:var(--panel);border:1px solid var(--line);border-radius:10px;
-    padding:12px 14px;margin:20px 0 8px;cursor:pointer;
+    background:rgba(255,182,39,0.06);border:1.5px solid var(--amber);border-radius:10px;
+    padding:11px 14px;margin:20px 0 8px;cursor:pointer;
+    box-sizing:border-box;box-shadow:0 2px 12px rgba(0,0,0,0.3);
+    transition:background .15s ease, box-shadow .15s ease;
   }
   .filter-toggle-btn .ft-label{
-    font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
-    color:var(--paper);display:flex;align-items:center;gap:8px;
+    font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--amber);display:flex;align-items:center;gap:8px;
   }
-  .filter-toggle-btn .ft-label::before{content:"";width:14px;height:1px;background:var(--amber);}
-  .filter-toggle-btn #filterToggleIcon{font-size:15px;color:var(--amber);transition:transform .2s ease;}
-  .filter-toggle-btn:active{background:#20252b;}
+  .filter-toggle-btn .ft-label::before{content:"";width:12px;height:2px;background:var(--amber);}
+  .filter-toggle-btn #filterToggleIcon{font-size:15px;color:var(--amber);font-weight:700;transition:transform .2s ease;}
+  .filter-toggle-btn:active{background:rgba(255,182,39,0.18);}
 
   .grid2{
     display:grid;
@@ -497,15 +499,50 @@
     display:flex;gap:8px;align-items:stretch;width:100%;
   }
   .sticky-sync-btn{
-    flex:0 0 68px;
+    flex:0 0 66px;
     height:50px;
-    border-radius:10px;
-    border:1px solid #4a5568;
-    background:#202631;
+    border-radius:12px;
+    border:1.5px solid rgba(255,182,39,0.5);
+    background:linear-gradient(145deg, #242c38 0%, #151a22 100%);
     color:#e9e6df;
+    font-family:'JetBrains Mono',monospace;
+    font-weight:800;
+    cursor:pointer;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:1px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,0.12), 0 4px 14px rgba(0,0,0,0.5);
+    transition:all .15s ease;
+    box-sizing:border-box;
+  }
+  .sticky-sync-btn:active{
+    background:#10141a;
+    border-color:var(--amber);
+    transform:scale(0.95);
+  }
+  .sticky-sync-btn .sync-btn-icon{
+    font-size:17px;
+    line-height:1;
+    color:var(--amber);
+    filter:drop-shadow(0 0 5px rgba(255,182,39,0.4));
+  }
+  .sticky-sync-btn .sticky-sync-txt{
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.06em;
+    color:var(--amber);
+    line-height:1;
+  }
+  .sticky-jump-btn{
+    flex:0 0 58px;
+    height:50px;
+    border-radius:12px;
+    border:1px solid #475569;
+    background:linear-gradient(145deg, #1e242d 0%, #14171d 100%);
+    color:#cbd5e1;
     font-family:'Inter',sans-serif;
-    font-weight:700;
-    font-size:12px;
     cursor:pointer;
     display:flex;
     flex-direction:column;
@@ -513,22 +550,22 @@
     justify-content:center;
     gap:1px;
     box-shadow:0 4px 14px rgba(0,0,0,0.4);
-    transition:background .15s ease, transform .1s ease, border-color .15s ease;
+    transition:all .15s ease;
     box-sizing:border-box;
   }
-  .sticky-sync-btn:active{
-    background:#2c3545;
+  .sticky-jump-btn:active{
     border-color:var(--amber);
-    transform:scale(0.96);
+    transform:scale(0.95);
   }
-  .sticky-sync-btn .sync-btn-icon{
-    font-size:16px;
+  .sticky-jump-btn .jump-icon{
+    font-size:15px;
     line-height:1;
-  }
-  .sticky-sync-btn .sticky-sync-txt{
-    font-size:11px;
-    font-weight:700;
     color:var(--amber);
+  }
+  .sticky-jump-btn .jump-txt{
+    font-size:10px;
+    font-weight:700;
+    color:#94a3b8;
     line-height:1;
   }
   .sticky-save-btn{
@@ -839,7 +876,7 @@
     <div style="display:flex;gap:6px;flex-shrink:0;">
       <button class="topbar-csv-btn" onclick="exportCSV()">CSV</button>
       <button class="topbar-csv-btn" onclick="copyCSVToClipboard()">COPY</button>
-      <button class="topbar-csv-btn" onclick="openGuideModal('backup')">⇄</button>
+      <button class="topbar-csv-btn" id="topbarJumpBtn" onclick="toggleScrollJump()" title="先頭／履歴へジャンプ">⬇ 履歴</button>
     </div>
   </div>
   <div class="sub">冷間・温間圧力 / 気温・路面温度トラッキング</div>
@@ -1162,6 +1199,7 @@
   </div>
   </div>
 
+  <div id="logSectionAnchor"></div>
   <div class="section-title" style="margin:24px 0 10px;">履歴 / SESSION LOG</div>
   <div id="logList"></div>
 
@@ -1179,6 +1217,10 @@
       <span class="sticky-sync-txt">更新</span>
     </button>
     <button onclick="saveEntry()" id="saveEntryBtn" class="sticky-save-btn">記録する / LOG ENTRY</button>
+    <button type="button" id="stickyJumpBtn" class="sticky-jump-btn" onclick="toggleScrollJump()" title="先頭／履歴へジャンプ">
+      <span class="jump-icon" id="stickyJumpIcon">⬇</span>
+      <span class="jump-txt" id="stickyJumpTxt">履歴</span>
+    </button>
   </div>
 </div>
 
@@ -1511,6 +1553,8 @@ function setupTempPicker(selId, inputId, min, max, onChangeCallback){
 
   sel.addEventListener('change', () => {
     if(sel.value !== ''){
+      input.value = sel.value;
+    } else {
       input.value = '';
     }
     if(onChangeCallback) onChangeCallback();
@@ -1520,13 +1564,35 @@ function setupTempPicker(selId, inputId, min, max, onChangeCallback){
 function setupQuickSelects(){
   ['FL','FR','RL','RR'].forEach(c=>{
     const sel = document.getElementById(c+'-select');
+    const input = document.getElementById(c);
     buildRangeOptions(sel, 100, 600, 5, '', 200);
     sel.value = '200';
-    sel.addEventListener('change', checkBalance);
-    const input = document.getElementById(c);
+    
+    // When select dropdown changes, reflect in input
+    sel.addEventListener('change', () => {
+      if(sel.value !== '') input.value = sel.value;
+      checkBalance();
+    });
+
+    // When manual input changes, reflect in select dropdown
     input.value = '';
-    input.addEventListener('focus', ()=>{ input.value = ''; });
-    input.addEventListener('input', checkBalance);
+    input.addEventListener('input', () => {
+      const val = input.value.trim();
+      if(val !== ''){
+        const num = parseFloat(val);
+        if(!isNaN(num)){
+          let opt = Array.from(sel.options).find(o => parseFloat(o.value) === num);
+          if(!opt){
+            opt = document.createElement('option');
+            opt.value = String(num);
+            opt.textContent = String(num);
+            sel.appendChild(opt);
+          }
+          sel.value = opt.value;
+        }
+      }
+      checkBalance();
+    });
   });
   checkBalance();
 
@@ -1660,7 +1726,8 @@ function setCornerPressure(c, val){
 
 function parseSizeString(str){
   if(!str) return null;
-  const m = String(str).match(/^(\d+)\/(\d+)R(\d+)$/);
+  const clean = String(str).replace(/\s+/g, '');
+  const m = clean.match(/^(\d+)\/(\d+)[A-Za-z\-]+(\d+)$/i) || clean.match(/^(\d+)\/(\d+)R(\d+)$/i);
   if(!m) return null;
   return { width: m[1], aspect: m[2], diam: m[3] };
 }
@@ -1943,11 +2010,11 @@ function csvEscape(val){
 function buildCSVString(data, defaultName){
   const headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ'];
   const rows = data.map(e => {
-    const cp = e.coldPressures || (e.mode === 'cold' ? e.pressures : {}) || {};
-    const hp = e.hotPressures || (e.mode === 'hot' ? e.pressures : {}) || {};
+    const cp = e.coldPressures || (e.mode === 'cold' ? e.pressures : null) || {};
+    const hp = e.hotPressures || (e.mode === 'hot' ? e.pressures : null) || {};
     return [
-      e.timestamp,
-      defaultName || e.car || '',
+      e.timestamp || '',
+      e.car || defaultName || 'マイカー',
       e.track || '',
       CONDITION_LABELS[e.condition] || e.condition || '',
       e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp : '',
@@ -2192,6 +2259,34 @@ function bulkDeleteFiltered(){
   showToast(`${count} 件の記録を削除しました`);
 }
 
+
+function bundleWithEarlierCold(id){
+  const idx = entries.findIndex(e => String(e.id) === String(id));
+  if(idx === -1) return;
+  const hotEntry = entries[idx];
+  const coldRef = findColdMatch(hotEntry);
+  if(!coldRef){
+    showToast('直前の冷間記録が見つかりませんでした');
+    return;
+  }
+  const timeStr = new Date(coldRef.timestamp).toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  if(!confirm(`直前の冷間記録（${timeStr}）とこの温間記録を1つのカードにまとめますか？\n※元の冷間カードは統合されます。`)){
+    return;
+  }
+  hotEntry.coldPressures = coldRef.coldPressures || (coldRef.mode === 'cold' ? coldRef.pressures : null);
+  const coldIdx = entries.findIndex(e => String(e.id) === String(coldRef.id));
+  if(coldIdx !== -1){
+    entries.splice(coldIdx, 1);
+  }
+  persistEntries();
+  updateTrackFilterOptions();
+  applyFilters();
+  updateSessionBundleNotice();
+  const overlay = document.getElementById('editModalOverlay');
+  if(overlay) document.body.removeChild(overlay);
+  showToast('冷間と温間を1つのセッションにまとめました');
+}
+
 function splitSession(id){
   const idx = entries.findIndex(e => e.id === id);
   if(idx === -1) return;
@@ -2248,7 +2343,13 @@ function applyFilters(){
 
   let filtered = carEntries.filter(e=>{
     if(track && e.track !== track) return false;
-    if(condition && e.condition !== condition) return false;
+    if(condition){
+      const eCond = (e.condition === 'ドライ' || e.condition === 'Dry') ? 'Dry' :
+                    (e.condition === 'ハーフウェット' || e.condition === 'HalfWet') ? 'HalfWet' :
+                    (e.condition === 'ウェット' || e.condition === 'Wet') ? 'Wet' :
+                    (e.condition === 'ベビーウェット' || e.condition === 'BabyWet') ? 'BabyWet' : e.condition;
+      if(eCond !== condition) return false;
+    }
     if(tireBrand && e.tireBrandFront !== tireBrand && e.tireBrandRear !== tireBrand) return false;
     if(feel && String(e.feel) !== feel) return false;
     if(!isNaN(tempMinV) && (e.ambientTemp === null || e.ambientTemp === undefined || parseFloat(e.ambientTemp) < tempMinV)) return false;
@@ -2347,12 +2448,6 @@ function renderLog(list_){
     // Resolve Cold and Hot pressures
     let coldP = e.coldPressures || (e.mode === 'cold' ? e.pressures : null);
     let hotP = e.hotPressures || (e.mode === 'hot' ? e.pressures : null);
-
-    // If legacy hot record and no cold in same entry, attempt to find nearest earlier cold
-    if(!coldP && hotP && e.mode === 'hot'){
-      const coldRef = findColdMatch(e);
-      if(coldRef) coldP = coldRef.coldPressures || (coldRef.mode === 'cold' ? coldRef.pressures : null);
-    }
 
     const hasCold = !!(coldP && Object.values(coldP).some(v => v !== null && v !== undefined));
     const hasHot = !!(hotP && Object.values(hotP).some(v => v !== null && v !== undefined));
@@ -2474,7 +2569,9 @@ function renderLog(list_){
 
         ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
 
-        <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+        <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:10px;">
+          ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${e.id}')">✂️ 別カードに分割</button>` : ''}
+          ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(255,182,39,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${e.id}')">🔗 冷間とまとめる</button>` : ''}
           <button class="edit-btn" onclick="openEditModal('${e.id}')">編集 EDIT</button>
           <button class="del-btn" onclick="confirmDelete('${e.id}')">削除 DELETE</button>
         </div>
@@ -2485,160 +2582,199 @@ function renderLog(list_){
 
 
 function parseCSVToEntries(text){
-  text = text.replace(/^﻿/, '').trim();
-  const lines = text.split(/\r?\n/).filter(line => line.trim().length > 0);
-  if(lines.length < 2) return null;
+  text = text.replace(/^\uFEFF/, '').trim();
+  text = text.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '').trim();
 
-  function parseRow(rowStr){
-    const row = [];
-    let insideQuote = false;
-    let entry = '';
-    for(let i=0; i<rowStr.length; i++){
-      const c = rowStr[i];
-      if(c === '"'){
-        if(insideQuote && rowStr[i+1] === '"'){
-          entry += '"';
-          i++;
-        } else {
-          insideQuote = !insideQuote;
-        }
-      } else if(c === ',' && !insideQuote){
-        row.push(entry.trim());
-        entry = '';
-      } else {
-        entry += c;
-      }
-    }
-    row.push(entry.trim());
-    return row;
+  // Try JSON first
+  if(text.startsWith('[') || text.startsWith('{')){
+    try {
+      const parsed = JSON.parse(text);
+      if(Array.isArray(parsed)) return parsed;
+      if(parsed && Array.isArray(parsed.entries)) return parsed.entries;
+    } catch(e){}
   }
 
-  const headers = parseRow(lines[0]);
-  const hMap = {};
-  headers.forEach((h, idx) => { hMap[h] = idx; });
+  // Detect delimiter: tab, comma, or semicolon
+  const firstLine = text.split(/\r?\n/)[0] || '';
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semiCount = (firstLine.match(/;/g) || []).length;
+  let delimiter = ',';
+  if(tabCount > commaCount && tabCount > semiCount) delimiter = '\t';
+  else if(semiCount > commaCount && semiCount > tabCount) delimiter = ';';
 
-  const getCol = (cols, name) => {
-    const idx = hMap[name];
-    if(idx !== undefined && idx < cols.length){
-      const val = cols[idx].trim();
-      return val === '' ? null : val;
+  // Full CSV/TSV tokenizer respecting multi-line quotes
+  const rows = [];
+  let currentRow = [];
+  let currentField = '';
+  let inQuotes = false;
+  let i = 0;
+
+  while(i < text.length){
+    const char = text[i];
+    if(char === '"'){
+      if(inQuotes && text[i + 1] === '"'){
+        currentField += '"';
+        i += 2;
+        continue;
+      } else {
+        inQuotes = !inQuotes;
+        i++;
+        continue;
+      }
+    }
+    if(!inQuotes){
+      if(char === delimiter){
+        currentRow.push(currentField.trim());
+        currentField = '';
+        i++;
+        continue;
+      }
+      if(char === '\r'){ i++; continue; }
+      if(char === '\n'){
+        currentRow.push(currentField.trim());
+        if(currentRow.some(col => col !== '')) rows.push(currentRow);
+        currentRow = [];
+        currentField = '';
+        i++;
+        continue;
+      }
+    }
+    currentField += char;
+    i++;
+  }
+  if(currentField !== '' || currentRow.length > 0){
+    currentRow.push(currentField.trim());
+    if(currentRow.some(col => col !== '')) rows.push(currentRow);
+  }
+
+  if(rows.length === 0) return null;
+
+  const normKey = (s) => String(s || '').toLowerCase().replace(/[\s_\-()（）\[\]【】\/]/g, '');
+
+  // Header detection: check if first row contains known header names or if it's already data
+  const isFirstColDate = /^\d{4}[-/]\d{1,2}/.test(rows[0][0]) || (!isNaN(Date.parse(rows[0][0])) && String(rows[0][0]).length >= 8);
+  const headerKeywords = ['日時','日付','date','time','登録名','car','場所','track','fl','fr','rl','rr','冷間','温間','cold','hot','気温','路面'];
+  const firstRowNorm = rows[0].map(h => normKey(h));
+  const hasHeaderRow = !isFirstColDate && firstRowNorm.some(h => headerKeywords.some(kw => h.includes(kw)));
+
+  let hMap = {};
+  let startIdx = 1;
+
+  if(hasHeaderRow){
+    rows[0].forEach((h, idx) => {
+      const k = normKey(h);
+      if(k) hMap[k] = idx;
+      hMap[h] = idx;
+      hMap[h.toLowerCase()] = idx;
+    });
+  } else {
+    // Default column order (standard export without header row)
+    startIdx = 0;
+    const stdHeaders = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_fl','冷間_fr','冷間_rl','冷間_rr','温間_fl','温間_fr','温間_rl','温間_rr','メモ','id'];
+    stdHeaders.forEach((h, idx) => {
+      hMap[normKey(h)] = idx;
+    });
+  }
+
+  const getCol = (cols, ...names) => {
+    for(const name of names){
+      const nk = normKey(name);
+      let idx = hMap[nk] !== undefined ? hMap[nk] : (hMap[name] !== undefined ? hMap[name] : hMap[name.toLowerCase()]);
+      if(idx !== undefined && idx < cols.length){
+        const val = cols[idx].replace(/^["']|["']$/g, '').trim();
+        if(val !== '') return val;
+      }
     }
     return null;
   };
-  const getFloat = (cols, name) => {
-    const val = getCol(cols, name);
+
+  const getFloat = (cols, ...names) => {
+    const val = getCol(cols, ...names);
     if(val === null) return null;
     const n = parseFloat(val);
     return isNaN(n) ? null : n;
   };
 
-  const isUnified = hMap['冷間_FL'] !== undefined || hMap['温間_FL'] !== undefined;
+  const normalizeCondition = (val) => {
+    if(!val) return 'Dry';
+    const s = String(val).trim();
+    if(s === 'ドライ' || s.toLowerCase() === 'dry') return 'Dry';
+    if(s === 'ハーフウェット' || s.toLowerCase() === 'halfwet') return 'HalfWet';
+    if(s === 'ウェット' || s.toLowerCase() === 'wet') return 'Wet';
+    if(s === 'ベビーウェット' || s.toLowerCase() === 'babywet') return 'BabyWet';
+    return s;
+  };
 
   const entriesList = [];
-  for(let i=1; i<lines.length; i++){
-    const cols = parseRow(lines[i]);
-    if(cols.length < 3) continue;
+  for(let r = startIdx; r < rows.length; r++){
+    const cols = rows[r];
+    if(cols.length < 2) continue;
 
-    if(isUnified){
-      const timestamp = getCol(cols, '日時') || new Date().toISOString();
-      const car = getCol(cols, '登録名') || getCol(cols, '車両') || 'マイカー';
-      const track = getCol(cols, '場所');
-      const condition = getCol(cols, '路面状況') || getCol(cols, 'コンディション') || 'Dry';
-      const ambientTemp = getFloat(cols, '気温');
-      const trackTemp = getFloat(cols, '路面温度');
-      const lapTime = getCol(cols, 'タイム');
-      const feel = getCol(cols, '体感');
-      const tireBrandFront = getCol(cols, '銘柄_前') || getCol(cols, '銘柄前');
-      const tireBrandRear = getCol(cols, '銘柄_後') || getCol(cols, '銘柄後');
-      const sizeFront = getCol(cols, 'サイズ_前') || getCol(cols, 'サイズ前');
-      const sizeRear = getCol(cols, 'サイズ_後') || getCol(cols, 'サイズ後');
-      const notes = getCol(cols, 'メモ');
+    const timestamp = getCol(cols, '日時', 'タイムスタンプ', 'timestamp', 'date') || new Date().toISOString();
+    const car = getCol(cols, '登録名', '車両', '車両名', '車名', 'car') || 'マイカー';
+    const track = getCol(cols, '場所', 'サーキット', 'コース', 'track');
+    const condition = normalizeCondition(getCol(cols, '路面状況', '路面状態', '路面', 'コンディション', 'condition'));
+    const ambientTemp = getFloat(cols, '気温', '外気温', 'ambientTemp', 'temp');
+    const trackTemp = getFloat(cols, '路面温度', '路温', 'trackTemp');
+    const lapTime = getCol(cols, 'タイム', 'ラップタイム', 'lapTime', 'lap');
+    const feel = getCol(cols, '体感', 'フィーリング', 'feel');
+    const tireBrandFront = getCol(cols, '銘柄_前', '銘柄前', 'タイヤ_フロント', 'フロント銘柄', 'タイヤ前', 'Fタイヤ', 'tireBrandFront');
+    const tireBrandRear = getCol(cols, '銘柄_後', '銘柄後', 'タイヤ_リア', 'リア銘柄', 'タイヤ後', 'Rタイヤ', 'tireBrandRear');
+    const sizeFront = getCol(cols, 'サイズ_前', 'サイズ前', 'サイズ_フロント', 'フロントサイズ', 'Fサイズ', 'sizeFront');
+    const sizeRear = getCol(cols, 'サイズ_後', 'サイズ後', 'サイズ_リア', 'リアサイズ', 'Rサイズ', 'sizeRear');
+    const notes = getCol(cols, 'メモ', '備考', 'notes');
 
-      const cfl = getFloat(cols, '冷間_FL');
-      const cfr = getFloat(cols, '冷間_FR');
-      const crl = getFloat(cols, '冷間_RL');
-      const crr = getFloat(cols, '冷間_RR');
-      const hasCold = cfl !== null || cfr !== null || crl !== null || crr !== null;
+    // Pressures with rich aliases (spaces, underscores, brackets, etc.)
+    let cfl = getFloat(cols, '冷間_FL', '冷間FL', '冷間 FL', '冷間(FL)', '冷_FL', 'FL_冷間', 'cold_FL', 'Cold_FL', 'Cold FL', 'coldFL');
+    let cfr = getFloat(cols, '冷間_FR', '冷間FR', '冷間 FR', '冷間(FR)', '冷_FR', 'FR_冷間', 'cold_FR', 'Cold_FR', 'Cold FR', 'coldFR');
+    let crl = getFloat(cols, '冷間_RL', '冷間RL', '冷間 RL', '冷間(RL)', '冷_RL', 'RL_冷間', 'cold_RL', 'Cold_RL', 'Cold RL', 'coldRL');
+    let crr = getFloat(cols, '冷間_RR', '冷間RR', '冷間 RR', '冷間(RR)', '冷_RR', 'RR_冷間', 'cold_RR', 'Cold_RR', 'Cold RR', 'coldRR');
 
-      const hfl = getFloat(cols, '温間_FL');
-      const hfr = getFloat(cols, '温間_FR');
-      const hrl = getFloat(cols, '温間_RL');
-      const hrr = getFloat(cols, '温間_RR');
-      const hasHot = hfl !== null || hfr !== null || hrl !== null || hrr !== null;
+    let hfl = getFloat(cols, '温間_FL', '温間FL', '温間 FL', '温間(FL)', '温_FL', 'FL_温間', 'hot_FL', 'Hot_FL', 'Hot FL', 'hotFL');
+    let hfr = getFloat(cols, '温間_FR', '温間FR', '温間 FR', '温間(FR)', '温_FR', 'FR_温間', 'hot_FR', 'Hot_FR', 'Hot FR', 'hotFR');
+    let hrl = getFloat(cols, '温間_RL', '温間RL', '温間 RL', '温間(RL)', '温_RL', 'RL_温間', 'hot_RL', 'Hot_RL', 'Hot RL', 'hotRL');
+    let hrr = getFloat(cols, '温間_RR', '温間RR', '温間 RR', '温間(RR)', '温_RR', 'RR_温間', 'hot_RR', 'Hot_RR', 'Hot RR', 'hotRR');
 
-      entriesList.push({
-        id: Date.now() + i,
-        timestamp,
-        car,
-        coldPressures: hasCold ? { FL: cfl, FR: cfr, RL: crl, RR: crr } : null,
-        hotPressures: hasHot ? { FL: hfl, FR: hfr, RL: hrl, RR: hrr } : null,
-        track,
-        tireBrandFront,
-        tireBrandRear,
-        sizeFront,
-        sizeRear,
-        condition,
-        ambientTemp,
-        trackTemp,
-        lapTime,
-        feel,
-        notes
-      });
-    } else {
-      let colIdx = 0;
-      const timestamp = cols[colIdx++] || new Date().toISOString();
-      const hasCar = hMap['登録名'] !== undefined || hMap['車両'] !== undefined;
-      const car = hasCar ? (cols[colIdx++] || 'マイカー') : 'マイカー';
-      const modeRaw = cols[colIdx++] || '';
-      const mode = (modeRaw === '温間' || modeRaw.toLowerCase() === 'hot') ? 'hot' : 'cold';
-      const track = cols[colIdx++] || null;
-      const tireBrandFront = cols[colIdx++] || null;
-      const tireBrandRear = cols[colIdx++] || null;
-      const sizeFront = cols[colIdx++] || null;
-      const sizeRear = cols[colIdx++] || null;
-      const condition = cols[colIdx++] || 'Dry';
-      const ambientTemp = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
-      const trackTemp = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
-      const lapTime = cols[colIdx++] || null;
-      const feel = cols[colIdx++] || null;
-      const fl = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
-      const fr = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
-      const rl = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
-      const rr = (colIdx < cols.length && cols[colIdx] !== '') ? parseFloat(cols[colIdx]) : null; colIdx++;
-      const notes = cols[colIdx++] || null;
-
-      const pObj = {
-        FL: isNaN(fl) ? null : fl,
-        FR: isNaN(fr) ? null : fr,
-        RL: isNaN(rl) ? null : rl,
-        RR: isNaN(rr) ? null : rr
-      };
-      entriesList.push({
-        id: Date.now() + i,
-        timestamp,
-        car,
-        coldPressures: mode === 'cold' ? pObj : null,
-        hotPressures: mode === 'hot' ? pObj : null,
-        mode,
-        pressures: pObj,
-        track,
-        tireBrandFront,
-        tireBrandRear,
-        sizeFront,
-        sizeRear,
-        condition,
-        ambientTemp: isNaN(ambientTemp) ? null : ambientTemp,
-        trackTemp: isNaN(trackTemp) ? null : trackTemp,
-        lapTime,
-        feel,
-        notes
-      });
+    // Single mode fallback (FL, FR, RL, RR with mode column)
+    const modeRaw = getCol(cols, 'モード', 'mode', '状態', '種別');
+    if(cfl === null && hfl === null && getFloat(cols, 'FL') !== null){
+      const isHot = modeRaw && (modeRaw === '温間' || modeRaw.toLowerCase() === 'hot');
+      const fl = getFloat(cols, 'FL');
+      const fr = getFloat(cols, 'FR');
+      const rl = getFloat(cols, 'RL');
+      const rr = getFloat(cols, 'RR');
+      if(isHot){
+        hfl = fl; hfr = fr; hrl = rl; hrr = rr;
+      } else {
+        cfl = fl; cfr = fr; crl = rl; crr = rr;
+      }
     }
+
+    const hasCold = cfl !== null || cfr !== null || crl !== null || crr !== null;
+    const hasHot = hfl !== null || hfr !== null || hrl !== null || hrr !== null;
+
+    entriesList.push({
+      id: getCol(cols, 'id', 'ID') || (Date.now() + r + '_' + Math.random().toString(36).slice(2, 7)),
+      timestamp,
+      car,
+      track,
+      condition,
+      ambientTemp,
+      trackTemp,
+      lapTime,
+      feel,
+      tireBrandFront,
+      tireBrandRear,
+      sizeFront,
+      sizeRear,
+      coldPressures: hasCold ? { FL: cfl, FR: cfr, RL: crl, RR: crr } : null,
+      hotPressures: hasHot ? { FL: hfl, FR: hfr, RL: hrl, RR: hrr } : null,
+      notes
+    });
   }
   return entriesList;
 }
-
-
 function importBackupContent(rawText, sourceName){
   try {
     let cleaned = rawText.replace(/^\uFEFF/, '').trim();
@@ -3712,8 +3848,22 @@ function clearTemp(idPrefix){
 function onTempInput(idPrefix){
   const sel = document.getElementById(idPrefix + '-select');
   const input = document.getElementById(idPrefix);
-  if(input && input.value !== '' && sel){
+  if(!input || !sel) return;
+  const val = input.value.trim();
+  if(val === ''){
     sel.value = '';
+    return;
+  }
+  const num = parseFloat(val);
+  if(!isNaN(num)){
+    let opt = Array.from(sel.options).find(o => parseFloat(o.value) === num);
+    if(!opt){
+      opt = document.createElement('option');
+      opt.value = String(num);
+      opt.textContent = `${num}℃`;
+      sel.appendChild(opt);
+    }
+    sel.value = opt.value;
   }
 }
 
@@ -3878,6 +4028,50 @@ function setupTireBrandAutocomplete(){
 }
 
 setupTrackAutocomplete();
+
+function scrollToTop(){
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function scrollToHistory(){
+  const el = document.getElementById('logSectionAnchor') || document.getElementById('logList');
+  if(el){
+    el.scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+let isScrolledDown = false;
+function updateJumpButtons(){
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  const historyEl = document.getElementById('logSectionAnchor') || document.getElementById('logList');
+  const historyTop = historyEl ? historyEl.offsetTop - 350 : 600;
+  isScrolledDown = scrollY > historyTop;
+
+  const stickyIcon = document.getElementById('stickyJumpIcon');
+  const stickyTxt = document.getElementById('stickyJumpTxt');
+  const topbarBtn = document.getElementById('topbarJumpBtn');
+
+  if(isScrolledDown){
+    if(stickyIcon) stickyIcon.textContent = '⬆';
+    if(stickyTxt) stickyTxt.textContent = '入力';
+    if(topbarBtn) topbarBtn.textContent = '⬆ 入力';
+  } else {
+    if(stickyIcon) stickyIcon.textContent = '⬇';
+    if(stickyTxt) stickyTxt.textContent = '履歴';
+    if(topbarBtn) topbarBtn.textContent = '⬇ 履歴';
+  }
+}
+
+function toggleScrollJump(){
+  if(isScrolledDown){
+    scrollToTop();
+  } else {
+    scrollToHistory();
+  }
+}
+
+window.addEventListener('scroll', updateJumpButtons, { passive: true });
+
 setupTireBrandAutocomplete();
 
 function openEditModal(id){
@@ -4007,6 +4201,20 @@ function openEditModal(id){
       <textarea id="editNotes" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'Inter',sans-serif;font-size:13px;resize:vertical;min-height:50px;">${entry.notes || ''}</textarea>
     </div>
 
+    ${(entry.coldPressures && entry.hotPressures) ? `
+      <div style="margin-bottom:14px;">
+        <button type="button" onclick="splitSession('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(255,182,39,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
+          ✂️ 冷間と温間を2つの別々カードに分割する
+        </button>
+      </div>
+    ` : ''}
+    ${(!entry.coldPressures && entry.hotPressures && findColdMatch(entry)) ? `
+      <div style="margin-bottom:14px;">
+        <button type="button" onclick="bundleWithEarlierCold('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(255,182,39,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
+          🔗 直前の冷間カードと1つにまとめる（結合）
+        </button>
+      </div>
+    ` : ''}
     <div style="display:flex;gap:10px;">
       <button id="saveEditBtn" style="flex:1;padding:12px 0;background:var(--amber);color:#1a1400;border:none;border-radius:8px;font-family:'Oswald',sans-serif;font-weight:700;font-size:15px;letter-spacing:.05em;cursor:pointer;">
         更新して保存
@@ -4092,7 +4300,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.03').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.04').catch(() => {});
   });
 }
 </script>
