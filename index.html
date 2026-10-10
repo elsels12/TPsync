@@ -1568,15 +1568,7 @@ function setupTempPicker(selId, inputId, min, max, onChangeCallback){
   buildTempRangeOptions(sel, min, max, '℃');
   sel.value = '';
 
-  // When tapping while empty, pre-select 20C so the native picker/wheel opens centered on 20C!
-  const onTempTap = () => {
-    if(sel.value === ''){
-      sel.value = '20';
-    }
-  };
-  sel.addEventListener('pointerdown', onTempTap);
-  sel.addEventListener('touchstart', onTempTap, {passive: true});
-  sel.addEventListener('mousedown', onTempTap);
+  // Clean picker without auto-forcing 20C on tap
 
   sel.addEventListener('change', () => {
     if(sel.value !== ''){
@@ -1753,8 +1745,8 @@ function setCornerPressure(c, val){
 
 function parseSizeString(str){
   if(!str) return null;
-  const clean = String(str).replace(/\s+/g, '');
-  const m = clean.match(/^(\d+)\/(\d+)[A-Za-z\-]+(\d+)$/i) || clean.match(/^(\d+)\/(\d+)R(\d+)$/i);
+  const clean = String(str).trim().replace(/\s+/g, '/');
+  const m = clean.match(/^(\d{2,3})[\/\-_](\d{2})[A-Za-z\-\/]*(\d{2})$/i);
   if(!m) return null;
   return { width: m[1], aspect: m[2], diam: m[3] };
 }
@@ -1979,13 +1971,55 @@ function showToast(msg){
   setTimeout(()=>t.classList.remove('show'), 1600);
 }
 
+function autoRepairCorruptedEntries(){
+  let repairedCount = 0;
+  entries.forEach(e => {
+    if(!e) return;
+    const sizeInLap = parseSizeString(e.lapTime);
+    const lapInSize = e.sizeFront && /^\d{1,2}:\d{2}/.test(String(e.sizeFront).trim());
+    const brandInCond = e.condition && !['Dry','HalfWet','Wet','BabyWet','ドライ','ハーフウェット','ウェット','ベビーウェット'].includes(e.condition);
+    const tempInBrand = e.tireBrandFront && !isNaN(parseFloat(e.tireBrandFront)) && String(e.tireBrandFront).length <= 4;
+
+    if(sizeInLap || lapInSize || (brandInCond && tempInBrand)){
+      const correctedSize = sizeInLap ? e.lapTime : e.sizeFront;
+      const correctedLap = lapInSize ? e.sizeFront : (sizeInLap ? null : e.lapTime);
+      const correctedBrand = brandInCond ? e.condition : e.tireBrandFront;
+      const correctedCond = ['Dry','HalfWet','Wet','BabyWet','ドライ','ハーフウェット','ウェット','ベビーウェット'].includes(e.feel) ? e.feel : 'Dry';
+      const correctedAmb = tempInBrand ? parseFloat(e.tireBrandFront) : e.ambientTemp;
+      const correctedTrk = (e.tireBrandRear && !isNaN(parseFloat(e.tireBrandRear))) ? parseFloat(e.tireBrandRear) : e.trackTemp;
+      const correctedFeel = (e.sizeRear && ['A','B','C','D','E'].includes(e.sizeRear)) ? e.sizeRear : e.feel;
+
+      e.sizeFront = correctedSize;
+      e.sizeRear = correctedSize;
+      e.lapTime = correctedLap;
+      e.tireBrandFront = correctedBrand;
+      e.tireBrandRear = correctedBrand;
+      e.condition = correctedCond;
+      e.ambientTemp = correctedAmb;
+      e.trackTemp = correctedTrk;
+      e.feel = correctedFeel;
+
+      if(e.car === '冷間' || e.car === '温間'){
+        e.car = currentCar || 'マイカー';
+      }
+      repairedCount++;
+    }
+  });
+  if(repairedCount > 0){
+    console.log(`Auto-repaired ${repairedCount} shifted entries.`);
+    persistEntries();
+  }
+}
+
 async function loadEntries(){
+
   try{
     const raw = localStorage.getItem(STORE_KEY);
     entries = raw ? JSON.parse(raw) : [];
   }catch(e){
     entries = [];
   }
+  autoRepairCorruptedEntries();
   initCars();
   renderCarSelector();
   updateTrackFilterOptions();
@@ -2369,7 +2403,7 @@ function applyFilters(){
   const notesQuery = document.getElementById('filterNotes').value.trim().toLowerCase();
 
   let filtered = carEntries.filter(e=>{
-    if(track && e.track !== track) return false;
+    if(track && String(e.track || '').trim() !== String(track).trim()) return false;
     if(condition){
       const eCond = (e.condition === 'ドライ' || e.condition === 'Dry') ? 'Dry' :
                     (e.condition === 'ハーフウェット' || e.condition === 'HalfWet') ? 'HalfWet' :
@@ -2696,12 +2730,28 @@ function parseCSVToEntries(text){
       hMap[h.toLowerCase()] = idx;
     });
   } else {
-    // Default column order (standard export without header row)
+    // Detect whether rows are 17-column legacy schema or 21-column unified schema
     startIdx = 0;
-    const stdHeaders = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_fl','冷間_fr','冷間_rl','冷間_rr','温間_fl','温間_fr','温間_rl','温間_rr','メモ','id'];
-    stdHeaders.forEach((h, idx) => {
-      hMap[normKey(h)] = idx;
-    });
+    const sampleRow = rows[0];
+    const isLegacy17 = sampleRow.length <= 18 || 
+                       sampleRow[1] === '冷間' || sampleRow[1] === '温間' || 
+                       (sampleRow[1] && (sampleRow[1].toLowerCase() === 'cold' || sampleRow[1].toLowerCase() === 'hot')) ||
+                       parseSizeString(sampleRow[5]);
+
+    if(isLegacy17){
+      // Legacy 17-column schema:
+      // 日時, モード, 場所, タイヤ_フロント, タイヤ_リア, サイズ_フロント, サイズ_リア, 路面状況, 気温, 路面温度, ラップタイム, 体感, FL, FR, RL, RR, メモ
+      const legacyHeaders = ['日時','モード','場所','銘柄_前','銘柄_後','サイズ_前','サイズ_後','路面状況','気温','路面温度','タイム','体感','fl','fr','rl','rr','メモ'];
+      legacyHeaders.forEach((h, idx) => {
+        hMap[normKey(h)] = idx;
+      });
+    } else {
+      // 21/22-column unified schema:
+      const stdHeaders = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_fl','冷間_fr','冷間_rl','冷間_rr','温間_fl','温間_fr','温間_rl','温間_rr','メモ','id'];
+      stdHeaders.forEach((h, idx) => {
+        hMap[normKey(h)] = idx;
+      });
+    }
   }
 
   const getCol = (cols, ...names) => {
@@ -3744,28 +3794,29 @@ function updateTrackFilterOptions(){
   const allEntries = entries;
   const carEntries = getCarEntries();
 
-  // Track history from all entries
-  trackHistory = [...new Set(allEntries.map(e=>e.track).filter(Boolean))].sort();
+  // Track history from all entries (excluding corrupted times or sizes)
+  trackHistory = [...new Set(allEntries.map(e => e.track ? String(e.track).trim() : '').filter(Boolean))]
+    .filter(t => !/^\d+:\d+/.test(t) && !parseSizeString(t)).sort();
   const filterTrack = document.getElementById('filterTrack');
   const currentTrack = filterTrack.value;
   filterTrack.innerHTML = '<option value="">すべて</option>' + trackHistory.map(t=>`<option value="${t}">${t}</option>`).join('');
   if(trackHistory.includes(currentTrack)) filterTrack.value = currentTrack;
 
-  // Tire brand history from all entries
+  // Tire brand history from all entries (excluding numbers or condition names)
   tireBrandHistory = [...new Set([
-    ...allEntries.map(e=>e.tireBrandFront).filter(Boolean),
-    ...allEntries.map(e=>e.tireBrandRear).filter(Boolean)
-  ])].sort();
+    ...allEntries.map(e => e.tireBrandFront ? String(e.tireBrandFront).trim() : ''),
+    ...allEntries.map(e => e.tireBrandRear ? String(e.tireBrandRear).trim() : '')
+  ].filter(Boolean))].filter(b => isNaN(parseFloat(b)) && !['Dry','HalfWet','Wet','BabyWet','ドライ','ハーフウェット','ウェット','ベビーウェット'].includes(b)).sort();
   const filterBrand = document.getElementById('filterTireBrand');
   const currentBrand = filterBrand.value;
   filterBrand.innerHTML = '<option value="">すべて</option>' + tireBrandHistory.map(b=>`<option value="${b}">${b}</option>`).join('');
   if(tireBrandHistory.includes(currentBrand)) filterBrand.value = currentBrand;
 
-  // Tire size history from all entries
+  // Tire size history from all entries (only valid parseable sizes)
   sizeHistory = [...new Set([
-    ...allEntries.map(e=>e.sizeFront).filter(Boolean),
-    ...allEntries.map(e=>e.sizeRear).filter(Boolean)
-  ])].sort();
+    ...allEntries.map(e => e.sizeFront ? String(e.sizeFront).trim() : ''),
+    ...allEntries.map(e => e.sizeRear ? String(e.sizeRear).trim() : '')
+  ].filter(Boolean))].filter(s => parseSizeString(s) !== null).sort();
 
   renderSizePresets();
 }
