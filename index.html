@@ -1728,16 +1728,45 @@ function buildFilterTempOptions(selectEl, min, max, unit, placeholder){
   selectEl.innerHTML = html;
 }
 
-function setupFilterFields(){
-  const ambMin = document.getElementById('filterAmbientTempMin');
-  const ambMax = document.getElementById('filterAmbientTempMax');
-  const trkMin = document.getElementById('filterTrackTempMin');
-  const trkMax = document.getElementById('filterTrackTempMax');
+function setupFilterTempPicker(selId, min, max, unit, placeholder){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
 
-  if(ambMin) buildFilterTempOptions(ambMin, -10, 50, '℃', '下限なし');
-  if(ambMax) buildFilterTempOptions(ambMax, -10, 50, '℃', '上限なし');
-  if(trkMin) buildFilterTempOptions(trkMin, -10, 75, '℃', '下限なし');
-  if(trkMax) buildFilterTempOptions(trkMax, -10, 75, '℃', '上限なし');
+  buildFilterTempOptions(sel, min, max, unit, placeholder);
+  sel.value = '';
+
+  let wasEmptyOnOpen = false;
+
+  // タッチ/クリック時に未設定なら20℃を仮選択し、ネイティブピッカー/ホイールを20℃中心で開く
+  const onTempOpen = () => {
+    if(sel.value === ''){
+      wasEmptyOnOpen = true;
+      sel.value = '20';
+    }
+  };
+  sel.addEventListener('pointerdown', onTempOpen);
+  sel.addEventListener('touchstart', onTempOpen, {passive: true});
+  sel.addEventListener('mousedown', onTempOpen);
+  sel.addEventListener('focus', onTempOpen);
+
+  sel.addEventListener('change', () => {
+    wasEmptyOnOpen = false;
+    applyFilters();
+  });
+
+  sel.addEventListener('blur', () => {
+    if(wasEmptyOnOpen && sel.value === '20'){
+      applyFilters();
+    }
+    wasEmptyOnOpen = false;
+  });
+}
+
+function setupFilterFields(){
+  setupFilterTempPicker('filterAmbientTempMin', -10, 50, '℃', '下限なし');
+  setupFilterTempPicker('filterAmbientTempMax', -10, 50, '℃', '上限なし');
+  setupFilterTempPicker('filterTrackTempMin', -10, 75, '℃', '下限なし');
+  setupFilterTempPicker('filterTrackTempMax', -10, 75, '℃', '上限なし');
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -4473,7 +4502,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.25').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.26').catch(() => {});
   });
 }
 </script>
