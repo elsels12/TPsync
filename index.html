@@ -2166,7 +2166,7 @@ function csvEscape(val){
 }
 
 function buildCSVString(data, defaultName){
-  const headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ'];
+  const headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID'];
   const rows = data.map(e => {
     const cp = e.coldPressures || (e.mode === 'cold' ? e.pressures : null) || {};
     const hp = e.hotPressures || (e.mode === 'hot' ? e.pressures : null) || {};
@@ -2191,7 +2191,8 @@ function buildCSVString(data, defaultName){
       (hp.FR !== undefined && hp.FR !== null) ? hp.FR : '',
       (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
       (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
-      e.notes || ''
+      e.notes || '',
+      String(e.id || '')
     ].map(csvEscape).join(',');
   });
 
@@ -2494,15 +2495,43 @@ function applyFilters(){
   const track = document.getElementById('filterTrack').value;
   const condition = document.getElementById('filterCondition').value;
   const tireBrand = document.getElementById('filterTireBrand').value;
-  const ambMinRaw = document.getElementById('filterAmbientTempMin').value.trim();
-  const ambMaxRaw = document.getElementById('filterAmbientTempMax').value.trim();
-  const ambMin = ambMinRaw !== '' ? parseFloat(ambMinRaw) : NaN;
-  const ambMax = ambMaxRaw !== '' ? parseFloat(ambMaxRaw) : NaN;
+  const ambTopRaw = document.getElementById('filterAmbientTempMax') ? document.getElementById('filterAmbientTempMax').value.trim() : '';
+  const ambBottomRaw = document.getElementById('filterAmbientTempMin') ? document.getElementById('filterAmbientTempMin').value.trim() : '';
+  const ambTop = ambTopRaw !== '' ? parseFloat(ambTopRaw) : NaN;
+  const ambBottom = ambBottomRaw !== '' ? parseFloat(ambBottomRaw) : NaN;
 
-  const trkMinRaw = document.getElementById('filterTrackTempMin').value.trim();
-  const trkMaxRaw = document.getElementById('filterTrackTempMax').value.trim();
-  const trkMin = trkMinRaw !== '' ? parseFloat(trkMinRaw) : NaN;
-  const trkMax = trkMaxRaw !== '' ? parseFloat(trkMaxRaw) : NaN;
+  let ambMin = NaN;
+  let ambMax = NaN;
+  if(!isNaN(ambTop) && !isNaN(ambBottom)){
+    // 両方選択されている場合：低い方を下限、高い方を上限とする
+    ambMin = Math.min(ambTop, ambBottom);
+    ambMax = Math.max(ambTop, ambBottom);
+  } else if(!isNaN(ambTop)){
+    // 上段（上限）のみ選択されている場合：それ以下
+    ambMax = ambTop;
+  } else if(!isNaN(ambBottom)){
+    // 下段（下限）のみ選択されている場合：それ以上
+    ambMin = ambBottom;
+  }
+
+  const trkTopRaw = document.getElementById('filterTrackTempMax') ? document.getElementById('filterTrackTempMax').value.trim() : '';
+  const trkBottomRaw = document.getElementById('filterTrackTempMin') ? document.getElementById('filterTrackTempMin').value.trim() : '';
+  const trkTop = trkTopRaw !== '' ? parseFloat(trkTopRaw) : NaN;
+  const trkBottom = trkBottomRaw !== '' ? parseFloat(trkBottomRaw) : NaN;
+
+  let trkMin = NaN;
+  let trkMax = NaN;
+  if(!isNaN(trkTop) && !isNaN(trkBottom)){
+    // 両方選択されている場合：低い方を下限、高い方を上限とする
+    trkMin = Math.min(trkTop, trkBottom);
+    trkMax = Math.max(trkTop, trkBottom);
+  } else if(!isNaN(trkTop)){
+    // 上段（上限）のみ選択されている場合：それ以下
+    trkMax = trkTop;
+  } else if(!isNaN(trkBottom)){
+    // 下段（下限）のみ選択されている場合：それ以上
+    trkMin = trkBottom;
+  }
   const feel = document.getElementById('filterFeel').value;
   const fWidth = document.getElementById('filterSizeFrontWidth').value;
   const fAspect = document.getElementById('filterSizeFrontAspect').value;
@@ -2883,7 +2912,10 @@ function parseCSVToEntries(text){
       const nk = normKey(name);
       let idx = hMap[nk] !== undefined ? hMap[nk] : (hMap[name] !== undefined ? hMap[name] : hMap[name.toLowerCase()]);
       if(idx !== undefined && idx < cols.length){
-        const val = cols[idx].replace(/^["']|["']$/g, '').trim();
+        let val = String(cols[idx] || '').trim();
+        if((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))){
+          val = val.slice(1, -1).trim();
+        }
         if(val !== '') return val;
       }
     }
@@ -4502,7 +4534,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.27').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.30').catch(() => {});
   });
 }
 </script>
