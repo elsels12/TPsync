@@ -224,7 +224,7 @@ function doGet(e) {
       var up = clean(row[23]) || ts;
       // 手入力でIDが空の行には内容に基づく安定IDを生成（削除で行番号が変わっても追従）
       var rawId = clean(row[21]);
-      var rowId = rawId ? rawId : ('manual_' + clean(row[0]).replace(/[^0-9]/g, '') + '_' + clean(row[1]) + '_' + clean(row[6]) + '_' + (idx + 2));
+      var rowId = rawId ? rawId : ('manual_' + clean(row[0]).replace(/[^0-9]/g, '') + '_' + clean(row[1]) + '_' + clean(row[6]) + '_' + clean(row[12]));
 
       return {
         id: rowId,

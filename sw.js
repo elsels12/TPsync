@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpsync-v1.85';
+const CACHE_NAME = 'tpsync-v2.10';
 const ASSETS = [
   './',
   './index.html',
@@ -38,7 +38,7 @@ async function resolveOfflineNavigation(request) {
   const m3 = await caches.match(request);
   if (m3) return m3;
   return new Response(
-    '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>TPSync Offline</title></head><body style="background:#15181c;color:#fff;font-family:sans-serif;padding:24px;text-align:center;"><h2>TPSync オフライン</h2><p>接続を確認して再読み込みしてください。</p><button onclick="location.reload()" style="padding:10px 20px;background:#dfac58;border:none;border-radius:6px;font-weight:700;">再読み込み</button></body></html>',
+    '<!DOCTYPE html><html lang="ja"><head><meta charset="utf-8"><title>TPSync Offline</title></head><body style="background:#1c2636;color:#fff;font-family:sans-serif;padding:24px;text-align:center;"><h2>TPSync オフライン</h2><p>接続を確認して再読み込みしてください。</p><button onclick="location.reload()" style="padding:10px 20px;background:#dfac58;border:none;border-radius:6px;font-weight:700;">再読み込み</button></body></html>',
     { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
 }

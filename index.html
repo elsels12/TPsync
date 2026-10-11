@@ -2296,7 +2296,11 @@ async function persistEntries(){
   try{
     localStorage.setItem(STORE_KEY, JSON.stringify(entries));
   }catch(e){
-    showToast('保存エラー');
+    if(e && (e.name === 'QuotaExceededError' || e.code === 22 || e.code === 1014)){
+      showToast('⚠️ 端末の保存容量がいっぱいです。「バックアップを保存」でファイルを書き出してください');
+    } else {
+      showToast('ローカル保存エラー');
+    }
   }
 }
 
@@ -3978,7 +3982,7 @@ function doGet(e) {
       var up = clean(row[23]) || ts;
       // 手入力でIDが空の行には日時・車両・タイム・行番号を組み合わせた安定IDを生成（削除で行番号が変わっても追従）
       var rawId = clean(row[21]);
-      var rowId = rawId ? rawId : ('manual_' + clean(row[0]).replace(/[^0-9]/g, '') + '_' + clean(row[1]) + '_' + clean(row[6]) + '_' + (idx + 2));
+      var rowId = rawId ? rawId : ('manual_' + clean(row[0]).replace(/[^0-9]/g, '') + '_' + clean(row[1]) + '_' + clean(row[6]) + '_' + clean(row[12]));
 
       return {
         id: rowId,
@@ -5043,7 +5047,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.85').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.95').catch(() => {});
   });
 }
 </script>
