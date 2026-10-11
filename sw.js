@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpsync-v1.26';
+const CACHE_NAME = 'tpsync-v1.27';
 const ASSETS = ['./', './index.html', './manifest.json', './icon-192.png', './apple-touch-icon.png', './icon-512.png'];
 
 self.addEventListener('install', (event) => {

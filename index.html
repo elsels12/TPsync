@@ -1128,29 +1128,29 @@
       </select>
     </div>
 
-    <!-- 気温 (下限 〜 上限) -->
+    <!-- 気温 (上限 〜 下限) -->
     <div class="field">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <label style="margin-bottom:0;">気温</label>
         <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterAmbientTemp')" title="クリア">クリア</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">
-        <select class="filter-temp-select" id="filterAmbientTempMin" onchange="applyFilters()"></select>
-        <div class="filter-temp-sep">〜</div>
         <select class="filter-temp-select" id="filterAmbientTempMax" onchange="applyFilters()"></select>
+        <div class="filter-temp-sep">〜</div>
+        <select class="filter-temp-select" id="filterAmbientTempMin" onchange="applyFilters()"></select>
       </div>
     </div>
 
-    <!-- 路面温度 (下限 〜 上限) -->
+    <!-- 路面温度 (上限 〜 下限) -->
     <div class="field">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
         <label style="margin-bottom:0;">路面温度</label>
         <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterTrackTemp')" title="クリア">クリア</button>
       </div>
       <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">
-        <select class="filter-temp-select" id="filterTrackTempMin" onchange="applyFilters()"></select>
-        <div class="filter-temp-sep">〜</div>
         <select class="filter-temp-select" id="filterTrackTempMax" onchange="applyFilters()"></select>
+        <div class="filter-temp-sep">〜</div>
+        <select class="filter-temp-select" id="filterTrackTempMin" onchange="applyFilters()"></select>
       </div>
     </div>
 
@@ -1763,10 +1763,10 @@ function setupFilterTempPicker(selId, min, max, unit, placeholder){
 }
 
 function setupFilterFields(){
-  setupFilterTempPicker('filterAmbientTempMin', -10, 50, '℃', '下限なし');
   setupFilterTempPicker('filterAmbientTempMax', -10, 50, '℃', '上限なし');
-  setupFilterTempPicker('filterTrackTempMin', -10, 75, '℃', '下限なし');
+  setupFilterTempPicker('filterAmbientTempMin', -10, 50, '℃', '下限なし');
   setupFilterTempPicker('filterTrackTempMax', -10, 75, '℃', '上限なし');
+  setupFilterTempPicker('filterTrackTempMin', -10, 75, '℃', '下限なし');
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -4502,7 +4502,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.26').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.27').catch(() => {});
   });
 }
 </script>
