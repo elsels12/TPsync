@@ -1313,9 +1313,42 @@
 let currentMode = 'cold';
 let entries = [];
 let currentFilteredEntries = [];
+const cardViews = {};
+const LOG_PAGE_SIZE = 30;
+let currentRenderedCount = 0;
+let currentRenderData = [];
+let loadMoreObserver = null;
+let isScrolledDown = false;
+const JUMP_SVG_DOWN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+const JUMP_SVG_UP = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+let scrollTickTicking = false;
+let cachedHistoryTop = null;
 const STORE_KEY = 'tire_pressure_entries';
 const PENDING_SYNC_KEY = 'tire_pending_sync';
 const PENDING_DELETES_KEY = 'tire_pending_deletes';
+const GAS_URL_KEY = 'tire_pressure_gas_url';
+// CAR keys defined at top
+
+
+let trackHistory = [];
+let tireBrandHistory = [];
+let sizeHistory = [];
+let tireSizeLinked = true;
+let tireLinkActive = true;
+
+const CONDITION_LABELS = {
+  Dry: 'ドライ',
+  HalfWet: 'ハーフウェット',
+  Wet: 'ウェット',
+  BabyWet: 'ベビーウェット'
+};
+
+function getGasUrl(){
+  return (localStorage.getItem(GAS_URL_KEY) || '').trim();
+}
+function setGasUrl(url){
+  localStorage.setItem(GAS_URL_KEY, (url || '').trim());
+}
 
 function getPendingSyncMap(){
   try {
@@ -1817,7 +1850,7 @@ function setupQuickSelects(){
 }
 setupQuickSelects();
 
-let tireSizeLinked = true;
+// tireSizeLinked declared at top
 
 function buildTireSize(prefix){
   const w = document.getElementById(`size${prefix}Width`).value;
@@ -2687,7 +2720,54 @@ function applyFilters(){
   const track = document.getElementById('filterTrack') ? document.getElementById('filterTrack').value : '';
   const condition = document.getElementById('filterCondition') ? document.getElementById('filterCondition').value : '';
   const tireBrand = document.getElementById('filterTireBrand') ? document.getElementById('filterTireBrand').value : '';
-let totalCarCount = 0;
+  const feel = document.getElementById('filterFeel') ? document.getElementById('filterFeel').value : '';
+
+  const ambTopRaw = document.getElementById('filterAmbientTempMax') ? document.getElementById('filterAmbientTempMax').value.trim() : '';
+  const ambBottomRaw = document.getElementById('filterAmbientTempMin') ? document.getElementById('filterAmbientTempMin').value.trim() : '';
+  const ambTop = ambTopRaw !== '' ? parseFloat(ambTopRaw) : NaN;
+  const ambBottom = ambBottomRaw !== '' ? parseFloat(ambBottomRaw) : NaN;
+
+  let ambMin = NaN;
+  let ambMax = NaN;
+  if(!isNaN(ambTop) && !isNaN(ambBottom)){
+    ambMin = Math.min(ambTop, ambBottom);
+    ambMax = Math.max(ambTop, ambBottom);
+  } else if(!isNaN(ambTop)){
+    ambMax = ambTop;
+  } else if(!isNaN(ambBottom)){
+    ambMin = ambBottom;
+  }
+
+  const trkTopRaw = document.getElementById('filterTrackTempMax') ? document.getElementById('filterTrackTempMax').value.trim() : '';
+  const trkBottomRaw = document.getElementById('filterTrackTempMin') ? document.getElementById('filterTrackTempMin').value.trim() : '';
+  const trkTop = trkTopRaw !== '' ? parseFloat(trkTopRaw) : NaN;
+  const trkBottom = trkBottomRaw !== '' ? parseFloat(trkBottomRaw) : NaN;
+
+  let trkMin = NaN;
+  let trkMax = NaN;
+  if(!isNaN(trkTop) && !isNaN(trkBottom)){
+    trkMin = Math.min(trkTop, trkBottom);
+    trkMax = Math.max(trkTop, trkBottom);
+  } else if(!isNaN(trkTop)){
+    trkMax = trkTop;
+  } else if(!isNaN(trkBottom)){
+    trkMin = trkBottom;
+  }
+
+  const fWidth = document.getElementById('filterSizeFrontWidth') ? document.getElementById('filterSizeFrontWidth').value : '';
+  const fAspect = document.getElementById('filterSizeFrontAspect') ? document.getElementById('filterSizeFrontAspect').value : '';
+  const fDiam = document.getElementById('filterSizeFrontDiam') ? document.getElementById('filterSizeFrontDiam').value : '';
+  const rWidth = document.getElementById('filterSizeRearWidth') ? document.getElementById('filterSizeRearWidth').value : '';
+  const rAspect = document.getElementById('filterSizeRearAspect') ? document.getElementById('filterSizeRearAspect').value : '';
+  const rDiam = document.getElementById('filterSizeRearDiam') ? document.getElementById('filterSizeRearDiam').value : '';
+
+  const lapMinRaw = typeof buildTimeFromBoxes === 'function' ? buildTimeFromBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund') : null;
+  const lapMaxRaw = typeof buildTimeFromBoxes === 'function' ? buildTimeFromBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund') : null;
+  const lapMinVal = typeof parseLapTime === 'function' ? parseLapTime(lapMinRaw) : null;
+  const lapMaxVal = typeof parseLapTime === 'function' ? parseLapTime(lapMaxRaw) : null;
+  const notesQuery = document.getElementById('filterNotes') ? document.getElementById('filterNotes').value.trim().toLowerCase() : '';
+
+  let totalCarCount = 0;
   let filtered = entries.filter(e=>{
     if((e.car || 'マイカー') !== targetCar) return false;
     totalCarCount++;
@@ -2739,7 +2819,7 @@ let totalCarCount = 0;
     return true;
   });
 
-  const activeFilters = track || condition || tireBrand || feel || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
+  const activeFilters = track || condition || tireBrand || feel || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || (lapMinRaw && lapMinRaw !== '00:00.000') || (lapMaxRaw && lapMaxRaw !== '00:00.000') || notesQuery !== '';
   const summary = document.getElementById('filterSummary');
   if(summary){
     summary.textContent = activeFilters ? `${filtered.length} / ${totalCarCount} 件表示中` : '';
@@ -2755,8 +2835,6 @@ function findColdMatch(hotEntry){
   return entries.find(e => (e.coldPressures || e.mode==='cold') && e.timestamp < hotEntry.timestamp);
 }
 
-
-const cardViews = {};
 
 function setCardView(id, viewMode){
   cardViews[id] = viewMode;
@@ -2782,10 +2860,6 @@ function setCardView(id, viewMode){
     if(hotRow) hotRow.style.display = 'block';
   }
 }
-
-const LOG_PAGE_SIZE = 30;
-let currentRenderedCount = 0;
-let currentRenderData = [];
 
 function renderLogCardHtml(e){
   const date = new Date(e.timestamp);
@@ -2966,7 +3040,7 @@ function appendNextLogChunk(){
   recalculateHistoryTop();
 }
 
-let loadMoreObserver = null;
+// loadMoreObserver at top
 function updateLoadMoreTrigger(){
   let trigger = document.getElementById('logLoadMoreTrigger');
   if(!trigger){
@@ -3509,15 +3583,7 @@ function generateSessionId(){
   return `${Date.now()}_${dev}_${rand}`;
 }
 
-const GAS_URL_KEY = 'tire_pressure_gas_url';
-
-function getGasUrl(){
-  return (localStorage.getItem(GAS_URL_KEY) || '').trim();
-}
-
-function setGasUrl(url){
-  localStorage.setItem(GAS_URL_KEY, (url || '').trim());
-}
+// GAS URL helpers defined at top of script
 
 async function syncDeleteToCloud(id){
   markIdPendingDelete(id);
@@ -4397,16 +4463,11 @@ function saveEntry(){
   }
 }
 
-const CONDITION_LABELS = {
-  Dry: 'ドライ',
-  HalfWet: 'ハーフウェット',
-  Wet: 'ウェット',
-  BabyWet: 'ベビーウェット'
-};
+// CONDITION_LABELS moved to top
 
-let trackHistory = [];
-let tireBrandHistory = [];
-let sizeHistory = [];
+
+// histories moved to top
+
 
 function updateTrackFilterOptions(){
   const trackSet = new Set();
@@ -4620,7 +4681,7 @@ function setupTrackAutocomplete(){
   listEl.addEventListener('mousedown', selectItem);
 }
 
-let tireLinkActive = true;
+// tireLinkActive declared at top
 
 function setupTireBrandAutocomplete(){
   const frontInput = document.getElementById('tireBrandFront');
@@ -4748,12 +4809,8 @@ function scrollToHistory(){
   }
 }
 
-let isScrolledDown = false;
-const JUMP_SVG_DOWN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
-const JUMP_SVG_UP = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
+// scroll and jump vars moved to top
 
-let scrollTickTicking = false;
-let cachedHistoryTop = null;
 
 function recalculateHistoryTop(){
   const historyEl = document.getElementById('logSectionAnchor') || document.getElementById('logList');
@@ -5047,7 +5104,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.95').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=2.60').catch(() => {});
   });
 }
 </script>
