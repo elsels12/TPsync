@@ -8,11 +8,13 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TPSync">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync v1.00 — PIT WALL LOG</title>
+<title>TPSync v1.85 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -25,14 +27,17 @@
     --paper-dim:#b0b7c0;
     --cold:#3fa9f5;
     --hot:#ff5a2e;
-    --amber:#ffb627;
+    --amber:#dfac58;
     --ok:#4ade80;
-    --warn:#ffb627;
+    --warn:#dfac58;
     --danger:#ff5a2e;
   }
   *{
     box-sizing:border-box;
     -webkit-tap-highlight-color:transparent;
+  }
+  button, select, input, .corner, .mode-btn, .guide-nav-btn, .topbar-csv-btn, .sticky-sync-btn, .sticky-save-btn, .sticky-jump-btn{
+    touch-action:manipulation;
   }
   html,body{
     margin:0;padding:0;
@@ -45,9 +50,19 @@
   }
   body{
     min-height:100vh;
+    padding-bottom:120px;
+    background-color:var(--asphalt);
+  }
+  body::before{
+    content:"";
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:-1;
     background-image:
       repeating-linear-gradient(0deg, rgba(255,255,255,0.015) 0px, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 3px);
-    padding-bottom:120px;
+    transform:translateZ(0);
+    will-change:transform;
   }
   .topbar{
     position:sticky;top:0;z-index:20;
@@ -67,14 +82,15 @@
   }
   .topbar .sub{font-size:12px;color:var(--paper-dim);margin-top:2px;font-family:'JetBrains Mono',monospace;}
   .topbar-csv-btn{
-    flex-shrink:0;background:transparent;border:1px solid var(--amber);color:var(--amber);
+    flex-shrink:0;background:#181d24;border:1px solid #3d4756;color:#cbd5e1;
     font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.06em;
-    padding:5px 10px;border-radius:20px;cursor:pointer;
+    padding:5px 12px;border-radius:20px;cursor:pointer;transition:all .15s ease;
   }
-  .topbar-csv-btn:active{background:rgba(255,182,39,0.15);}
+  .topbar-csv-btn:active{background:rgba(223,172,88,0.15);border-color:var(--amber);color:var(--amber);}
+  .topbar-csv-btn:active{background:rgba(223,172,88,0.15);}
   .topbar-sync-btn{padding:5px 8px;font-size:12px;}
   .history-sync-btn{
-    background:rgba(255,182,39,0.08);
+    background:rgba(223,172,88,0.08);
     border:1px solid var(--amber);
     color:var(--amber);
     font-family:'Inter',sans-serif;
@@ -90,7 +106,7 @@
     transition:background .15s ease, transform .1s ease;
   }
   .history-sync-btn:active{
-    background:rgba(255,182,39,0.22);
+    background:rgba(223,172,88,0.22);
     transform:scale(0.97);
   }
   .sync-btn-icon{
@@ -113,7 +129,7 @@
     width:100%;
   }
   .guide-nav-btn{
-    background:rgba(255,182,39,0.08);
+    background:rgba(223,172,88,0.08);
     border:1px dashed var(--amber);
     border-radius:8px;
     color:var(--amber);
@@ -131,7 +147,7 @@
     transition:background .15s ease, border-color .15s ease;
   }
   .guide-nav-btn:active{
-    background:rgba(255,182,39,0.22);
+    background:rgba(223,172,88,0.22);
   }
   .modal-tab-bar{
     display:grid;
@@ -164,8 +180,8 @@
   }
   .car-selector-row{display:flex;gap:6px;margin-top:10px;}
   .car-selector{
-    flex:1;background:var(--panel);border:1px solid var(--amber);border-radius:20px;
-    color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;
+    flex:1;background:var(--panel);border:1px solid #3a4555;border-radius:20px;
+    color:#e9e6df;font-family:'Oswald',sans-serif;font-size:14px;font-weight:600;
     letter-spacing:.04em;padding:6px 12px;outline:none;min-width:0;
   }
 
@@ -179,11 +195,11 @@
   /* --- Car diagram --- */
   .car-card{
     background:var(--panel);border:1px solid var(--line);border-radius:14px;
-    padding:16px 8px 14px;position:relative;overflow:hidden;width:100%;
+    padding:16px 8px 14px;position:relative;overflow:hidden;width:100%;contain:layout paint;
   }
   .car-card::before{
     content:"";position:absolute;inset:0;
-    background:radial-gradient(ellipse at 50% 0%, rgba(255,182,39,0.06), transparent 60%);
+    background:radial-gradient(ellipse at 50% 0%, rgba(223,172,88,0.06), transparent 60%);
     pointer-events:none;
   }
   .mode-toggle{
@@ -226,7 +242,7 @@
   .corner.flagged{border-color:var(--danger);}
   .corner .label{
     font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;
-    color:var(--amber);line-height:1.2;margin-bottom:3px;
+    color:#cbd5e1;line-height:1.2;margin-bottom:3px;
   }
   .corner .label .sub-code{
     display:block;font-size:10px;font-weight:700;color:#94a3b8;
@@ -268,7 +284,7 @@
   .rear-label{grid-area:labelR;}
   .front-label,.rear-label{
     text-align:center;font-family:'JetBrains Mono',monospace;
-    font-size:12px;font-weight:800;letter-spacing:.25em;color:var(--amber);text-transform:uppercase;margin:3px 0;
+    font-size:11px;font-weight:800;letter-spacing:.25em;color:#94a3b8;text-transform:uppercase;margin:3px 0;
   }
 
   /* --- Conditions --- */
@@ -279,7 +295,7 @@
   .section-title::before{content:"";width:14px;height:1px;background:var(--amber);}
   .filter-toggle-btn{
     width:100%;display:flex;justify-content:space-between;align-items:center;
-    background:rgba(255,182,39,0.06);border:1.5px solid var(--amber);border-radius:10px;
+    background:rgba(223,172,88,0.06);border:1.5px solid var(--amber);border-radius:10px;
     padding:11px 14px;margin:20px 0 8px;cursor:pointer;
     box-sizing:border-box;box-shadow:0 2px 12px rgba(0,0,0,0.3);
     transition:background .15s ease, box-shadow .15s ease;
@@ -290,7 +306,7 @@
   }
   .filter-toggle-btn .ft-label::before{content:"";width:12px;height:2px;background:var(--amber);}
   .filter-toggle-btn #filterToggleIcon{font-size:15px;color:var(--amber);font-weight:700;transition:transform .2s ease;}
-  .filter-toggle-btn:active{background:rgba(255,182,39,0.18);}
+  .filter-toggle-btn:active{background:rgba(223,172,88,0.18);}
 
   .grid2{
     display:grid;
@@ -318,9 +334,9 @@
 
   .field label{
     font-family:'JetBrains Mono',monospace;
-    font-size:13px;
+    font-size:12px;
     font-weight:700;
-    color:var(--amber);
+    color:#cbd5e1;
     letter-spacing:.05em;
     display:block;
     margin-bottom:5px;
@@ -385,7 +401,7 @@
     text-align:center;
     font-size:12px;
     font-weight:800;
-    color:var(--amber);
+    color:#94a3b8;
     line-height:1;
     padding:2px 0;
     user-select:none;
@@ -469,7 +485,7 @@
   }
 
   .size-preset-select{
-    background:rgba(255,182,39,0.1) !important;border:1px solid var(--amber) !important;border-radius:6px;
+    background:rgba(223,172,88,0.1) !important;border:1px solid var(--amber) !important;border-radius:6px;
     color:var(--amber) !important;font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:700;
     padding:3px 8px;outline:none;cursor:pointer;white-space:nowrap !important;flex-shrink:0 !important;
     max-width:130px;text-overflow:ellipsis;
@@ -488,7 +504,7 @@
     border-bottom:1px solid var(--line);cursor:pointer;
   }
   .autocomplete-item:last-child{border-bottom:none;}
-  .autocomplete-item:active{background:rgba(255,182,39,0.25);}
+  .autocomplete-item:active{background:rgba(223,172,88,0.25);}
 
   .field.wide{grid-column:1/3;}
 
@@ -531,7 +547,7 @@
     flex:0 0 66px;
     height:50px;
     border-radius:12px;
-    border:1.5px solid rgba(255,182,39,0.5);
+    border:1.5px solid rgba(223,172,88,0.5);
     background:linear-gradient(145deg, #242c38 0%, #151a22 100%);
     color:#e9e6df;
     font-family:'JetBrains Mono',monospace;
@@ -561,7 +577,7 @@
   .sticky-sync-btn .sync-btn-icon svg{
     width:15px;
     height:15px;
-    filter:drop-shadow(0 0 4px rgba(255,182,39,0.5));
+    filter:drop-shadow(0 0 4px rgba(223,172,88,0.5));
     transition:transform .2s ease;
   }
   .sticky-sync-btn .sync-btn-icon.spinning svg{
@@ -623,21 +639,22 @@
     padding:0 8px;
     border-radius:10px;
     border:none;
-    background:var(--amber);
-    color:#1a1400;
+    background:linear-gradient(135deg, #e5b364 0%, #caa052 100%);
+    color:#0f1318;
     font-family:'Oswald',sans-serif;
     font-weight:700;
     font-size:15px;
     letter-spacing:.05em;
     text-transform:uppercase;
     cursor:pointer;
-    box-shadow:0 4px 18px rgba(0,0,0,0.4);
+    box-shadow:0 4px 18px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.25);
     display:flex;
     align-items:center;
     justify-content:center;
-    transition:transform .1s ease;
+    transition:transform .1s ease, filter .15s ease;
     box-sizing:border-box;
   }
+  .sticky-save-btn:active{transform:scale(0.98);filter:brightness(0.95);}
   .sticky-save-btn:active{transform:scale(0.98);}
 
   /* --- Log --- */
@@ -645,6 +662,8 @@
   .log-entry{
     background:var(--panel);border:1px solid #384252;border-radius:14px;
     padding:16px 14px 14px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);
+    content-visibility:auto;
+    contain-intrinsic-size:0 240px;
   }
   .log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #282e38;}
   .log-date{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--paper);}
@@ -720,9 +739,9 @@
     width:100%;
     padding:13px 18px;
     border-radius:8px;
-    border:1px solid #4a5a70;
-    background:#222b38;
-    color:var(--amber); /* ラベルと同じような黄色 */
+    border:1px solid #363f4e;
+    background:#1a2028;
+    color:#cbd5e1;
     font-family:'Oswald',sans-serif;
     font-size:15px;
     font-weight:700;
@@ -842,7 +861,7 @@
   .log-info-grid{
     display:flex;flex-direction:column;gap:8px;
     background:#16191e;border:1px solid #2d3440;border-radius:10px;
-    padding:12px 14px;margin-bottom:12px;
+    padding:12px 14px;margin-bottom:12px;contain:layout paint;
   }
   .log-info-row{
     display:flex;align-items:baseline;flex-wrap:wrap;gap:12px 18px;
@@ -856,7 +875,7 @@
     display:inline-flex;align-items:baseline;gap:6px;
   }
   .info-tag .lbl{
-    color:var(--amber);font-weight:800;font-size:13px;letter-spacing:.02em;white-space:nowrap;
+    color:#94a3b8;font-weight:700;font-size:12px;letter-spacing:.02em;white-space:nowrap;
   }
   .info-tag .val-lg{
     color:#ffffff;font-weight:700;font-size:16px;font-family:'Inter',sans-serif;
@@ -884,7 +903,7 @@
   .log-pressure-title.hot-title{color:var(--hot);}
   .log-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;}
   .log-corner{background:#16191e;border-radius:6px;padding:8px 2px;}
-  .log-corner .lbl{font-size:12px;font-weight:800;color:var(--amber);font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+  .log-corner .lbl{font-size:12px;font-weight:700;color:#94a3b8;font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
   .log-corner .val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:#ffffff;}
   .log-corner .delta{font-size:12px;font-weight:800;color:var(--hot);margin-top:2px;font-family:'JetBrains Mono',monospace;}
   .log-empty-hint{
@@ -919,7 +938,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync v1.00</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync v1.85</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1246,7 +1265,7 @@
         <label style="margin-bottom:0;">メモ検索</label>
         <button type="button" class="temp-clear-btn" onclick="clearFilterField('notes')" title="クリア">クリア</button>
       </div>
-      <input type="text" id="filterNotes" oninput="applyFilters()" placeholder="キーワード">
+      <input type="text" id="filterNotes" oninput="applyFiltersDebounced()" placeholder="キーワード">
     </div>
   </div>
   <div class="filter-actions-stack">
@@ -1295,6 +1314,127 @@ let currentMode = 'cold';
 let entries = [];
 let currentFilteredEntries = [];
 const STORE_KEY = 'tire_pressure_entries';
+const PENDING_SYNC_KEY = 'tire_pending_sync';
+const PENDING_DELETES_KEY = 'tire_pending_deletes';
+
+function getPendingSyncMap(){
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_SYNC_KEY) || '{}');
+  } catch(e){ return {}; }
+}
+function setPendingSyncMap(map){
+  try {
+    localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(map));
+  } catch(e){}
+}
+function markEntryPendingSync(entry){
+  if(!entry || !entry.id) return;
+  const map = getPendingSyncMap();
+  map[String(entry.id)] = entry;
+  setPendingSyncMap(map);
+  unmarkIdPendingDelete(entry.id);
+  updateCloudStatusUI();
+}
+function unmarkEntryPendingSync(id, sentUpdatedAt){
+  const strId = String(id);
+  const map = getPendingSyncMap();
+  const current = map[strId];
+  if(!current) return;
+  // If sentUpdatedAt was passed, only unmark if record has not been re-edited in flight
+  if(sentUpdatedAt && current.updatedAt && current.updatedAt !== sentUpdatedAt){
+    return;
+  }
+  delete map[strId];
+  setPendingSyncMap(map);
+  updateCloudStatusUI();
+}
+function getPendingDeletesMap(){
+  try {
+    return JSON.parse(localStorage.getItem(PENDING_DELETES_KEY) || '{}');
+  } catch(e){ return {}; }
+}
+function setPendingDeletesMap(map){
+  try {
+    localStorage.setItem(PENDING_DELETES_KEY, JSON.stringify(map));
+  } catch(e){}
+}
+function markIdPendingDelete(id){
+  if(!id) return;
+  const strId = String(id);
+  const map = getPendingDeletesMap();
+  map[strId] = Date.now();
+  setPendingDeletesMap(map);
+  unmarkEntryPendingSync(strId);
+  updateCloudStatusUI();
+}
+function unmarkIdPendingDelete(id){
+  const strId = String(id);
+  const map = getPendingDeletesMap();
+  if(map[strId]){
+    delete map[strId];
+    setPendingDeletesMap(map);
+    updateCloudStatusUI();
+  }
+}
+
+let isFlushingQueues = false;
+async function flushPendingQueues(){
+  const gasUrl = getGasUrl();
+  if(!gasUrl || isFlushingQueues) return;
+  isFlushingQueues = true;
+  try {
+    // 1. Flush pending deletes first
+    const delMap = getPendingDeletesMap();
+    const delIds = Object.keys(delMap);
+    if(delIds.length > 0){
+      try {
+        const res = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'bulk_delete', ids: delIds })
+        });
+        const json = await res.json().catch(() => null);
+        if(json && json.status === 'ok'){
+          delIds.forEach(id => unmarkIdPendingDelete(id));
+        }
+      } catch(e){
+        console.warn('Background flush pending deletes failed:', e);
+      }
+    }
+
+    // 2. Flush pending sync saves
+    const syncMap = getPendingSyncMap();
+    const syncEntries = Object.values(syncMap);
+    if(syncEntries.length > 0){
+      const sentTimeMap = {};
+      syncEntries.forEach(e => { sentTimeMap[String(e.id)] = e.updatedAt; });
+      try {
+        const res = await fetch(gasUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ action: 'bulk_upload', entries: syncEntries })
+        });
+        const json = await res.json().catch(() => null);
+        if(json && json.status === 'ok'){
+          const nowSync = new Date().toISOString();
+          syncEntries.forEach(e => {
+            unmarkEntryPendingSync(e.id, sentTimeMap[String(e.id)]);
+            const local = entries.find(item => String(item.id) === String(e.id));
+            if(local && (!local.updatedAt || local.updatedAt === sentTimeMap[String(e.id)])){
+              local.syncedAt = nowSync;
+            }
+          });
+          persistEntries();
+        }
+      } catch(e){
+        console.warn('Background flush pending sync failed:', e);
+      }
+    }
+  } finally {
+    isFlushingQueues = false;
+    updateCloudStatusUI();
+  }
+}
 const CAR_LIST_KEY = 'tire_pressure_cars';
 const CURRENT_CAR_KEY = 'tire_pressure_current_car';
 let carList = [];
@@ -1427,7 +1567,10 @@ function openCarManager(){
       }
       const carEntryCount = entries.filter(e => e.car === car).length;
       if(confirm(`「${car}」とその記録${carEntryCount}件を削除します。よろしいですか？`)){
+        const carDelIds = entries.filter(e => e.car === car).map(e => e.id);
+        carDelIds.forEach(id => markIdPendingDelete(id));
         entries = entries.filter(e => e.car !== car);
+        syncBulkDeleteToCloud(carDelIds);
         carList = carList.filter(c => c !== car);
         if(currentCar === car) currentCar = carList[0];
         persistEntries();
@@ -1475,8 +1618,8 @@ function openCarManager(){
     }
     if(carList.includes(val)){
       noticeEl.style.display = 'block';
-      noticeEl.style.background = 'rgba(255,182,39,0.12)';
-      noticeEl.style.border = '1px solid rgba(255,182,39,0.4)';
+      noticeEl.style.background = 'rgba(223,172,88,0.12)';
+      noticeEl.style.border = '1px solid rgba(223,172,88,0.4)';
       noticeEl.style.color = '#fef08a';
       noticeEl.innerHTML = `⚠️ <strong>注意: 「${val}」は既に登録されています</strong><br>` +
         `・<strong>1台を複数人でシェアする場合</strong>：このまま登録（選択）してOKです（同一車両として冷温間が自動統合されます）。<br>` +
@@ -1653,14 +1796,15 @@ function setupQuickSelects(){
       if(val !== ''){
         const num = parseFloat(val);
         if(!isNaN(num)){
-          let opt = Array.from(sel.options).find(o => parseFloat(o.value) === num);
-          if(!opt){
-            opt = document.createElement('option');
-            opt.value = String(num);
-            opt.textContent = String(num);
+          const strVal = String(num);
+          sel.value = strVal;
+          if(sel.value !== strVal){
+            const opt = document.createElement('option');
+            opt.value = strVal;
+            opt.textContent = strVal;
             sel.appendChild(opt);
+            sel.value = strVal;
           }
-          sel.value = opt.value;
         }
       }
       checkBalance();
@@ -1822,8 +1966,8 @@ function setupTimeBoxes(minId, secId, hundId, onInput){
 }
 
 setupTimeBoxes('lapMin', 'lapSec', 'lapHund');
-setupTimeBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund', applyFilters);
-setupTimeBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund', applyFilters);
+setupTimeBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund', applyFiltersDebounced);
+setupTimeBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund', applyFiltersDebounced);
 
 function setCornerPressure(c, val){
   if(val === null || val === undefined || isNaN(val)) return;
@@ -2117,6 +2261,15 @@ async function loadEntries(){
     entries = [];
   }
   autoRepairCorruptedEntries();
+  entries.forEach(e => {
+    if(!e.updatedAt){
+      e.updatedAt = e.timestamp || new Date().toISOString();
+    }
+    // Migration: If record has no syncedAt and gasUrl exists, queue for sync so it won't be lost
+    if(!e.syncedAt && getGasUrl()){
+      markEntryPendingSync(e);
+    }
+  });
   initCars();
   renderCarSelector();
   updateTrackFilterOptions();
@@ -2124,7 +2277,20 @@ async function loadEntries(){
   restorePressuresForMode(currentMode);
   applyFilters();
   updateSessionBundleNotice();
+  updateCloudStatusUI();
+
+  if(navigator.onLine && getGasUrl()){
+    flushPendingQueues().catch(() => {});
+  }
 }
+
+window.addEventListener('online', () => {
+  if(getGasUrl()){
+    flushPendingQueues().then(() => {
+      showToast('オンライン復帰: 未送信データをクラウドへ同期しました');
+    }).catch(() => {});
+  }
+});
 
 async function persistEntries(){
   try{
@@ -2166,7 +2332,7 @@ function csvEscape(val){
 }
 
 function buildCSVString(data, defaultName){
-  const headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID'];
+  const headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID','端末ID','更新日時'];
   const rows = data.map(e => {
     const cp = e.coldPressures || (e.mode === 'cold' ? e.pressures : null) || {};
     const hp = e.hotPressures || (e.mode === 'hot' ? e.pressures : null) || {};
@@ -2192,7 +2358,9 @@ function buildCSVString(data, defaultName){
       (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
       (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
       e.notes || '',
-      String(e.id || '')
+      String(e.id || ''),
+      String(e.deviceId || ''),
+      String(e.updatedAt || e.timestamp || '')
     ].map(csvEscape).join(',');
   });
 
@@ -2420,8 +2588,10 @@ function bulkDeleteFiltered(){
     return;
   }
   const deleteIds = new Set(currentFilteredEntries.map(e => e.id));
+  deleteIds.forEach(id => markIdPendingDelete(id));
   entries = entries.filter(e => !deleteIds.has(e.id));
   persistEntries();
+  syncBulkDeleteToCloud(Array.from(deleteIds));
   updateTrackFilterOptions();
   applyFilters();
   updateSessionBundleNotice();
@@ -2443,11 +2613,15 @@ function bundleWithEarlierCold(id){
     return;
   }
   hotEntry.coldPressures = coldRef.coldPressures || (coldRef.mode === 'cold' ? coldRef.pressures : null);
+  hotEntry.updatedAt = new Date().toISOString();
+  hotEntry.syncedAt = null;
   const coldIdx = entries.findIndex(e => String(e.id) === String(coldRef.id));
   if(coldIdx !== -1){
     entries.splice(coldIdx, 1);
   }
   persistEntries();
+  syncDeleteToCloud(coldRef.id);
+  syncEntryToCloud(hotEntry);
   updateTrackFilterOptions();
   applyFilters();
   updateSessionBundleNotice();
@@ -2468,18 +2642,25 @@ function splitSession(id){
     return;
   }
 
+  const nowIso = new Date().toISOString();
   const hotEntry = {
     ...JSON.parse(JSON.stringify(entry)),
     id: Date.now(),
     coldPressures: null,
-    notes: entry.notes ? (entry.notes + ' (温間)') : null
+    notes: entry.notes ? (entry.notes + ' (温間)') : null,
+    updatedAt: nowIso,
+    syncedAt: null
   };
 
   entry.hotPressures = null;
   entry.lapTime = null;
+  entry.updatedAt = nowIso;
+  entry.syncedAt = null;
 
   entries.splice(idx, 0, hotEntry);
   persistEntries();
+  syncEntryToCloud(entry);
+  syncEntryToCloud(hotEntry);
   updateTrackFilterOptions();
   applyFilters();
   updateSessionBundleNotice();
@@ -2489,63 +2670,23 @@ function splitSession(id){
   showToast('冷間と温間を別々のセッションに分割しました');
 }
 
+let filterDebounceTimer = null;
+function applyFiltersDebounced(delay = 120){
+  if(filterDebounceTimer) clearTimeout(filterDebounceTimer);
+  filterDebounceTimer = setTimeout(() => {
+    applyFilters();
+  }, delay);
+}
+
 function applyFilters(){
-
-  const carEntries = getCarEntries();
-  const track = document.getElementById('filterTrack').value;
-  const condition = document.getElementById('filterCondition').value;
-  const tireBrand = document.getElementById('filterTireBrand').value;
-  const ambTopRaw = document.getElementById('filterAmbientTempMax') ? document.getElementById('filterAmbientTempMax').value.trim() : '';
-  const ambBottomRaw = document.getElementById('filterAmbientTempMin') ? document.getElementById('filterAmbientTempMin').value.trim() : '';
-  const ambTop = ambTopRaw !== '' ? parseFloat(ambTopRaw) : NaN;
-  const ambBottom = ambBottomRaw !== '' ? parseFloat(ambBottomRaw) : NaN;
-
-  let ambMin = NaN;
-  let ambMax = NaN;
-  if(!isNaN(ambTop) && !isNaN(ambBottom)){
-    // 両方選択されている場合：低い方を下限、高い方を上限とする
-    ambMin = Math.min(ambTop, ambBottom);
-    ambMax = Math.max(ambTop, ambBottom);
-  } else if(!isNaN(ambTop)){
-    // 上段（上限）のみ選択されている場合：それ以下
-    ambMax = ambTop;
-  } else if(!isNaN(ambBottom)){
-    // 下段（下限）のみ選択されている場合：それ以上
-    ambMin = ambBottom;
-  }
-
-  const trkTopRaw = document.getElementById('filterTrackTempMax') ? document.getElementById('filterTrackTempMax').value.trim() : '';
-  const trkBottomRaw = document.getElementById('filterTrackTempMin') ? document.getElementById('filterTrackTempMin').value.trim() : '';
-  const trkTop = trkTopRaw !== '' ? parseFloat(trkTopRaw) : NaN;
-  const trkBottom = trkBottomRaw !== '' ? parseFloat(trkBottomRaw) : NaN;
-
-  let trkMin = NaN;
-  let trkMax = NaN;
-  if(!isNaN(trkTop) && !isNaN(trkBottom)){
-    // 両方選択されている場合：低い方を下限、高い方を上限とする
-    trkMin = Math.min(trkTop, trkBottom);
-    trkMax = Math.max(trkTop, trkBottom);
-  } else if(!isNaN(trkTop)){
-    // 上段（上限）のみ選択されている場合：それ以下
-    trkMax = trkTop;
-  } else if(!isNaN(trkBottom)){
-    // 下段（下限）のみ選択されている場合：それ以上
-    trkMin = trkBottom;
-  }
-  const feel = document.getElementById('filterFeel').value;
-  const fWidth = document.getElementById('filterSizeFrontWidth').value;
-  const fAspect = document.getElementById('filterSizeFrontAspect').value;
-  const fDiam = document.getElementById('filterSizeFrontDiam').value;
-  const rWidth = document.getElementById('filterSizeRearWidth').value;
-  const rAspect = document.getElementById('filterSizeRearAspect').value;
-  const rDiam = document.getElementById('filterSizeRearDiam').value;
-  const lapMinRaw = buildTimeFromBoxes('filterLapMinMin', 'filterLapMinSec', 'filterLapMinHund');
-  const lapMaxRaw = buildTimeFromBoxes('filterLapMaxMin', 'filterLapMaxSec', 'filterLapMaxHund');
-  const lapMinVal = parseLapTime(lapMinRaw);
-  const lapMaxVal = parseLapTime(lapMaxRaw);
-  const notesQuery = document.getElementById('filterNotes').value.trim().toLowerCase();
-
-  let filtered = carEntries.filter(e=>{
+  const targetCar = currentCar || 'マイカー';
+  const track = document.getElementById('filterTrack') ? document.getElementById('filterTrack').value : '';
+  const condition = document.getElementById('filterCondition') ? document.getElementById('filterCondition').value : '';
+  const tireBrand = document.getElementById('filterTireBrand') ? document.getElementById('filterTireBrand').value : '';
+let totalCarCount = 0;
+  let filtered = entries.filter(e=>{
+    if((e.car || 'マイカー') !== targetCar) return false;
+    totalCarCount++;
     if(track && String(e.track || '').trim() !== String(track).trim()) return false;
     if(condition){
       const eCond = (e.condition === 'ドライ' || e.condition === 'Dry') ? 'Dry' :
@@ -2597,7 +2738,7 @@ function applyFilters(){
   const activeFilters = track || condition || tireBrand || feel || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || lapMinRaw !== null || lapMaxRaw !== null || notesQuery !== '';
   const summary = document.getElementById('filterSummary');
   if(summary){
-    summary.textContent = activeFilters ? `${filtered.length} / ${carEntries.length} 件表示中` : '';
+    summary.textContent = activeFilters ? `${filtered.length} / ${totalCarCount} 件表示中` : '';
   }
 
   currentFilteredEntries = filtered;
@@ -2638,6 +2779,141 @@ function setCardView(id, viewMode){
   }
 }
 
+const LOG_PAGE_SIZE = 30;
+let currentRenderedCount = 0;
+let currentRenderData = [];
+
+function renderLogCardHtml(e){
+  const date = new Date(e.timestamp);
+  const dateStr = date.toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'}) + ' ' + date.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  const currentCardView = cardViews[e.id] || 'both';
+
+  let coldP = e.coldPressures || (e.mode === 'cold' ? e.pressures : null);
+  let hotP = e.hotPressures || (e.mode === 'hot' ? e.pressures : null);
+
+  const hasCold = !!(coldP && Object.values(coldP).some(v => v !== null && v !== undefined));
+  const hasHot = !!(hotP && Object.values(hotP).some(v => v !== null && v !== undefined));
+
+  let badgeHtml = '';
+  let tabsHtml = '';
+
+  if(hasCold && hasHot){
+    badgeHtml = `<span class="session-badge is-both">冷温</span>`;
+    tabsHtml = `
+      <div class="card-view-tabs">
+        <button type="button" class="card-view-btn ${currentCardView === 'both' ? 'active' : ''}" data-view="both" onclick="setCardView('${e.id}', 'both')">上下並び</button>
+        <button type="button" class="card-view-btn is-cold ${currentCardView === 'cold' ? 'active' : ''}" data-view="cold" onclick="setCardView('${e.id}', 'cold')">冷間</button>
+        <button type="button" class="card-view-btn is-hot ${currentCardView === 'hot' ? 'active' : ''}" data-view="hot" onclick="setCardView('${e.id}', 'hot')">温間</button>
+      </div>
+    `;
+  } else if(hasCold && !hasHot){
+    badgeHtml = `<span class="session-badge is-cold">冷間のみ</span>`;
+  } else if(!hasCold && hasHot){
+    badgeHtml = `<span class="session-badge is-hot">温間のみ</span>`;
+  }
+
+  const line1 = `
+    <div class="log-info-row">
+      <span class="info-tag"><span class="lbl">場所</span><span class="val-lg">${e.track || '—'}</span></span>
+      <span class="info-tag"><span class="lbl">気温</span><span class="val-lg mono">${e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp + '℃' : '—'}</span></span>
+      <span class="info-tag"><span class="lbl">路面</span><span class="val-lg mono">${e.trackTemp !== null && e.trackTemp !== undefined ? e.trackTemp + '℃' : '—'}</span></span>
+    </div>
+  `;
+
+  const line2 = `
+    <div class="log-info-row">
+      <span class="info-tag"><span class="lbl">路面状態</span><span class="val-lg">${CONDITION_LABELS[e.condition] || e.condition || '—'}</span></span>
+      <span class="info-tag"><span class="lbl">タイム</span><span class="val-lg mono highlight">${e.lapTime ? e.lapTime : '—'}</span></span>
+    </div>
+  `;
+
+  const line3 = `
+    <div class="log-info-row">
+      <span class="info-tag"><span class="lbl">銘柄前</span><span class="val-lg">${e.tireBrandFront || '—'}</span></span>
+      <span class="info-tag"><span class="lbl">後</span><span class="val-lg">${e.tireBrandRear || '—'}</span></span>
+      <span class="info-tag"><span class="lbl">体感</span><span class="val-lg mono">${e.feel ? e.feel : '—'}</span></span>
+    </div>
+  `;
+
+  const line4 = `
+    <div class="log-info-row">
+      <span class="info-tag"><span class="lbl">サイズ 前</span><span class="val-lg mono">${e.sizeFront || '—'}</span></span>
+      <span class="info-tag"><span class="lbl">後</span><span class="val-lg mono">${e.sizeRear || '—'}</span></span>
+    </div>
+  `;
+
+  let coldBlockHtml = '';
+  if(hasCold){
+    const cornersCold = ['FL','FR','RL','RR'].map(c=>{
+      const v = coldP[c];
+      return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div></div>`;
+    }).join('');
+    coldBlockHtml = `
+      <div class="log-pressure-row is-cold" style="${(hasHot && currentCardView === 'hot') ? 'display:none;' : ''}">
+        <div class="log-pressure-title cold-title"><span>冷間 COLD</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
+        <div class="log-grid">${cornersCold}</div>
+      </div>
+    `;
+  }
+
+  let hotBlockHtml = '';
+  if(hasHot){
+    const cornersHot = ['FL','FR','RL','RR'].map(c=>{
+      const v = hotP[c];
+      let deltaHtml = '';
+      if(v !== null && v !== undefined && hasCold && coldP[c] !== null && coldP[c] !== undefined){
+        const deltaNum = v - coldP[c];
+        const sign = deltaNum > 0 ? '+' : '';
+        deltaHtml = `<div class="delta">${sign}${deltaNum.toFixed(1)}</div>`;
+      }
+      return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div>${deltaHtml}</div>`;
+    }).join('');
+    hotBlockHtml = `
+      <div class="log-pressure-row is-hot" style="${(hasCold && currentCardView === 'cold') ? 'display:none;' : ''}">
+        <div class="log-pressure-title hot-title"><span>温間 HOT</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
+        <div class="log-grid">${cornersHot}</div>
+      </div>
+    `;
+  }
+
+  let pressuresHtml = coldBlockHtml + hotBlockHtml;
+  if(!pressuresHtml){
+    pressuresHtml = '<div class="log-empty-hint">空気圧データなし</div>';
+  }
+
+  return `
+    <div class="log-entry" id="card-${e.id}">
+      <div class="log-head">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <span class="log-date">${dateStr}</span>
+          ${badgeHtml}
+        </div>
+        ${tabsHtml}
+      </div>
+
+      <div class="log-info-grid">
+        ${line1}
+        ${line2}
+        ${line3}
+        ${line4}
+      </div>
+
+      <div class="log-pressures-block">
+        ${pressuresHtml}
+      </div>
+
+      ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
+
+      <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:10px;">
+        ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${e.id}')">別カードに分割</button>` : ''}
+        ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(223,172,88,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${e.id}')">冷間とまとめる</button>` : ''}
+        <button class="edit-btn" onclick="openEditModal('${e.id}')">編集 EDIT</button>
+        <button class="del-btn" onclick="confirmDelete('${e.id}')">削除 DELETE</button>
+      </div>
+    </div>
+  `;
+}
+
 function renderLog(list_){
   const carEntries = getCarEntries();
   const data = list_ || carEntries;
@@ -2646,155 +2922,84 @@ function renderLog(list_){
 
   if(carEntries.length === 0){
     list.innerHTML = '<div class="empty">まだ記録がありません<br>上のフォームから最初のログを記録してください</div>';
+    currentRenderData = [];
+    currentRenderedCount = 0;
+    updateLoadMoreTrigger();
+    recalculateHistoryTop();
     return;
   }
   if(data.length === 0){
     list.innerHTML = '<div class="empty">条件に一致する記録がありません</div>';
+    currentRenderData = [];
+    currentRenderedCount = 0;
+    updateLoadMoreTrigger();
+    recalculateHistoryTop();
     return;
   }
 
-  list.innerHTML = data.map(e=>{
-    const date = new Date(e.timestamp);
-    const dateStr = date.toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'}) + ' ' + date.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  currentRenderData = data;
+  currentRenderedCount = Math.min(data.length, LOG_PAGE_SIZE);
 
-    const currentCardView = cardViews[e.id] || 'both';
-
-    // Resolve Cold and Hot pressures
-    let coldP = e.coldPressures || (e.mode === 'cold' ? e.pressures : null);
-    let hotP = e.hotPressures || (e.mode === 'hot' ? e.pressures : null);
-
-    const hasCold = !!(coldP && Object.values(coldP).some(v => v !== null && v !== undefined));
-    const hasHot = !!(hotP && Object.values(hotP).some(v => v !== null && v !== undefined));
-
-    // Badge & Tabs
-    let badgeHtml = '';
-    let tabsHtml = '';
-
-    if(hasCold && hasHot){
-      badgeHtml = `<span class="session-badge is-both">冷温</span>`;
-      tabsHtml = `
-        <div class="card-view-tabs">
-          <button type="button" class="card-view-btn ${currentCardView === 'both' ? 'active' : ''}" data-view="both" onclick="setCardView('${e.id}', 'both')">上下並び</button>
-          <button type="button" class="card-view-btn is-cold ${currentCardView === 'cold' ? 'active' : ''}" data-view="cold" onclick="setCardView('${e.id}', 'cold')">冷間</button>
-          <button type="button" class="card-view-btn is-hot ${currentCardView === 'hot' ? 'active' : ''}" data-view="hot" onclick="setCardView('${e.id}', 'hot')">温間</button>
-        </div>
-      `;
-    } else if(hasCold && !hasHot){
-      badgeHtml = `<span class="session-badge is-cold">冷間のみ</span>`;
-    } else if(!hasCold && hasHot){
-      badgeHtml = `<span class="session-badge is-hot">温間のみ</span>`;
-    }
-
-    // Line 1: 場所　気温　路面
-    const line1 = `
-      <div class="log-info-row">
-        <span class="info-tag"><span class="lbl">場所</span><span class="val-lg">${e.track || '—'}</span></span>
-        <span class="info-tag"><span class="lbl">気温</span><span class="val-lg mono">${e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp + '℃' : '—'}</span></span>
-        <span class="info-tag"><span class="lbl">路面</span><span class="val-lg mono">${e.trackTemp !== null && e.trackTemp !== undefined ? e.trackTemp + '℃' : '—'}</span></span>
-      </div>
-    `;
-
-    // Line 2: 路面状態　タイム
-    const line2 = `
-      <div class="log-info-row">
-        <span class="info-tag"><span class="lbl">路面状態</span><span class="val-lg">${CONDITION_LABELS[e.condition] || e.condition || '—'}</span></span>
-        <span class="info-tag"><span class="lbl">タイム</span><span class="val-lg mono highlight">${e.lapTime ? e.lapTime : '—'}</span></span>
-      </div>
-    `;
-
-    // Line 3: 銘柄前　後　体感
-    const line3 = `
-      <div class="log-info-row">
-        <span class="info-tag"><span class="lbl">銘柄前</span><span class="val-lg">${e.tireBrandFront || '—'}</span></span>
-        <span class="info-tag"><span class="lbl">後</span><span class="val-lg">${e.tireBrandRear || '—'}</span></span>
-        <span class="info-tag"><span class="lbl">体感</span><span class="val-lg mono">${e.feel ? e.feel : '—'}</span></span>
-      </div>
-    `;
-
-    // Line 4: サイズ　前　後
-    const line4 = `
-      <div class="log-info-row">
-        <span class="info-tag"><span class="lbl">サイズ 前</span><span class="val-lg mono">${e.sizeFront || '—'}</span></span>
-        <span class="info-tag"><span class="lbl">後</span><span class="val-lg mono">${e.sizeRear || '—'}</span></span>
-      </div>
-    `;
-
-    // Cold Block
-    let coldBlockHtml = '';
-    if(hasCold){
-      const cornersCold = ['FL','FR','RL','RR'].map(c=>{
-        const v = coldP[c];
-        return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div></div>`;
-      }).join('');
-      coldBlockHtml = `
-        <div class="log-pressure-row is-cold" style="${(hasHot && currentCardView === 'hot') ? 'display:none;' : ''}">
-          <div class="log-pressure-title cold-title"><span>冷間 COLD</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
-          <div class="log-grid">${cornersCold}</div>
-        </div>
-      `;
-    }
-
-    // Hot Block
-    let hotBlockHtml = '';
-    if(hasHot){
-      const cornersHot = ['FL','FR','RL','RR'].map(c=>{
-        const v = hotP[c];
-        let deltaHtml = '';
-        if(v !== null && v !== undefined && hasCold && coldP[c] !== null && coldP[c] !== undefined){
-          const deltaNum = v - coldP[c];
-          const sign = deltaNum > 0 ? '+' : '';
-          deltaHtml = `<div class="delta">${sign}${deltaNum.toFixed(1)}</div>`;
-        }
-        return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div>${deltaHtml}</div>`;
-      }).join('');
-      hotBlockHtml = `
-        <div class="log-pressure-row is-hot" style="${(hasCold && currentCardView === 'cold') ? 'display:none;' : ''}">
-          <div class="log-pressure-title hot-title"><span>温間 HOT</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
-          <div class="log-grid">${cornersHot}</div>
-        </div>
-      `;
-    }
-
-    let pressuresHtml = coldBlockHtml + hotBlockHtml;
-    if(!pressuresHtml){
-      pressuresHtml = '<div class="log-empty-hint">空気圧データなし</div>';
-    }
-
-    return `
-      <div class="log-entry" id="card-${e.id}">
-        <div class="log-head">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
-            <span class="log-date">${dateStr}</span>
-            ${badgeHtml}
-          </div>
-          ${tabsHtml}
-        </div>
-
-        <div class="log-info-grid">
-          ${line1}
-          ${line2}
-          ${line3}
-          ${line4}
-        </div>
-
-        <div class="log-pressures-block">
-          ${pressuresHtml}
-        </div>
-
-        ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
-
-        <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:10px;">
-          ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${e.id}')">別カードに分割</button>` : ''}
-          ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(255,182,39,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${e.id}')">冷間とまとめる</button>` : ''}
-          <button class="edit-btn" onclick="openEditModal('${e.id}')">編集 EDIT</button>
-          <button class="del-btn" onclick="confirmDelete('${e.id}')">削除 DELETE</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+  list.innerHTML = data.slice(0, currentRenderedCount).map(renderLogCardHtml).join('');
+  updateLoadMoreTrigger();
+  recalculateHistoryTop();
 }
 
+function appendNextLogChunk(){
+  if(!currentRenderData || currentRenderedCount >= currentRenderData.length) return;
+  const nextCount = Math.min(currentRenderData.length, currentRenderedCount + LOG_PAGE_SIZE);
+  const chunk = currentRenderData.slice(currentRenderedCount, nextCount);
+  currentRenderedCount = nextCount;
 
+  const frag = document.createElement('div');
+  frag.innerHTML = chunk.map(renderLogCardHtml).join('');
+  const list = document.getElementById('logList');
+  while(frag.firstChild){
+    list.appendChild(frag.firstChild);
+  }
+
+  updateLoadMoreTrigger();
+  recalculateHistoryTop();
+}
+
+let loadMoreObserver = null;
+function updateLoadMoreTrigger(){
+  let trigger = document.getElementById('logLoadMoreTrigger');
+  if(!trigger){
+    trigger = document.createElement('div');
+    trigger.id = 'logLoadMoreTrigger';
+    trigger.style.cssText = 'padding:14px 0 24px;text-align:center;';
+    const list = document.getElementById('logList');
+    if(list && list.parentNode){
+      list.parentNode.insertBefore(trigger, list.nextSibling);
+    }
+  }
+
+  if(currentRenderData && currentRenderedCount < currentRenderData.length){
+    const remaining = currentRenderData.length - currentRenderedCount;
+    trigger.style.display = 'block';
+    trigger.innerHTML = `
+      <button type="button" onclick="appendNextLogChunk()" style="background:#222832;border:1px solid #3d4a5c;color:var(--amber);font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;padding:10px 24px;border-radius:20px;cursor:pointer;">
+        さらに表示（残り ${remaining} 件）▾
+      </button>
+    `;
+
+    if(!loadMoreObserver && 'IntersectionObserver' in window){
+      loadMoreObserver = new IntersectionObserver((entries) => {
+        if(entries && entries[0] && entries[0].isIntersecting){
+          appendNextLogChunk();
+        }
+      }, { rootMargin: '300px' });
+    }
+    if(loadMoreObserver){
+      loadMoreObserver.disconnect();
+      loadMoreObserver.observe(trigger);
+    }
+  } else {
+    trigger.style.display = 'none';
+    if(loadMoreObserver) loadMoreObserver.disconnect();
+  }
+}
 function parseCSVToEntries(text){
   text = text.replace(/^\uFEFF/, '').trim();
   text = text.replace(/^```[a-zA-Z]*\n/, '').replace(/\n```$/, '').trim();
@@ -2987,9 +3192,14 @@ function parseCSVToEntries(text){
     const hasCold = cfl !== null || cfr !== null || crl !== null || crr !== null;
     const hasHot = hfl !== null || hfr !== null || hrl !== null || hrr !== null;
 
+    const parsedUp = getCol(cols, '更新日時', 'updatedAt', 'updated_at') || timestamp;
+    const parsedSync = getCol(cols, '同期日時', 'syncedAt', 'synced_at') || null;
     entriesList.push({
       id: getCol(cols, 'id', 'ID') || (Date.now() + r + '_' + Math.random().toString(36).slice(2, 7)),
+      deviceId: getCol(cols, '端末ID', 'deviceId', 'device_id') || null,
       timestamp,
+      updatedAt: parsedUp,
+      syncedAt: parsedSync,
       car,
       track,
       condition,
@@ -3121,7 +3331,7 @@ function showImportConfirmModal(imported, importedCars, filename){
 
   document.getElementById('importOriginalBtn').onclick = async () => {
     document.body.removeChild(overlay);
-    await executeImport(imported, null);
+    await executeImport(imported, null, false);
   };
 
   document.getElementById('importWithRenameBtn').onclick = async () => {
@@ -3131,11 +3341,14 @@ function showImportConfirmModal(imported, importedCars, filename){
       return;
     }
     document.body.removeChild(overlay);
-    await executeImport(imported, newName);
+    await executeImport(imported, newName, false);
   };
 }
 
-async function executeImport(imported, newCarName){
+async function executeImport(imported, newCarName, isFromCloud = false){
+  const pendingSync = getPendingSyncMap();
+  const pendingDeletes = getPendingDeletesMap();
+
   const existingMap = new Map();
   entries.forEach((e, idx) => {
     if(e && e.id) existingMap.set(String(e.id), idx);
@@ -3143,29 +3356,96 @@ async function executeImport(imported, newCarName){
 
   let addedCount = 0;
   let updatedCount = 0;
+  const incomingIds = new Set();
 
   imported.forEach((e) => {
-    if(!e) return;
+    if(!e || !e.id) return;
+    const key = String(e.id);
+    incomingIds.add(key);
+
+    // 1. Skip if this ID was deleted on this device (prevents resurrection)
+    if(pendingDeletes[key]){
+      return;
+    }
+
     if(newCarName){
       e.car = newCarName;
     } else if(!e.car){
       e.car = 'マイカー';
     }
 
-    const key = e.id ? String(e.id) : '';
-    if(!newCarName && key && existingMap.has(key)){
+    if(!newCarName && existingMap.has(key)){
       const targetIdx = existingMap.get(key);
-      entries[targetIdx] = e;
-      updatedCount++;
+      const local = entries[targetIdx];
+      const isLocalPending = !!pendingSync[key];
+
+      const localTime = new Date(local.updatedAt || local.timestamp || 0).getTime();
+      const incomingTime = new Date(e.updatedAt || e.timestamp || 0).getTime();
+
+      if(isLocalPending && isFromCloud){
+        // Local has unsaved offline edits: NEVER overwrite with older cloud copy!
+      } else if(incomingTime > localTime){
+        // Only overwrite if incoming record is STRICTLY NEWER (prevents older backups from rewinding newer data)
+        if(isFromCloud){
+          e.syncedAt = new Date().toISOString();
+        } else {
+          e.syncedAt = null;
+          markEntryPendingSync(e);
+        }
+        entries[targetIdx] = e;
+        updatedCount++;
+      } else {
+        // Incoming is older or equal to local record: preserve newer local record
+        if(isFromCloud){
+          local.syncedAt = new Date().toISOString();
+        }
+      }
     } else {
-      if(newCarName && key && existingMap.has(key)){
+      if(newCarName && existingMap.has(key)){
         e.id = Date.now() + Math.floor(Math.random() * 1000);
       }
+      if(!e.updatedAt){
+        e.updatedAt = e.timestamp || new Date().toISOString();
+      }
+      if(isFromCloud){
+        e.syncedAt = new Date().toISOString();
+      } else {
+        e.syncedAt = null;
+        markEntryPendingSync(e);
+      }
       entries.push(e);
-      if(e.id) existingMap.set(String(e.id), entries.length - 1);
+      existingMap.set(String(e.id), entries.length - 1);
       addedCount++;
     }
   });
+
+  // Reconcile remote deletes ONLY when doing a full cloud sync (quickCloudSync / restoreFromCloud):
+  // A local entry is ONLY removed if:
+  // 1) It was previously confirmed synced to cloud (e.syncedAt exists)
+  // 2) It is missing from the incoming cloud dataset
+  // 3) It has no pending unsynced local edits
+  // CRITICAL: Any record without syncedAt (e.g. backup file import, manual text paste, newly recorded offline entries)
+  // is NEVER deleted! It is preserved and queued for cloud upload.
+  if(isFromCloud && !newCarName){
+    const toKeep = [];
+    entries.forEach(e => {
+      const key = String(e.id);
+      const isFromIncomingCloud = incomingIds.has(key);
+      const isPending = !!pendingSync[key];
+      const wasEverSynced = !!e.syncedAt;
+
+      if(isFromIncomingCloud || isPending){
+        toKeep.push(e);
+      } else if(!wasEverSynced){
+        // Local-only record not yet uploaded to cloud: NEVER delete! Preserve and queue!
+        toKeep.push(e);
+        markEntryPendingSync(e);
+      } else {
+        // Was confirmed on cloud previously, but now absent from cloud -> remote deletion accepted.
+      }
+    });
+    entries = toKeep;
+  }
 
   entries.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
 
@@ -3189,6 +3469,11 @@ async function executeImport(imported, newCarName){
   restoreLastSessionDefaults(true);
   restorePressuresForMode(currentMode);
   applyFilters();
+
+  // If local backup import and cloud URL exists, trigger background upload
+  if(!isFromCloud && getGasUrl()){
+    flushPendingQueues().catch(() => {});
+  }
 
   if(newCarName){
     showToast(`${addedCount}件を「${newCarName}」として登録しました`);
@@ -3230,18 +3515,68 @@ function setGasUrl(url){
   localStorage.setItem(GAS_URL_KEY, (url || '').trim());
 }
 
+async function syncDeleteToCloud(id){
+  markIdPendingDelete(id);
+  const gasUrl = getGasUrl();
+  if(!gasUrl || !id) return;
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'delete', id: String(id) })
+    });
+    const json = await res.json().catch(() => null);
+    if(json && json.status === 'ok'){
+      unmarkIdPendingDelete(id);
+    }
+  } catch(err) {
+    console.warn('Background cloud delete failed (queued for retry):', err);
+  }
+}
+
+async function syncBulkDeleteToCloud(ids){
+  if(!ids || ids.length === 0) return;
+  ids.forEach(id => markIdPendingDelete(id));
+  const gasUrl = getGasUrl();
+  if(!gasUrl) return;
+  try {
+    const res = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'bulk_delete', ids: ids.map(String) })
+    });
+    const json = await res.json().catch(() => null);
+    if(json && json.status === 'ok'){
+      ids.forEach(id => unmarkIdPendingDelete(id));
+    }
+  } catch(err) {
+    console.warn('Background cloud bulk delete failed (queued for retry):', err);
+  }
+}
+
 async function syncEntryToCloud(entry){
+  if(!entry || !entry.id) return;
+  markEntryPendingSync(entry);
   const gasUrl = getGasUrl();
   if(!gasUrl) return;
 
+  const sentUpdatedAt = entry.updatedAt;
   try {
-    await fetch(gasUrl, {
+    const res = await fetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'save', entry: entry })
     });
+    const json = await res.json().catch(() => null);
+    if(json && json.status === 'ok'){
+      unmarkEntryPendingSync(entry.id, sentUpdatedAt);
+      if(entry.updatedAt === sentUpdatedAt){
+        entry.syncedAt = new Date().toISOString();
+        persistEntries();
+      }
+    }
   } catch (err) {
-    console.warn('Background cloud sync failed:', err);
+    console.warn('Background cloud sync failed (queued for retry):', err);
   }
 }
 
@@ -3257,6 +3592,22 @@ async function uploadAllToCloud(){
   }
   showToast('スプレッドシートへ送信中...');
   try {
+    // 1. Flush pending deletes first so any deleted records are pruned on spreadsheet
+    const delMap = getPendingDeletesMap();
+    const delIds = Object.keys(delMap);
+    if(delIds.length > 0){
+      const delRes = await fetch(gasUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ action: 'bulk_delete', ids: delIds })
+      });
+      const delJson = await delRes.json().catch(() => null);
+      if(delJson && delJson.status === 'ok'){
+        delIds.forEach(id => unmarkIdPendingDelete(id));
+      }
+    }
+
+    // 2. Upload all current entries
     const res = await fetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
@@ -3264,6 +3615,12 @@ async function uploadAllToCloud(){
     });
     const json = await res.json().catch(() => null);
     if(json && json.status === 'ok'){
+      const nowSync = new Date().toISOString();
+      entries.forEach(e => {
+        unmarkEntryPendingSync(e.id, e.updatedAt);
+        e.syncedAt = nowSync;
+      });
+      persistEntries();
       if(json.updated > 0 && json.appended > 0){
         showToast(`${json.appended}件新規追加、${json.updated}件更新（重複なし）`);
       } else if(json.updated > 0 && json.appended === 0){
@@ -3271,12 +3628,16 @@ async function uploadAllToCloud(){
       } else {
         showToast(`${json.appended || entries.length}件をスプレッドシートへ送信しました！`);
       }
+    } else if(json && json.status === 'error'){
+      showToast('送信失敗: ' + (json.message || 'サーバーエラーが発生しました'));
     } else {
-      showToast(`${entries.length}件のデータをスプレッドシートへ送信しました！`);
+      showToast('送信に失敗しました（連携URLや権限設定をご確認ください）');
     }
   } catch(err) {
     console.error(err);
     showToast('送信エラー: ' + err.message);
+  } finally {
+    updateCloudStatusUI();
   }
 }
 
@@ -3298,13 +3659,19 @@ async function quickCloudSync(isSilent){
   }
 
   try {
+    // 1. Flush local outbox first so local changes reach cloud before pull
+    await flushPendingQueues();
+
+    // 2. Pull all entries from cloud
     const res = await fetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
     const json = await res.json();
     if(json && json.status === 'ok' && Array.isArray(json.entries)){
       if(json.entries.length === 0){
         if(!isSilent) showToast('スプレッドシートにデータがありませんでした');
       } else {
-        await executeImport(json.entries, null);
+        await executeImport(json.entries, null, true);
+        // 3. Flush once more in case any newer local entries need to be pushed back
+        await flushPendingQueues();
       }
     } else {
       if(!isSilent) showToast('データの取得に失敗しました');
@@ -3314,11 +3681,11 @@ async function quickCloudSync(isSilent){
     if(!isSilent) showToast('更新エラー: ' + err.message);
   } finally {
     icons.forEach(ic => ic.classList.remove('spinning'));
+    updateCloudStatusUI();
   }
 }
 
 async function restoreFromCloud(){
-
   const gasUrl = getGasUrl();
   if(!gasUrl){
     showToast('スプレッドシート連携URLを設定してください');
@@ -3333,7 +3700,7 @@ async function restoreFromCloud(){
         showToast('スプレッドシートにデータがありませんでした');
         return;
       }
-      executeImport(json.entries, null);
+      await executeImport(json.entries, null, true);
       showToast(`スプレッドシートから${json.entries.length}件を同期・復元しました！`);
     } else {
       showToast('データの取得に失敗しました');
@@ -3341,6 +3708,8 @@ async function restoreFromCloud(){
   } catch(err) {
     console.error(err);
     showToast('同期エラー: ' + err.message);
+  } finally {
+    updateCloudStatusUI();
   }
 }
 
@@ -3351,19 +3720,45 @@ function saveGasUrlFromInput(){
   setGasUrl(url);
   updateCloudStatusUI();
   showToast(url ? '連携URLを保存しました' : '連携を解除しました');
+  if(url){
+    flushPendingQueues().catch(() => {});
+  }
 }
 
 function updateCloudStatusUI(){
   const statusEl = document.getElementById('cloudStatusIndicator');
   const url = getGasUrl();
+  const pendingSync = getPendingSyncMap();
+  const pendingDeletes = getPendingDeletesMap();
+  const pendingCount = Object.keys(pendingSync).length + Object.keys(pendingDeletes).length;
+
   if(statusEl){
     if(url){
-      statusEl.innerHTML = '<span style="color:#4ade80;">● 連携中（クラウド自動保存 有効）</span>';
+      if(pendingCount > 0){
+        statusEl.innerHTML = `<span style="color:var(--amber);">● 連携中（未送信: ${pendingCount}件 / 次回通信時に自動同期）</span>`;
+      } else {
+        statusEl.innerHTML = '<span style="color:#4ade80;">● 連携中（クラウド自動保存 有効）</span>';
+      }
     } else {
       statusEl.innerHTML = '<span style="color:#94a3b8;">○ 未連携（端末ローカル保存のみ）</span>';
     }
   }
 }
+
+function switchGuideTab(tabName){
+  ['usage', 'cloud', 'backup'].forEach(t => {
+    const btn = document.getElementById('tabBtn-' + t);
+    const content = document.getElementById('tabContent-' + t);
+    if(btn) btn.classList.toggle('active', t === tabName);
+    if(content) content.style.display = t === tabName ? 'block' : 'none';
+  });
+  if(tabName === 'cloud'){
+    const input = document.getElementById('gasUrlInput');
+    if(input) input.value = getGasUrl();
+    updateCloudStatusUI();
+  }
+}
+window.switchGuideTab = switchGuideTab;
 
 function openGuideModal(initialTab = 'usage'){
   const overlay = document.createElement('div');
@@ -3378,114 +3773,172 @@ function openGuideModal(initialTab = 'usage'){
   try {
     lock.waitLock(30000); // 100人同時書き込みでも安全に順次処理（競合防止）
     var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-    var headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID','端末ID'];
+    var headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID','端末ID','更新日時'];
+    
+    // 初回シート初期化時のみ書式設定（テキスト列のみ@を設定し、圧力・気温列は数値型を保持）
     if (sheet.getLastRow() === 0) {
       sheet.appendRow(headers);
+      sheet.getRange("A:A").setNumberFormat("@"); // 日時 (ISO8601)
+      sheet.getRange("G:G").setNumberFormat("@"); // タイム (01:23.456)
+      sheet.getRange("K:L").setNumberFormat("@"); // サイズ
+      sheet.getRange("V:X").setNumberFormat("@"); // ID, 端末ID, 更新日時
     }
-    var data = JSON.parse(e.postData.contents);
-    if (data.action === 'save' && data.entry) {
-      var entry = data.entry;
+
+    function buildRow(entry) {
       var cp = entry.coldPressures || {};
       var hp = entry.hotPressures || {};
-      var row = [
+      return [
         entry.timestamp || '',
         entry.car || 'マイカー',
         entry.track || '',
         entry.condition || '',
-        entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : '',
-        entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : '',
+        (entry.ambientTemp !== null && entry.ambientTemp !== undefined && entry.ambientTemp !== '') ? Number(entry.ambientTemp) : '',
+        (entry.trackTemp !== null && entry.trackTemp !== undefined && entry.trackTemp !== '') ? Number(entry.trackTemp) : '',
         entry.lapTime || '',
         entry.feel || '',
         entry.tireBrandFront || '',
         entry.tireBrandRear || '',
         entry.sizeFront || '',
         entry.sizeRear || '',
-        (cp.FL !== undefined && cp.FL !== null) ? cp.FL : '',
-        (cp.FR !== undefined && cp.FR !== null) ? cp.FR : '',
-        (cp.RL !== undefined && cp.RL !== null) ? cp.RL : '',
-        (cp.RR !== undefined && cp.RR !== null) ? cp.RR : '',
-        (hp.FL !== undefined && hp.FL !== null) ? hp.FL : '',
-        (hp.FR !== undefined && hp.FR !== null) ? hp.FR : '',
-        (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
-        (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
+        (cp.FL !== undefined && cp.FL !== null && cp.FL !== '') ? Number(cp.FL) : '',
+        (cp.FR !== undefined && cp.FR !== null && cp.FR !== '') ? Number(cp.FR) : '',
+        (cp.RL !== undefined && cp.RL !== null && cp.RL !== '') ? Number(cp.RL) : '',
+        (cp.RR !== undefined && cp.RR !== null && cp.RR !== '') ? Number(cp.RR) : '',
+        (hp.FL !== undefined && hp.FL !== null && hp.FL !== '') ? Number(hp.FL) : '',
+        (hp.FR !== undefined && hp.FR !== null && hp.FR !== '') ? Number(hp.FR) : '',
+        (hp.RL !== undefined && hp.RL !== null && hp.RL !== '') ? Number(hp.RL) : '',
+        (hp.RR !== undefined && hp.RR !== null && hp.RR !== '') ? Number(hp.RR) : '',
         entry.notes || '',
         String(entry.id || ''),
-        String(entry.deviceId || '')
+        String(entry.deviceId || ''),
+        entry.updatedAt || entry.timestamp || new Date().toISOString()
       ];
+    }
+
+    var data = JSON.parse(e.postData.contents);
+    if (data.action === 'save' && data.entry) {
+      var entry = data.entry;
+      var newRow = buildRow(entry);
       var lastRow = sheet.getLastRow();
       var updated = false;
+      var skipped = false;
+
       if (lastRow > 1 && entry.id) {
-        var idCol = 22;
-        var idValues = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
-        for (var i = 0; i < idValues.length; i++) {
-          if (String(idValues[i][0]).trim() === String(entry.id).trim()) {
-            sheet.getRange(i + 2, 1, 1, row.length).setValues([row]);
+        var existingData = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
+        var targetId = String(entry.id).trim().replace(/^'/, '');
+        var newUpdateTime = new Date(entry.updatedAt || entry.timestamp || 0).getTime();
+
+        for (var i = 0; i < existingData.length; i++) {
+          if (String(existingData[i][21]).trim().replace(/^'/, '') === targetId) {
+            var existingUpdateTime = new Date(existingData[i][23] || existingData[i][0] || 0).getTime();
+            if (newUpdateTime < existingUpdateTime) {
+              // クラウド側の方が新しい編集（競合回避：古い未送信で上書きしない）
+              skipped = true;
+              updated = false;
+              break;
+            }
+            sheet.getRange(i + 2, 1, 1, newRow.length).setValues([newRow]);
             updated = true;
             break;
           }
         }
       }
-      if (!updated) {
-        sheet.appendRow(row);
+      if (!updated && !skipped) {
+        sheet.appendRow(newRow);
       }
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: updated })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: updated, skipped: skipped })).setMimeType(ContentService.MimeType.JSON);
     }
+
     if (data.action === 'bulk_upload' && Array.isArray(data.entries)) {
       var lastRow = sheet.getLastRow();
-      var idCol = 22;
-      var existingIdMap = {};
+      var toAppend = [];
+      var updatedCount = 0;
+      var skippedCount = 0;
+
       if (lastRow > 1) {
-        var idValues = sheet.getRange(2, idCol, lastRow - 1, 1).getValues();
+        // メモリ上で一括照合＆更新（1行ごとのAPI呼び出しを廃止し、数百件でも数秒以内で高速完了）
+        var allValues = sheet.getRange(2, 1, lastRow - 1, 24).getValues();
+        var idMap = {};
+        for (var i = 0; i < allValues.length; i++) {
+          var idStr = String(allValues[i][21]).trim().replace(/^'/, '');
+          if (idStr) idMap[idStr] = i;
+        }
+
+        var hasUpdates = false;
+        data.entries.forEach(function(entry) {
+          var row = buildRow(entry);
+          var entryId = String(entry.id || '').trim().replace(/^'/, '');
+          if (entryId && idMap[entryId] !== undefined) {
+            var rowIdx = idMap[entryId];
+            var existingRow = allValues[rowIdx];
+            var existingUpdateTime = new Date(existingRow[23] || existingRow[0] || 0).getTime();
+            var incomingUpdateTime = new Date(entry.updatedAt || entry.timestamp || 0).getTime();
+
+            if (incomingUpdateTime >= existingUpdateTime) {
+              allValues[rowIdx] = row;
+              updatedCount++;
+              hasUpdates = true;
+            } else {
+              skippedCount++;
+            }
+          } else {
+            toAppend.push(row);
+          }
+        });
+
+        if (hasUpdates) {
+          sheet.getRange(2, 1, allValues.length, 24).setValues(allValues);
+        }
+      } else {
+        data.entries.forEach(function(entry) {
+          toAppend.push(buildRow(entry));
+        });
+      }
+
+      if (toAppend.length > 0) {
+        var startAppendRow = sheet.getLastRow() + 1;
+        sheet.getRange(startAppendRow, 1, toAppend.length, 24).setValues(toAppend);
+      }
+
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'ok',
+        updated: updatedCount,
+        appended: toAppend.length,
+        skipped: skippedCount
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (data.action === 'delete' && data.id) {
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        var idValues = sheet.getRange(2, 22, lastRow - 1, 1).getDisplayValues();
+        var targetId = String(data.id).trim().replace(/^'/, '');
         for (var i = 0; i < idValues.length; i++) {
-          var idStr = String(idValues[i][0]).trim();
-          if (idStr) {
-            existingIdMap[idStr] = i + 2;
+          if (String(idValues[i][0]).trim().replace(/^'/, '') === targetId) {
+            sheet.deleteRow(i + 2);
+            break;
           }
         }
       }
-      var toAppend = [];
-      var updatedCount = 0;
-      data.entries.forEach(function(entry) {
-        var cp = entry.coldPressures || {};
-        var hp = entry.hotPressures || {};
-        var row = [
-          entry.timestamp || '',
-          entry.car || 'マイカー',
-          entry.track || '',
-          entry.condition || '',
-          entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : '',
-          entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : '',
-          entry.lapTime || '',
-          entry.feel || '',
-          entry.tireBrandFront || '',
-          entry.tireBrandRear || '',
-          entry.sizeFront || '',
-          entry.sizeRear || '',
-          (cp.FL !== undefined && cp.FL !== null) ? cp.FL : '',
-          (cp.FR !== undefined && cp.FR !== null) ? cp.FR : '',
-          (cp.RL !== undefined && cp.RL !== null) ? cp.RL : '',
-          (cp.RR !== undefined && cp.RR !== null) ? cp.RR : '',
-          (hp.FL !== undefined && hp.FL !== null) ? hp.FL : '',
-          (hp.FR !== undefined && hp.FR !== null) ? hp.FR : '',
-          (hp.RL !== undefined && hp.RL !== null) ? hp.RL : '',
-          (hp.RR !== undefined && hp.RR !== null) ? hp.RR : '',
-          entry.notes || '',
-          String(entry.id || ''),
-          String(entry.deviceId || '')
-        ];
-        var entryId = String(entry.id || '').trim();
-        if (entryId && existingIdMap[entryId]) {
-          sheet.getRange(existingIdMap[entryId], 1, 1, row.length).setValues([row]);
-          updatedCount++;
-        } else {
-          toAppend.push(row);
-        }
-      });
-      if (toAppend.length > 0) {
-        sheet.getRange(sheet.getLastRow() + 1, 1, toAppend.length, toAppend[0].length).setValues(toAppend);
-      }
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: updatedCount, appended: toAppend.length })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
     }
+
+    if (data.action === 'bulk_delete' && Array.isArray(data.ids) && data.ids.length > 0) {
+      var lastRow = sheet.getLastRow();
+      if (lastRow > 1) {
+        var idValues = sheet.getRange(2, 22, lastRow - 1, 1).getDisplayValues();
+        var idSet = {};
+        data.ids.forEach(function(id) { idSet[String(id).trim().replace(/^'/, '')] = true; });
+        for (var i = idValues.length - 1; i >= 0; i--) {
+          var rowId = String(idValues[i][0]).trim().replace(/^'/, '');
+          if (idSet[rowId]) {
+            sheet.deleteRow(i + 2);
+          }
+        }
+      }
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_action' })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
@@ -3501,38 +3954,51 @@ function doGet(e) {
     if (lastRow <= 1) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [] })).setMimeType(ContentService.MimeType.JSON);
     }
-    var values = sheet.getRange(2, 1, lastRow - 1, 23).getValues();
-    var entries = values.map(function(row) {
-      var cfl = parseFloat(row[12]);
-      var cfr = parseFloat(row[13]);
-      var crl = parseFloat(row[14]);
-      var crr = parseFloat(row[15]);
+    // getDisplayValues を使用して画面表示そのままの文字列を取得（Date型変換やタイムゾーン・LMTずれを完全回避）
+    var values = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
+
+    function clean(v) {
+      return String(v || '').trim().replace(/^'/, '');
+    }
+
+    var entries = values.map(function(row, idx) {
+      var cfl = parseFloat(clean(row[12]));
+      var cfr = parseFloat(clean(row[13]));
+      var crl = parseFloat(clean(row[14]));
+      var crr = parseFloat(clean(row[15]));
       var hasCold = !isNaN(cfl) || !isNaN(cfr) || !isNaN(crl) || !isNaN(crr);
-      var hfl = parseFloat(row[16]);
-      var hfr = parseFloat(row[17]);
-      var hrl = parseFloat(row[18]);
-      var hrr = parseFloat(row[19]);
+      var hfl = parseFloat(clean(row[16]));
+      var hfr = parseFloat(clean(row[17]));
+      var hrl = parseFloat(clean(row[18]));
+      var hrr = parseFloat(clean(row[19]));
       var hasHot = !isNaN(hfl) || !isNaN(hfr) || !isNaN(hrl) || !isNaN(hrr);
-      var amb = parseFloat(row[4]);
-      var trk = parseFloat(row[5]);
+      var amb = parseFloat(clean(row[4]));
+      var trk = parseFloat(clean(row[5]));
+      var ts = clean(row[0]) || new Date().toISOString();
+      var up = clean(row[23]) || ts;
+      // 手入力でIDが空の行には日時・車両・タイム・行番号を組み合わせた安定IDを生成（削除で行番号が変わっても追従）
+      var rawId = clean(row[21]);
+      var rowId = rawId ? rawId : ('manual_' + clean(row[0]).replace(/[^0-9]/g, '') + '_' + clean(row[1]) + '_' + clean(row[6]) + '_' + (idx + 2));
+
       return {
-        id: row[21] ? String(row[21]).trim() : (Date.now() + '_' + Math.random().toString(36).slice(2, 7)),
-        deviceId: row[22] ? String(row[22]).trim() : null,
-        timestamp: String(row[0] || new Date().toISOString()),
-        car: String(row[1] || 'マイカー'),
-        track: row[2] ? String(row[2]) : null,
-        condition: row[3] ? String(row[3]) : 'Dry',
+        id: rowId,
+        deviceId: clean(row[22]) || null,
+        timestamp: ts,
+        updatedAt: up,
+        car: clean(row[1]) || 'マイカー',
+        track: clean(row[2]) || null,
+        condition: clean(row[3]) || 'Dry',
         ambientTemp: isNaN(amb) ? null : amb,
         trackTemp: isNaN(trk) ? null : trk,
-        lapTime: row[6] ? String(row[6]) : null,
-        feel: row[7] ? String(row[7]) : null,
-        tireBrandFront: row[8] ? String(row[8]) : null,
-        tireBrandRear: row[9] ? String(row[9]) : null,
-        sizeFront: row[10] ? String(row[10]) : null,
-        sizeRear: row[11] ? String(row[11]) : null,
+        lapTime: clean(row[6]) || null,
+        feel: clean(row[7]) || null,
+        tireBrandFront: clean(row[8]) || null,
+        tireBrandRear: clean(row[9]) || null,
+        sizeFront: clean(row[10]) || null,
+        sizeRear: clean(row[11]) || null,
         coldPressures: hasCold ? { FL: isNaN(cfl)?null:cfl, FR: isNaN(cfr)?null:cfr, RL: isNaN(crl)?null:crl, RR: isNaN(crr)?null:crr } : null,
         hotPressures: hasHot ? { FL: isNaN(hfl)?null:hfl, FR: isNaN(hfr)?null:hfr, RL: isNaN(hrl)?null:hrl, RR: isNaN(hrr)?null:hrr } : null,
-        notes: row[20] ? String(row[20]) : null
+        notes: clean(row[20]) || null
       };
     });
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries })).setMimeType(ContentService.MimeType.JSON);
@@ -3540,6 +4006,9 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   }
 }`;
+
+
+
 
   box.innerHTML = `
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;border-bottom:1px solid #282e38;padding-bottom:10px;">
@@ -3604,7 +4073,7 @@ function doGet(e) {
           </button>
         </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
-          <button id="migUploadAllBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(255,182,39,0.4);background:rgba(255,182,39,0.08);color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;">
+          <button id="migUploadAllBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(223,172,88,0.4);background:rgba(223,172,88,0.08);color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;">
             過去データをスプレッドシートへ一括送信（アップロード）
           </button>
           <button id="migRestoreCloudBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid #384252;background:rgba(255,255,255,0.04);color:#cbd5e1;font-size:12px;font-weight:600;cursor:pointer;">
@@ -3619,7 +4088,7 @@ function doGet(e) {
           🔰 初心者でも迷わない！共有開始の3ステップ手順
         </div>
         <div style="font-size:12px;color:#cbd5e1;line-height:1.7;">
-          <div style="background:rgba(255,182,39,0.1);padding:6px 10px;border-radius:6px;margin-bottom:10px;color:#fef08a;font-size:11px;">
+          <div style="background:rgba(223,172,88,0.1);padding:6px 10px;border-radius:6px;margin-bottom:10px;color:#fef08a;font-size:11px;">
             💡 <strong>安心のポイント</strong>：この準備は<strong>チームの代表者1人が最初の1回だけ行えばOK</strong>です！他のメンバーは発行されたURLをアプリに貼るだけで即座に参加できます。
           </div>
 
@@ -3687,7 +4156,7 @@ function doGet(e) {
 
         <div style="margin-bottom:12px;">
           <input type="file" id="migFileInput" accept=".json,.csv,.txt,text/*,application/json,text/csv,text/plain,application/octet-stream" style="display:none;">
-          <button id="migImportFileBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid var(--amber);background:rgba(255,182,39,0.08);color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
+          <button id="migImportFileBtn" style="width:100%;padding:13px 0;border-radius:8px;border:1px solid var(--amber);background:rgba(223,172,88,0.08);color:var(--amber);font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">
             ファイルを選んで復元・取り込み
           </button>
         </div>
@@ -3714,22 +4183,7 @@ function doGet(e) {
 
   overlay.appendChild(box);
   document.body.appendChild(overlay);
-
   // Tab switching logic
-  window.switchGuideTab = function(tabName){
-    ['usage', 'cloud', 'backup'].forEach(t => {
-      const btn = document.getElementById(`tabBtn-${t}`);
-      const content = document.getElementById(`tabContent-${t}`);
-      if(btn) btn.classList.toggle('active', t === tabName);
-      if(content) content.style.display = t === tabName ? 'block' : 'none';
-    });
-    if(tabName === 'cloud'){
-      const input = document.getElementById('gasUrlInput');
-      if(input) input.value = getGasUrl();
-      updateCloudStatusUI();
-    }
-  };
-
   switchGuideTab(initialTab);
 
   document.getElementById('closeGuideTopBtn').onclick = () => document.body.removeChild(overlay);
@@ -3875,6 +4329,8 @@ function saveEntry(){
         if(notesVal){
           matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
         }
+        matchingSession.updatedAt = now.toISOString();
+        matchingSession.syncedAt = null;
         showToast('前回の冷間カードに温間を追加しました');
       } else {
         matchingSession.coldPressures = cornerVals;
@@ -3896,6 +4352,8 @@ function saveEntry(){
         id: generateSessionId(),
         deviceId: getDeviceId(),
         timestamp: now.toISOString(),
+        updatedAt: now.toISOString(),
+        syncedAt: null,
         car: currentCar,
         coldPressures: currentMode === 'cold' ? cornerVals : null,
         hotPressures: currentMode === 'hot' ? cornerVals : null,
@@ -3947,36 +4405,48 @@ let tireBrandHistory = [];
 let sizeHistory = [];
 
 function updateTrackFilterOptions(){
-  const allEntries = entries;
-  const carEntries = getCarEntries();
+  const trackSet = new Set();
+  const brandSet = new Set();
+  const sizeSet = new Set();
 
-  // Track history from all entries (excluding corrupted times or sizes)
-  trackHistory = [...new Set(allEntries.map(e => e.track ? String(e.track).trim() : '').filter(Boolean))]
-    .filter(t => !/^\d+:\d+/.test(t) && !parseSizeString(t)).sort();
+  for(let i = 0; i < entries.length; i++){
+    const e = entries[i];
+    if(e.track){
+      const t = String(e.track).trim();
+      if(t && !/^\d+:\d+/.test(t) && !parseSizeString(t)) trackSet.add(t);
+    }
+    if(e.tireBrandFront){
+      const bf = String(e.tireBrandFront).trim();
+      if(bf && isNaN(parseFloat(bf)) && !CONDITION_LABELS[bf] && !['Dry','HalfWet','Wet','BabyWet'].includes(bf)) brandSet.add(bf);
+    }
+    if(e.tireBrandRear){
+      const br = String(e.tireBrandRear).trim();
+      if(br && isNaN(parseFloat(br)) && !CONDITION_LABELS[br] && !['Dry','HalfWet','Wet','BabyWet'].includes(br)) brandSet.add(br);
+    }
+    if(e.sizeFront && parseSizeString(e.sizeFront)) sizeSet.add(String(e.sizeFront).trim());
+    if(e.sizeRear && parseSizeString(e.sizeRear)) sizeSet.add(String(e.sizeRear).trim());
+  }
+
+  trackHistory = Array.from(trackSet).sort();
+  tireBrandHistory = Array.from(brandSet).sort();
+  sizeHistory = Array.from(sizeSet).sort();
+
   const filterTrack = document.getElementById('filterTrack');
-  const currentTrack = filterTrack.value;
-  filterTrack.innerHTML = '<option value="">すべて</option>' + trackHistory.map(t=>`<option value="${t}">${t}</option>`).join('');
-  if(trackHistory.includes(currentTrack)) filterTrack.value = currentTrack;
+  const currentTrack = filterTrack ? filterTrack.value : '';
+  if(filterTrack){
+    filterTrack.innerHTML = '<option value="">すべて</option>' + trackHistory.map(t=>`<option value="${t}">${t}</option>`).join('');
+    if(trackHistory.includes(currentTrack)) filterTrack.value = currentTrack;
+  }
 
-  // Tire brand history from all entries (excluding numbers or condition names)
-  tireBrandHistory = [...new Set([
-    ...allEntries.map(e => e.tireBrandFront ? String(e.tireBrandFront).trim() : ''),
-    ...allEntries.map(e => e.tireBrandRear ? String(e.tireBrandRear).trim() : '')
-  ].filter(Boolean))].filter(b => isNaN(parseFloat(b)) && !['Dry','HalfWet','Wet','BabyWet','ドライ','ハーフウェット','ウェット','ベビーウェット'].includes(b)).sort();
   const filterBrand = document.getElementById('filterTireBrand');
-  const currentBrand = filterBrand.value;
-  filterBrand.innerHTML = '<option value="">すべて</option>' + tireBrandHistory.map(b=>`<option value="${b}">${b}</option>`).join('');
-  if(tireBrandHistory.includes(currentBrand)) filterBrand.value = currentBrand;
-
-  // Tire size history from all entries (only valid parseable sizes)
-  sizeHistory = [...new Set([
-    ...allEntries.map(e => e.sizeFront ? String(e.sizeFront).trim() : ''),
-    ...allEntries.map(e => e.sizeRear ? String(e.sizeRear).trim() : '')
-  ].filter(Boolean))].filter(s => parseSizeString(s) !== null).sort();
+  const currentBrand = filterBrand ? filterBrand.value : '';
+  if(filterBrand){
+    filterBrand.innerHTML = '<option value="">すべて</option>' + tireBrandHistory.map(b=>`<option value="${b}">${b}</option>`).join('');
+    if(tireBrandHistory.includes(currentBrand)) filterBrand.value = currentBrand;
+  }
 
   renderSizePresets();
 }
-
 function renderSizePresets(){
   ['Front', 'Rear'].forEach(prefix => {
     const sel = document.getElementById(`presetSize${prefix}`);
@@ -4278,21 +4748,34 @@ let isScrolledDown = false;
 const JUMP_SVG_DOWN = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
 const JUMP_SVG_UP = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>';
 
-function updateJumpButtons(){
-  const scrollY = window.scrollY || window.pageYOffset || 0;
+let scrollTickTicking = false;
+let cachedHistoryTop = null;
+
+function recalculateHistoryTop(){
   const historyEl = document.getElementById('logSectionAnchor') || document.getElementById('logList');
-  const historyTop = historyEl ? historyEl.offsetTop - 350 : 600;
-  isScrolledDown = scrollY > historyTop;
-
-  const stickyIcon = document.getElementById('stickyJumpIcon');
-  const stickyTxt = document.getElementById('stickyJumpTxt');
-
-  if(isScrolledDown){
-    if(stickyIcon) stickyIcon.innerHTML = JUMP_SVG_UP;
-    if(stickyTxt) stickyTxt.textContent = '入力';
+  if(historyEl){
+    cachedHistoryTop = historyEl.offsetTop - 350;
   } else {
-    if(stickyIcon) stickyIcon.innerHTML = JUMP_SVG_DOWN;
-    if(stickyTxt) stickyTxt.textContent = '履歴';
+    cachedHistoryTop = 600;
+  }
+}
+
+function updateJumpButtons(){
+  if(cachedHistoryTop === null) recalculateHistoryTop();
+  const scrollY = window.scrollY || window.pageYOffset || 0;
+  const wasScrolled = isScrolledDown;
+  isScrolledDown = scrollY > (cachedHistoryTop || 600);
+
+  if(wasScrolled !== isScrolledDown){
+    const stickyIcon = document.getElementById('stickyJumpIcon');
+    const stickyTxt = document.getElementById('stickyJumpTxt');
+    if(isScrolledDown){
+      if(stickyIcon) stickyIcon.innerHTML = JUMP_SVG_UP;
+      if(stickyTxt) stickyTxt.textContent = '入力';
+    } else {
+      if(stickyIcon) stickyIcon.innerHTML = JUMP_SVG_DOWN;
+      if(stickyTxt) stickyTxt.textContent = '履歴';
+    }
   }
 }
 
@@ -4304,7 +4787,19 @@ function toggleScrollJump(){
   }
 }
 
-window.addEventListener('scroll', updateJumpButtons, { passive: true });
+window.addEventListener('scroll', () => {
+  if(!scrollTickTicking){
+    window.requestAnimationFrame(() => {
+      updateJumpButtons();
+      scrollTickTicking = false;
+    });
+    scrollTickTicking = true;
+  }
+}, { passive: true });
+
+window.addEventListener('resize', () => {
+  cachedHistoryTop = null;
+}, { passive: true });
 
 setupTireBrandAutocomplete();
 
@@ -4329,8 +4824,14 @@ function openEditModal(id){
     <div style="font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--amber);margin-bottom:4px;">
       記録の編集 / EDIT SESSION
     </div>
-    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--paper-dim);margin-bottom:14px;">
-      ${dateStr} (${entry.car || '車両'})
+    <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--paper-dim);margin-bottom:10px;">
+      ${dateStr}
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#cbd5e1;display:block;margin-bottom:4px;">登録車両</label>
+      <select id="editCar" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:8px;font-size:14px;">
+        ${carList.map(c => `<option value="${c}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>🚗 ${c}</option>`).join('')}
+      </select>
     </div>
 
     <!-- 冷間空気圧 -->
@@ -4437,14 +4938,14 @@ function openEditModal(id){
 
     ${(entry.coldPressures && entry.hotPressures) ? `
       <div style="margin-bottom:14px;">
-        <button type="button" onclick="splitSession('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(255,182,39,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
+        <button type="button" onclick="splitSession('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
           冷間と温間を別カードに分割
         </button>
       </div>
     ` : ''}
     ${(!entry.coldPressures && entry.hotPressures && findColdMatch(entry)) ? `
       <div style="margin-bottom:14px;">
-        <button type="button" onclick="bundleWithEarlierCold('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(255,182,39,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
+        <button type="button" onclick="bundleWithEarlierCold('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
           直前の冷間カードとまとめる
         </button>
       </div>
@@ -4509,7 +5010,13 @@ function openEditModal(id){
     entry.lapTime = document.getElementById('editLapTime').value.trim() || null;
     entry.notes = document.getElementById('editNotes').value.trim() || null;
 
+    const carSelectEl = document.getElementById('editCar');
+    if(carSelectEl) entry.car = carSelectEl.value;
+    entry.updatedAt = new Date().toISOString();
+    entry.syncedAt = null;
+
     persistEntries();
+    syncEntryToCloud(entry);
     updateTrackFilterOptions();
     applyFilters();
     document.body.removeChild(overlay);
@@ -4524,8 +5031,10 @@ function confirmDelete(id){
 }
 
 function deleteEntry(id){
+  markIdPendingDelete(id);
   entries = entries.filter(e => String(e.id) !== String(id));
   persistEntries();
+  syncDeleteToCloud(id);
   updateTrackFilterOptions();
   applyFilters();
 }
@@ -4534,7 +5043,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.30').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.85').catch(() => {});
   });
 }
 </script>
