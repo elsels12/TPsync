@@ -1,8 +1,10 @@
-const CACHE_NAME = 'tpsync-v2.60';
+const CACHE_NAME = 'tpsync-v1.87';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './favicon.ico',
+  './favicon-16x16.png',
   './favicon-32x32.png',
   './apple-touch-icon.png',
   './icon-192.png',
@@ -70,6 +72,8 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => null);
+      // 応答を返した後もバックグラウンド更新が途中で打ち切られないようにする
+      event.waitUntil(fetchPromise.then(() => {}));
 
       // If already in cache, return immediately for instant startup (0ms delay)
       if (cachedResponse) {

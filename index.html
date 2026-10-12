@@ -9,10 +9,12 @@
 <meta name="apple-mobile-web-app-title" content="TPSync">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="shortcut icon" href="favicon.ico">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync v1.85 — PIT WALL LOG</title>
+<title>TPSync v1.87 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -662,8 +664,6 @@
   .log-entry{
     background:var(--panel);border:1px solid #384252;border-radius:14px;
     padding:16px 14px 14px;margin-bottom:16px;box-shadow:0 4px 16px rgba(0,0,0,0.5);
-    content-visibility:auto;
-    contain-intrinsic-size:0 240px;
   }
   .log-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid #282e38;}
   .log-date{font-family:'JetBrains Mono',monospace;font-size:15px;font-weight:700;color:var(--paper);}
@@ -938,7 +938,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync v1.85</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync v1.87</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1343,6 +1343,61 @@ const CONDITION_LABELS = {
   BabyWet: 'ベビーウェット'
 };
 
+// v1.87: ユーザー入力値(メモ・場所・車両名など)をHTMLへ埋め込む際のエスケープ。
+// 「<」等が含まれると以降の履歴カードが丸ごと崩れて消える不具合の対策。
+function escapeHtml(v){
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+// onclick="fn('...')" の引数用（JS文字列としてもHTML属性としても安全にする）
+function jsArg(v){
+  return escapeHtml(String(v === null || v === undefined ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029'));
+}
+function entryTime(e){
+  const t = new Date(e && e.timestamp).getTime();
+  return isNaN(t) ? 0 : t;
+}
+// 壊れたデータが1件あっても履歴全体の描画が止まらないよう、読み込み時に正規化する
+function sanitizeEntries(list){
+  if(!Array.isArray(list)){
+    list = (list && Array.isArray(list.entries)) ? list.entries : [];
+  }
+  const out = [];
+  list.forEach((e, i) => {
+    if(!e || typeof e !== 'object') return;
+    if(e.id === undefined || e.id === null || e.id === ''){
+      e.id = 'recovered_' + Date.now().toString(36) + '_' + i;
+    }
+    ['coldPressures', 'hotPressures', 'pressures'].forEach(k => {
+      if(e[k] !== undefined && e[k] !== null && typeof e[k] !== 'object') e[k] = null;
+    });
+    out.push(e);
+  });
+  return out;
+}
+// 記録に含まれる車両名を「最新記録が新しい順」で返す
+function carNamesFromEntries(){
+  const latest = new Map();
+  entries.forEach(e => {
+    if(!e || typeof e.car !== 'string' || !e.car.trim()) return;
+    const t = entryTime(e);
+    if(!latest.has(e.car) || latest.get(e.car) < t) latest.set(e.car, t);
+  });
+  return Array.from(latest.entries()).sort((a, b) => b[1] - a[1]).map(x => x[0]);
+}
+
+// v1.87: 電波が弱いサーキットで通信が固まっても、同期処理が永久に止まらないようタイムアウトを付ける
+async function gasFetch(url, opts, timeoutMs = 30000){
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
+  try{
+    return await fetch(url, Object.assign({}, opts || {}, ctrl ? { signal: ctrl.signal } : {}));
+  } finally {
+    if(timer) clearTimeout(timer);
+  }
+}
+
 function getGasUrl(){
   return (localStorage.getItem(GAS_URL_KEY) || '').trim();
 }
@@ -1360,6 +1415,23 @@ function setPendingSyncMap(map){
     localStorage.setItem(PENDING_SYNC_KEY, JSON.stringify(map));
   } catch(e){}
 }
+// 大量の記録を一括で未送信キューへ（1件ずつ保存し直すと数千件で起動が極端に遅くなるため）
+function markEntriesPendingSyncBulk(list){
+  if(!list || list.length === 0) return;
+  const map = getPendingSyncMap();
+  const dels = getPendingDeletesMap();
+  let delChanged = false;
+  list.forEach(entry => {
+    if(!entry || entry.id === undefined || entry.id === null || entry.id === '') return;
+    const k = String(entry.id);
+    map[k] = entry;
+    if(dels[k]){ delete dels[k]; delChanged = true; }
+  });
+  setPendingSyncMap(map);
+  if(delChanged) setPendingDeletesMap(dels);
+  updateCloudStatusUI();
+}
+
 function markEntryPendingSync(entry){
   if(!entry || !entry.id) return;
   const map = getPendingSyncMap();
@@ -1421,7 +1493,7 @@ async function flushPendingQueues(){
     const delIds = Object.keys(delMap);
     if(delIds.length > 0){
       try {
-        const res = await fetch(gasUrl, {
+        const res = await gasFetch(gasUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: 'bulk_delete', ids: delIds })
@@ -1442,7 +1514,7 @@ async function flushPendingQueues(){
       const sentTimeMap = {};
       syncEntries.forEach(e => { sentTimeMap[String(e.id)] = e.updatedAt; });
       try {
-        const res = await fetch(gasUrl, {
+        const res = await gasFetch(gasUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({ action: 'bulk_upload', entries: syncEntries })
@@ -1485,11 +1557,16 @@ function initCars(){
   }catch(e){
     carList = [];
   }
+  if(!Array.isArray(carList)) carList = [];
+  carList = carList.filter(c => typeof c === 'string' && c.trim() !== '');
   currentCar = localStorage.getItem(CURRENT_CAR_KEY) || '';
 
   if(carList.length === 0){
-    carList = ['マイカー'];
-    currentCar = 'マイカー';
+    // 車両リストが無い（初回/消失）場合、記録に残っている車両名から復元する。
+    // 固定で「マイカー」だけにすると、別名の車両の履歴が丸ごと見えなくなるため。
+    const fromEntries = carNamesFromEntries();
+    carList = fromEntries.length > 0 ? fromEntries : ['マイカー'];
+    currentCar = carList[0];
     persistCars();
   }
   if(!carList.includes(currentCar)){
@@ -1508,6 +1585,20 @@ function initCars(){
   if(migrated){
     persistEntries();
   }
+
+  // 記録にあるのに車両リストに無い車両を補完（セレクタに出ず履歴が見えなくなるのを防ぐ）
+  let listChanged = false;
+  carNamesFromEntries().forEach(c => {
+    if(!carList.includes(c)){ carList.push(c); listChanged = true; }
+  });
+  if(listChanged) persistCars();
+}
+
+function switchToCar(name){
+  if(!carList.includes(name)) carList.push(name);
+  currentCar = name;
+  renderCarSelector();
+  handleCarSelectorChange();
 }
 
 function getCarEntries(){
@@ -1517,11 +1608,14 @@ function getCarEntries(){
 
 function renderCarSelector(){
   const sel = document.getElementById('carSelector');
-  sel.innerHTML = carList.map(c => `<option value="${c}"${c===currentCar?' selected':''}>🚗 ${c}</option>`).join('');
+  if(!sel) return;
+  sel.innerHTML = carList.map(c => `<option value="${escapeHtml(c)}"${c===currentCar?' selected':''}>🚗 ${escapeHtml(c)}</option>`).join('');
+  sel.value = currentCar;
 }
 
 function handleCarSelectorChange(){
-  currentCar = document.getElementById('carSelector').value;
+  const sel = document.getElementById('carSelector');
+  if(sel && sel.value) currentCar = sel.value;
   persistCars();
   updateTrackFilterOptions();
   restoreLastSessionDefaults(false);
@@ -1572,16 +1666,35 @@ function openCarManager(){
             `この名称に変更すると、既存の「${trimmed}」とデータが1つの車両に統合されます。よろしいですか？`
           );
           if(!proceed) return;
-          entries.forEach(e=>{ if(e.car === car) e.car = trimmed; });
+          const nowIso = new Date().toISOString();
+          const renamed = [];
+          entries.forEach(e => {
+            if(e && e.car === car) {
+              e.car = trimmed;
+              e.updatedAt = nowIso;
+              renamed.push(e);
+            }
+          });
+          markEntriesPendingSyncBulk(renamed);
           carList = carList.filter(c => c !== car);
           if(currentCar === car) currentCar = trimmed;
         } else {
-          entries.forEach(e=>{ if(e.car === car) e.car = trimmed; });
+          const nowIso = new Date().toISOString();
+          const renamed = [];
+          entries.forEach(e => {
+            if(e && e.car === car) {
+              e.car = trimmed;
+              e.updatedAt = nowIso;
+              renamed.push(e);
+            }
+          });
+          markEntriesPendingSyncBulk(renamed);
           carList = carList.map(c => c === car ? trimmed : c);
           if(currentCar === car) currentCar = trimmed;
         }
         persistEntries();
         persistCars();
+        flushPendingQueues().catch(() => {});
         document.body.removeChild(overlay);
         renderCarSelector();
         updateTrackFilterOptions();
@@ -1654,9 +1767,9 @@ function openCarManager(){
       noticeEl.style.background = 'rgba(223,172,88,0.12)';
       noticeEl.style.border = '1px solid rgba(223,172,88,0.4)';
       noticeEl.style.color = '#fef08a';
-      noticeEl.innerHTML = `⚠️ <strong>注意: 「${val}」は既に登録されています</strong><br>` +
+      noticeEl.innerHTML = `⚠️ <strong>注意: 「${escapeHtml(val)}」は既に登録されています</strong><br>` +
         `・<strong>1台を複数人でシェアする場合</strong>：このまま登録（選択）してOKです（同一車両として冷温間が自動統合されます）。<br>` +
-        `・<strong>別々の車として分ける場合</strong>：「${val}_佐藤」のようにドライバー名を付けて区別してください。`;
+        `・<strong>別々の車として分ける場合</strong>：「${escapeHtml(val)}_佐藤」のようにドライバー名を付けて区別してください。`;
       submitBtn.textContent = `「${val}」を選択（同一車両として共有）`;
       submitBtn.style.background = '#eab308';
     } else {
@@ -2151,7 +2264,7 @@ function updateSessionBundleNotice(){
 
   const date = new Date(latest.timestamp);
   const timeStr = date.toLocaleTimeString('ja-JP', {hour:'2-digit', minute:'2-digit'});
-  const trackStr = latest.track ? ` ${latest.track}` : '';
+  const trackStr = latest.track ? ` ${escapeHtml(latest.track)}` : '';
 
   // 1. 温間 HOT 記録時:
   // - 直前が「冷間のみ（hasCold && !hasHot）」の場合のみポップアップを表示
@@ -2238,11 +2351,29 @@ function setMode(mode){
   updateSessionBundleNotice();
 }
 
-function showToast(msg){
+function showToast(msg, duration = 1600, onClick = null){
   const t = document.getElementById('toast');
+  if(!t) return;
   t.textContent = msg;
+  if(onClick){
+    t.style.cursor = 'pointer';
+    t.onclick = () => {
+      try { onClick(); } catch(e){}
+      t.classList.remove('show');
+      t.onclick = null;
+      t.style.cursor = 'default';
+    };
+  } else {
+    t.style.cursor = 'default';
+    t.onclick = null;
+  }
   t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'), 1600);
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => {
+    t.classList.remove('show');
+    t.onclick = null;
+    t.style.cursor = 'default';
+  }, duration);
 }
 
 function autoRepairCorruptedEntries(){
@@ -2289,33 +2420,51 @@ async function loadEntries(){
 
   try{
     const raw = localStorage.getItem(STORE_KEY);
-    entries = raw ? JSON.parse(raw) : [];
+    try{
+      entries = sanitizeEntries(raw ? JSON.parse(raw) : []);
+    }catch(parseErr){
+      // JSONが壊れていても上書きで消えないよう、元データを退避してから空で起動
+      try{ localStorage.setItem(STORE_KEY + '_corrupt_backup', raw); }catch(_){}
+      entries = [];
+    }
   }catch(e){
     entries = [];
   }
   autoRepairCorruptedEntries();
+  const needSync = [];
+  const hasGas = !!getGasUrl();
   entries.forEach(e => {
     if(!e.updatedAt){
       e.updatedAt = e.timestamp || new Date().toISOString();
     }
     // Migration: If record has no syncedAt and gasUrl exists, queue for sync so it won't be lost
-    if(!e.syncedAt && getGasUrl()){
-      markEntryPendingSync(e);
+    if(!e.syncedAt && hasGas){
+      needSync.push(e);
     }
   });
+  markEntriesPendingSyncBulk(needSync);
   initCars();
   renderCarSelector();
-  updateTrackFilterOptions();
-  restoreLastSessionDefaults(true);
-  restorePressuresForMode(currentMode);
-  applyFilters();
-  updateSessionBundleNotice();
-  updateCloudStatusUI();
+  // 入力欄の復元などで例外が出ても、履歴の描画(applyFilters)だけは必ず実行する
+  const safe = (fn) => { try{ fn(); }catch(err){ console.error('init step failed:', err); } };
+  safe(updateTrackFilterOptions);
+  safe(() => restoreLastSessionDefaults(true));
+  safe(() => restorePressuresForMode(currentMode));
+  safe(applyFilters);
+  safe(updateSessionBundleNotice);
+  safe(updateCloudStatusUI);
 
   if(navigator.onLine && getGasUrl()){
     flushPendingQueues().catch(() => {});
   }
 }
+
+document.addEventListener('visibilitychange', () => {
+  if(document.visibilityState === 'visible' && navigator.onLine && getGasUrl()){
+    const n = Object.keys(getPendingSyncMap()).length + Object.keys(getPendingDeletesMap()).length;
+    if(n > 0) flushPendingQueues().catch(() => {});
+  }
+});
 
 window.addEventListener('online', () => {
   if(getGasUrl()){
@@ -2342,8 +2491,7 @@ function exportBackupJSON(){
     showToast('バックアップするデータがありません');
     return;
   }
-  const defaultName = currentCar || 'マイカー';
-  const safeLabel = defaultName.replace(/[/\\?%*:|"<>]/g, '_');
+  const safeLabel = 'all';
 
   const json = JSON.stringify(entries, null, 2);
   const blob = new Blob([json], {type: 'application/json'});
@@ -2362,7 +2510,7 @@ function exportBackupJSON(){
 function csvEscape(val){
   if(val === null || val === undefined) return '';
   const str = String(val);
-  if(/[",\n]/.test(str)){
+  if(/[",\r\n]/.test(str)){
     return '"' + str.replace(/"/g, '""') + '"';
   }
   return str;
@@ -2668,7 +2816,7 @@ function bundleWithEarlierCold(id){
 }
 
 function splitSession(id){
-  const idx = entries.findIndex(e => e.id === id);
+  const idx = entries.findIndex(e => String(e.id) === String(id));
   if(idx === -1) return;
   const entry = entries[idx];
   if(!entry.coldPressures || !entry.hotPressures){
@@ -2682,7 +2830,7 @@ function splitSession(id){
   const nowIso = new Date().toISOString();
   const hotEntry = {
     ...JSON.parse(JSON.stringify(entry)),
-    id: Date.now(),
+    id: generateSessionId(),
     coldPressures: null,
     notes: entry.notes ? (entry.notes + ' (温間)') : null,
     updatedAt: nowIso,
@@ -2830,9 +2978,12 @@ function applyFilters(){
 }
 
 function findColdMatch(hotEntry){
-  const sameTrack = entries.find(e => (e.coldPressures || e.mode==='cold') && e.track === hotEntry.track && e.timestamp < hotEntry.timestamp);
-  if(sameTrack) return sameTrack;
-  return entries.find(e => (e.coldPressures || e.mode==='cold') && e.timestamp < hotEntry.timestamp);
+  // 同じ車両の記録だけを対象にする（他車両の冷間とまとまってしまうのを防ぐ）
+  const car = hotEntry.car || 'マイカー';
+  const hotT = entryTime(hotEntry);
+  const cands = entries.filter(e => e && e !== hotEntry && (e.car || 'マイカー') === car && (e.coldPressures || e.mode==='cold') && !e.hotPressures && entryTime(e) < hotT);
+  const sameTrack = cands.find(e => e.track === hotEntry.track);
+  return sameTrack || cands[0] || null;
 }
 
 
@@ -2863,7 +3014,10 @@ function setCardView(id, viewMode){
 
 function renderLogCardHtml(e){
   const date = new Date(e.timestamp);
-  const dateStr = date.toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'}) + ' ' + date.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  const dateStr = isNaN(date.getTime())
+    ? escapeHtml(e.timestamp || '日時不明')
+    : date.toLocaleDateString('ja-JP', {month:'2-digit', day:'2-digit'}) + ' ' + date.toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'});
+  const idArg = jsArg(e.id);
   const currentCardView = cardViews[e.id] || 'both';
 
   let coldP = e.coldPressures || (e.mode === 'cold' ? e.pressures : null);
@@ -2879,9 +3033,9 @@ function renderLogCardHtml(e){
     badgeHtml = `<span class="session-badge is-both">冷温</span>`;
     tabsHtml = `
       <div class="card-view-tabs">
-        <button type="button" class="card-view-btn ${currentCardView === 'both' ? 'active' : ''}" data-view="both" onclick="setCardView('${e.id}', 'both')">上下並び</button>
-        <button type="button" class="card-view-btn is-cold ${currentCardView === 'cold' ? 'active' : ''}" data-view="cold" onclick="setCardView('${e.id}', 'cold')">冷間</button>
-        <button type="button" class="card-view-btn is-hot ${currentCardView === 'hot' ? 'active' : ''}" data-view="hot" onclick="setCardView('${e.id}', 'hot')">温間</button>
+        <button type="button" class="card-view-btn ${currentCardView === 'both' ? 'active' : ''}" data-view="both" onclick="setCardView('${idArg}', 'both')">上下並び</button>
+        <button type="button" class="card-view-btn is-cold ${currentCardView === 'cold' ? 'active' : ''}" data-view="cold" onclick="setCardView('${idArg}', 'cold')">冷間</button>
+        <button type="button" class="card-view-btn is-hot ${currentCardView === 'hot' ? 'active' : ''}" data-view="hot" onclick="setCardView('${idArg}', 'hot')">温間</button>
       </div>
     `;
   } else if(hasCold && !hasHot){
@@ -2892,31 +3046,31 @@ function renderLogCardHtml(e){
 
   const line1 = `
     <div class="log-info-row">
-      <span class="info-tag"><span class="lbl">場所</span><span class="val-lg">${e.track || '—'}</span></span>
-      <span class="info-tag"><span class="lbl">気温</span><span class="val-lg mono">${e.ambientTemp !== null && e.ambientTemp !== undefined ? e.ambientTemp + '℃' : '—'}</span></span>
-      <span class="info-tag"><span class="lbl">路面</span><span class="val-lg mono">${e.trackTemp !== null && e.trackTemp !== undefined ? e.trackTemp + '℃' : '—'}</span></span>
+      <span class="info-tag"><span class="lbl">場所</span><span class="val-lg">${escapeHtml(e.track || '—')}</span></span>
+      <span class="info-tag"><span class="lbl">気温</span><span class="val-lg mono">${e.ambientTemp !== null && e.ambientTemp !== undefined ? escapeHtml(e.ambientTemp) + '℃' : '—'}</span></span>
+      <span class="info-tag"><span class="lbl">路面</span><span class="val-lg mono">${e.trackTemp !== null && e.trackTemp !== undefined ? escapeHtml(e.trackTemp) + '℃' : '—'}</span></span>
     </div>
   `;
 
   const line2 = `
     <div class="log-info-row">
-      <span class="info-tag"><span class="lbl">路面状態</span><span class="val-lg">${CONDITION_LABELS[e.condition] || e.condition || '—'}</span></span>
-      <span class="info-tag"><span class="lbl">タイム</span><span class="val-lg mono highlight">${e.lapTime ? e.lapTime : '—'}</span></span>
+      <span class="info-tag"><span class="lbl">路面状態</span><span class="val-lg">${escapeHtml(CONDITION_LABELS[e.condition] || e.condition || '—')}</span></span>
+      <span class="info-tag"><span class="lbl">タイム</span><span class="val-lg mono highlight">${e.lapTime ? escapeHtml(e.lapTime) : '—'}</span></span>
     </div>
   `;
 
   const line3 = `
     <div class="log-info-row">
-      <span class="info-tag"><span class="lbl">銘柄前</span><span class="val-lg">${e.tireBrandFront || '—'}</span></span>
-      <span class="info-tag"><span class="lbl">後</span><span class="val-lg">${e.tireBrandRear || '—'}</span></span>
-      <span class="info-tag"><span class="lbl">体感</span><span class="val-lg mono">${e.feel ? e.feel : '—'}</span></span>
+      <span class="info-tag"><span class="lbl">銘柄前</span><span class="val-lg">${escapeHtml(e.tireBrandFront || '—')}</span></span>
+      <span class="info-tag"><span class="lbl">後</span><span class="val-lg">${escapeHtml(e.tireBrandRear || '—')}</span></span>
+      <span class="info-tag"><span class="lbl">体感</span><span class="val-lg mono">${e.feel ? escapeHtml(e.feel) : '—'}</span></span>
     </div>
   `;
 
   const line4 = `
     <div class="log-info-row">
-      <span class="info-tag"><span class="lbl">サイズ 前</span><span class="val-lg mono">${e.sizeFront || '—'}</span></span>
-      <span class="info-tag"><span class="lbl">後</span><span class="val-lg mono">${e.sizeRear || '—'}</span></span>
+      <span class="info-tag"><span class="lbl">サイズ 前</span><span class="val-lg mono">${escapeHtml(e.sizeFront || '—')}</span></span>
+      <span class="info-tag"><span class="lbl">後</span><span class="val-lg mono">${escapeHtml(e.sizeRear || '—')}</span></span>
     </div>
   `;
 
@@ -2924,7 +3078,7 @@ function renderLogCardHtml(e){
   if(hasCold){
     const cornersCold = ['FL','FR','RL','RR'].map(c=>{
       const v = coldP[c];
-      return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div></div>`;
+      return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? escapeHtml(v) : '—'}</div></div>`;
     }).join('');
     coldBlockHtml = `
       <div class="log-pressure-row is-cold" style="${(hasHot && currentCardView === 'hot') ? 'display:none;' : ''}">
@@ -2940,11 +3094,13 @@ function renderLogCardHtml(e){
       const v = hotP[c];
       let deltaHtml = '';
       if(v !== null && v !== undefined && hasCold && coldP[c] !== null && coldP[c] !== undefined){
-        const deltaNum = v - coldP[c];
-        const sign = deltaNum > 0 ? '+' : '';
-        deltaHtml = `<div class="delta">${sign}${deltaNum.toFixed(1)}</div>`;
+        const deltaNum = Number(v) - Number(coldP[c]);
+        if(!isNaN(deltaNum)){
+          const sign = deltaNum > 0 ? '+' : '';
+          deltaHtml = `<div class="delta">${sign}${deltaNum.toFixed(1)}</div>`;
+        }
       }
-      return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? v : '—'}</div>${deltaHtml}</div>`;
+      return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? escapeHtml(v) : '—'}</div>${deltaHtml}</div>`;
     }).join('');
     hotBlockHtml = `
       <div class="log-pressure-row is-hot" style="${(hasCold && currentCardView === 'cold') ? 'display:none;' : ''}">
@@ -2960,7 +3116,7 @@ function renderLogCardHtml(e){
   }
 
   return `
-    <div class="log-entry" id="card-${e.id}">
+    <div class="log-entry" id="card-${escapeHtml(e.id)}">
       <div class="log-head">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="log-date">${dateStr}</span>
@@ -2980,16 +3136,29 @@ function renderLogCardHtml(e){
         ${pressuresHtml}
       </div>
 
-      ${e.notes ? `<div class="log-note">${e.notes}</div>` : ''}
+      ${e.notes ? `<div class="log-note">${escapeHtml(e.notes)}</div>` : ''}
 
       <div class="log-actions" style="display:flex;gap:8px;justify-content:flex-end;align-items:center;flex-wrap:wrap;margin-top:10px;">
-        ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${e.id}')">別カードに分割</button>` : ''}
-        ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(223,172,88,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${e.id}')">冷間とまとめる</button>` : ''}
-        <button class="edit-btn" onclick="openEditModal('${e.id}')">編集 EDIT</button>
-        <button class="del-btn" onclick="confirmDelete('${e.id}')">削除 DELETE</button>
+        ${(hasCold && hasHot) ? `<button type="button" class="split-btn" style="background:transparent;border:1px solid #475569;color:#cbd5e1;padding:5px 9px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;" onclick="splitSession('${idArg}')">別カードに分割</button>` : ''}
+        ${(!hasCold && hasHot && findColdMatch(e)) ? `<button type="button" class="bundle-btn" style="background:rgba(223,172,88,0.1);border:1px solid var(--amber);color:var(--amber);padding:5px 9px;border-radius:4px;font-size:11px;font-weight:700;cursor:pointer;" onclick="bundleWithEarlierCold('${idArg}')">冷間とまとめる</button>` : ''}
+        <button class="edit-btn" onclick="openEditModal('${idArg}')">編集 EDIT</button>
+        <button class="del-btn" onclick="confirmDelete('${idArg}')">削除 DELETE</button>
       </div>
     </div>
   `;
+}
+
+// 1件の描画エラーで履歴全体が消えないよう、カード単位で例外を吸収する
+function safeCardHtml(e){
+  try{
+    return renderLogCardHtml(e);
+  }catch(err){
+    console.error('card render failed:', err, e);
+    const id = e && e.id !== undefined ? e.id : '';
+    return `<div class="log-entry"><div class="log-head"><span class="log-date">${escapeHtml((e && e.timestamp) || '日時不明')}</span></div>
+      <div class="log-empty-hint">この記録は表示できませんでした（データは端末内に保持されています）</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;"><button class="del-btn" onclick="confirmDelete('${jsArg(id)}')">削除 DELETE</button></div></div>`;
+  }
 }
 
 function renderLog(list_){
@@ -2999,7 +3168,22 @@ function renderLog(list_){
   const list = document.getElementById('logList');
 
   if(carEntries.length === 0){
-    list.innerHTML = '<div class="empty">まだ記録がありません<br>上のフォームから最初のログを記録してください</div>';
+    // 他の車両に記録がある場合は「履歴が消えた」と誤解されないよう、切替ボタンを出す
+    const cur = currentCar || 'マイカー';
+    const counts = new Map();
+    entries.forEach(e => {
+      if(!e) return;
+      const c = e.car || 'マイカー';
+      if(c !== cur) counts.set(c, (counts.get(c) || 0) + 1);
+    });
+    if(counts.size > 0){
+      const btns = Array.from(counts.entries()).map(([c, n]) =>
+        `<button type="button" class="topbar-csv-btn" style="margin:4px;" onclick="switchToCar('${jsArg(c)}')">🚗 ${escapeHtml(c)}（${n}件）</button>`
+      ).join('');
+      list.innerHTML = `<div class="empty">「${escapeHtml(cur)}」の記録はまだありません<br>他の車両に記録があります。タップで切替：<br><div style="margin-top:12px;">${btns}</div></div>`;
+    } else {
+      list.innerHTML = '<div class="empty">まだ記録がありません<br>上のフォームから最初のログを記録してください</div>';
+    }
     currentRenderData = [];
     currentRenderedCount = 0;
     updateLoadMoreTrigger();
@@ -3018,7 +3202,7 @@ function renderLog(list_){
   currentRenderData = data;
   currentRenderedCount = Math.min(data.length, LOG_PAGE_SIZE);
 
-  list.innerHTML = data.slice(0, currentRenderedCount).map(renderLogCardHtml).join('');
+  list.innerHTML = data.slice(0, currentRenderedCount).map(safeCardHtml).join('');
   updateLoadMoreTrigger();
   recalculateHistoryTop();
 }
@@ -3030,7 +3214,7 @@ function appendNextLogChunk(){
   currentRenderedCount = nextCount;
 
   const frag = document.createElement('div');
-  frag.innerHTML = chunk.map(renderLogCardHtml).join('');
+  frag.innerHTML = chunk.map(safeCardHtml).join('');
   const list = document.getElementById('logList');
   while(frag.firstChild){
     list.appendChild(frag.firstChild);
@@ -3324,6 +3508,8 @@ function importBackupContent(rawText, sourceName){
       throw new Error('有効なデータが見つかりませんでした。JSONまたはCSVファイルをお確かめください。');
     }
 
+    imported = imported.filter(e => e && typeof e === 'object');
+    if(imported.length === 0) throw new Error('有効なデータが見つかりませんでした。');
     const importedCars = [...new Set(imported.map(e => e.car || 'マイカー'))];
     showImportConfirmModal(imported, importedCars, sourceName || 'データ');
   } catch(err) {
@@ -3358,7 +3544,7 @@ function showImportConfirmModal(imported, importedCars, filename){
     </div>
     <div style="font-family:'Inter',sans-serif;font-size:13px;color:#cbd5e1;line-height:1.6;margin-bottom:14px;">
       データが見つかりました（<strong>${imported.length}件</strong>）<br>
-      データ内の登録名: <span style="color:var(--amber);font-weight:700;">「${importedCars.join(', ')}」</span>
+      データ内の登録名: <span style="color:var(--amber);font-weight:700;">「${escapeHtml(importedCars.join(', '))}」</span>
     </div>
 
     <!-- 1. 普通の引き継ぎの説明 -->
@@ -3385,7 +3571,7 @@ function showImportConfirmModal(imported, importedCars, filename){
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:var(--amber);display:block;margin-bottom:4px;">
         新しい登録名（打ち替え用）
       </label>
-      <input type="text" id="importNewCarName" value="${defaultNewCarName}" style="width:100%;background:#262c36;border:1px solid var(--amber);border-radius:6px;padding:9px 10px;color:#ffffff;font-size:14px;font-weight:700;box-sizing:border-box;outline:none;">
+      <input type="text" id="importNewCarName" value="${escapeHtml(defaultNewCarName)}" style="width:100%;background:#262c36;border:1px solid var(--amber);border-radius:6px;padding:9px 10px;color:#ffffff;font-size:14px;font-weight:700;box-sizing:border-box;outline:none;">
     </div>
 
     <!-- 5. 変更して取り込むボタン -->
@@ -3423,6 +3609,23 @@ function showImportConfirmModal(imported, importedCars, filename){
   };
 }
 
+// 取り込みデータの正規化。IDが無い行（古いバックアップ/手編集CSV）は、黙って捨てずにIDを付与して取り込む。
+function sanitizeImported(list, isFromCloud){
+  const out = [];
+  (Array.isArray(list) ? list : []).forEach((e, i) => {
+    if(!e || typeof e !== 'object') return;
+    if(e.id === undefined || e.id === null || e.id === ''){
+      if(isFromCloud) return;
+      e.id = generateSessionId() + '_' + i;
+    }
+    ['coldPressures', 'hotPressures', 'pressures'].forEach(k => {
+      if(e[k] !== undefined && e[k] !== null && typeof e[k] !== 'object') e[k] = null;
+    });
+    out.push(e);
+  });
+  return out;
+}
+
 async function executeImport(imported, newCarName, isFromCloud = false){
   const pendingSync = getPendingSyncMap();
   const pendingDeletes = getPendingDeletesMap();
@@ -3436,14 +3639,18 @@ async function executeImport(imported, newCarName, isFromCloud = false){
   let updatedCount = 0;
   const incomingIds = new Set();
 
+  const toMark = [];
+  imported = sanitizeImported(imported, isFromCloud);
   imported.forEach((e) => {
     if(!e || !e.id) return;
     const key = String(e.id);
     incomingIds.add(key);
 
-    // 1. Skip if this ID was deleted on this device (prevents resurrection)
+    // 1. クラウド取り込み時のみ「この端末で削除済みの記録の復活」を防ぐ。
+    //    バックアップ復元（ユーザーの明示操作）では削除済みでも復元する。
     if(pendingDeletes[key]){
-      return;
+      if(isFromCloud) return;
+      unmarkIdPendingDelete(key);
     }
 
     if(newCarName){
@@ -3468,7 +3675,7 @@ async function executeImport(imported, newCarName, isFromCloud = false){
           e.syncedAt = new Date().toISOString();
         } else {
           e.syncedAt = null;
-          markEntryPendingSync(e);
+          toMark.push(e);
         }
         entries[targetIdx] = e;
         updatedCount++;
@@ -3480,7 +3687,7 @@ async function executeImport(imported, newCarName, isFromCloud = false){
       }
     } else {
       if(newCarName && existingMap.has(key)){
-        e.id = Date.now() + Math.floor(Math.random() * 1000);
+        e.id = generateSessionId();
       }
       if(!e.updatedAt){
         e.updatedAt = e.timestamp || new Date().toISOString();
@@ -3489,7 +3696,7 @@ async function executeImport(imported, newCarName, isFromCloud = false){
         e.syncedAt = new Date().toISOString();
       } else {
         e.syncedAt = null;
-        markEntryPendingSync(e);
+        toMark.push(e);
       }
       entries.push(e);
       existingMap.set(String(e.id), entries.length - 1);
@@ -3517,7 +3724,7 @@ async function executeImport(imported, newCarName, isFromCloud = false){
       } else if(!wasEverSynced){
         // Local-only record not yet uploaded to cloud: NEVER delete! Preserve and queue!
         toKeep.push(e);
-        markEntryPendingSync(e);
+        toMark.push(e);
       } else {
         // Was confirmed on cloud previously, but now absent from cloud -> remote deletion accepted.
       }
@@ -3525,7 +3732,7 @@ async function executeImport(imported, newCarName, isFromCloud = false){
     entries = toKeep;
   }
 
-  entries.sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp));
+  entries.sort((a,b) => entryTime(b) - entryTime(a));
 
   if(newCarName){
     if(!carList.includes(newCarName)){
@@ -3538,8 +3745,18 @@ async function executeImport(imported, newCarName, isFromCloud = false){
         carList.push(e.car);
       }
     });
+    // 取り込み後も現在の車両に記録が1件も無く、他の車両には記録がある場合は、
+    // 最新記録のある車両へ自動切替（新端末での初回同期で「履歴が空」に見える不具合の対策）
+    if(getCarEntries().length === 0 && entries.length > 0){
+      const names = carNamesFromEntries();
+      if(names.length > 0){
+        currentCar = names[0];
+        if(!carList.includes(currentCar)) carList.push(currentCar);
+      }
+    }
   }
 
+  markEntriesPendingSyncBulk(toMark);
   persistCars();
   await persistEntries();
   renderCarSelector();
@@ -3590,7 +3807,7 @@ async function syncDeleteToCloud(id){
   const gasUrl = getGasUrl();
   if(!gasUrl || !id) return;
   try {
-    const res = await fetch(gasUrl, {
+    const res = await gasFetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'delete', id: String(id) })
@@ -3610,7 +3827,7 @@ async function syncBulkDeleteToCloud(ids){
   const gasUrl = getGasUrl();
   if(!gasUrl) return;
   try {
-    const res = await fetch(gasUrl, {
+    const res = await gasFetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'bulk_delete', ids: ids.map(String) })
@@ -3632,7 +3849,7 @@ async function syncEntryToCloud(entry){
 
   const sentUpdatedAt = entry.updatedAt;
   try {
-    const res = await fetch(gasUrl, {
+    const res = await gasFetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'save', entry: entry })
@@ -3666,7 +3883,7 @@ async function uploadAllToCloud(){
     const delMap = getPendingDeletesMap();
     const delIds = Object.keys(delMap);
     if(delIds.length > 0){
-      const delRes = await fetch(gasUrl, {
+      const delRes = await gasFetch(gasUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify({ action: 'bulk_delete', ids: delIds })
@@ -3678,7 +3895,7 @@ async function uploadAllToCloud(){
     }
 
     // 2. Upload all current entries
-    const res = await fetch(gasUrl, {
+    const res = await gasFetch(gasUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ action: 'bulk_upload', entries: entries })
@@ -3716,7 +3933,7 @@ async function quickCloudSync(isSilent){
   if(!gasUrl){
     if(!isSilent){
       showToast('スプレッドシート連携URLが未設定です。「共有使用」から設定してください');
-      openMigration();
+      openGuideModal('cloud');
     }
     return;
   }
@@ -3733,7 +3950,7 @@ async function quickCloudSync(isSilent){
     await flushPendingQueues();
 
     // 2. Pull all entries from cloud
-    const res = await fetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
+    const res = await gasFetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
     const json = await res.json();
     if(json && json.status === 'ok' && Array.isArray(json.entries)){
       if(json.entries.length === 0){
@@ -3763,7 +3980,7 @@ async function restoreFromCloud(){
   }
   showToast('スプレッドシートから読み込み中...');
   try {
-    const res = await fetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
+    const res = await gasFetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
     const json = await res.json();
     if(json && json.status === 'ok' && Array.isArray(json.entries)){
       if(json.entries.length === 0){
@@ -3787,6 +4004,14 @@ function saveGasUrlFromInput(){
   const input = document.getElementById('gasUrlInput');
   if(!input) return;
   const url = input.value.trim();
+  if(url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){
+    showToast('⚠️ URLが正しくありません（https://script.google.com/... で始まるウェブアプリURL）');
+    return;
+  }
+  if(url && !/\/exec(\?.*)?$/.test(url)){
+    showToast('⚠️ URLの末尾が /exec ではありません。「デプロイ」で発行されたウェブアプリURLを貼ってください');
+    return;
+  }
   setGasUrl(url);
   updateCloudStatusUI();
   showToast(url ? '連携URLを保存しました' : '連携を解除しました');
@@ -3838,11 +4063,122 @@ function openGuideModal(initialTab = 'usage'){
   const box = document.createElement('div');
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
-  const gasCodeEscaped = `function doPost(e) {
+  const gasCodeEscaped = `/**
+ * TPSync v1.87 - Google Apps Script (GAS) バックエンド
+ * 
+ * 【特徴】
+ * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
+ * 2. 初回のみテキスト列（A, G, K:L, V:X）に書式設定（@）を適用。圧力・気温列は数値型を維持し、スプレッドシート上での AVERAGE 計算やグラフ作成に対応
+ * 3. bulk_upload の完全インメモリ一括処理（変更が40行以下の場合は変更行のみ書き込み、未変更行の書式崩れを完全防止）
+ * 4. parseTime_ による安全なミリ秒時刻比較（NaN比較による意図しないレコード上書きを完全防止）
+ * 5. doGet で getDisplayValues() を使用し、画面表示通りの文字列を正確に返却（1899年LMTタイムゾーンずれ問題を回避）
+ * 6. 常に「1枚目のシート」を同期対象に固定（集計用シートやゴミ箱シートがあっても安全）
+ * 7. bulk_upload 内の同一ID重複排除
+ * 8. 手入力でIDが空の行に対しても、内容に基づく安定ID（rowKey_）を割り当て、編集・削除・重複防止に完全追従
+ * 9. 「=,+,-,@」で始まる文字列セルに ' を付加し、数式化・勝手な数値変換を防止
+ * 10. クライアント通信（30秒タイムアウト）とGASロック待機（15秒）の協調設計
+ * 11. 【安心機能】削除データの「ゴミ箱」シート自動退避（90日間保持後に自動完全削除・悪意の全消し防止）
+ */
+
+/** ゴミ箱の自動保持日数（90日経過したゴミ箱データは自動で完全削除されます） */
+var TRASH_RETENTION_DAYS = 90;
+
+/** 同期対象シート = 1枚目のシート（集計・グラフ・ゴミ箱は別シートで安全に分離） */
+function getDataSheet_() {
+  return SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+}
+
+/** 削除一時保存（ゴミ箱）シートの取得・初期化 */
+function getTrashSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var trash = ss.getSheetByName('ゴミ箱');
+  if (!trash) {
+    trash = ss.insertSheet('ゴミ箱');
+    var headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID','端末ID','更新日時','削除日時'];
+    trash.appendRow(headers);
+    trash.getRange("A:A").setNumberFormat("@");
+    trash.getRange("G:G").setNumberFormat("@");
+    trash.getRange("K:L").setNumberFormat("@");
+    trash.getRange("V:Y").setNumberFormat("@");
+  }
+  return trash;
+}
+
+/** 指定日数を経過した古いゴミ箱行の自動クリーンアップ */
+function purgeOldTrash_(days) {
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var trash = ss.getSheetByName('ゴミ箱');
+    if (!trash) return;
+    var lastRow = trash.getLastRow();
+    if (lastRow <= 1) return;
+    var limitMs = (days || 90) * 24 * 60 * 60 * 1000;
+    var now = Date.now();
+    var values = trash.getRange(2, 25, lastRow - 1, 1).getValues(); // 25列目 = 削除日時
+    for (var i = values.length - 1; i >= 0; i--) {
+      var dVal = values[i][0];
+      if (dVal) {
+        var t = new Date(dVal).getTime();
+        if (!isNaN(t) && (now - t) > limitMs) {
+          trash.deleteRow(i + 2);
+        }
+      }
+    }
+  } catch (err) {
+    // クリーンアップエラーがメイン処理に影響しないよう保護
+  }
+}
+
+/** 手動またはタイマー実行用クリーンアップ関数 */
+function cleanupTrash() {
+  purgeOldTrash_(TRASH_RETENTION_DAYS);
+}
+
+/** 手入力でIDが空の行の安定ID（doGet と同一式）。表示値の行から計算 */
+function rowKey_(row) {
+  function c(v) { return String(v || '').trim().replace(/^'/, ''); }
+  var raw = c(row[21]);
+  if (raw) return raw;
+  return 'manual_' + c(row[0]).replace(/[^0-9]/g, '') + '_' + c(row[1]) + '_' + c(row[6]) + '_' + (c(row[12]) || c(row[16])) + '_' + (c(row[13]) || c(row[17]));
+}
+
+/** 文字列セル: 「=,+,-,@」始まりや数値に見える文字列が数式/数値に化けないよう ' を付けて文字列として保存 */
+function txt_(v) {
+  if (v === null || v === undefined) return '';
+  var s = String(v);
+  if (s === '') return '';
+  if (s.charAt(0) === "'") return s; // 既に'がある場合は重ねて付加しない
+  if (/^[=+\\-@]/.test(s) || (s.trim() !== '' && !isNaN(Number(s)))) return "'" + s;
+  return s;
+}
+
+/** 数値セル: 数値にできない値は空欄（NaN を書き込まない） */
+function num_(v) {
+  if (v === null || v === undefined || v === '') return '';
+  var n = Number(v);
+  return isFinite(n) ? n : '';
+}
+
+/** getValues() で読んだ行を別シートへ書く前に、文字列セルを再エスケープ（数式化防止。テキスト書式列 A,G,K,L,V,W,X,Y は除外） */
+function escapeRowForWrite_(row) {
+  var TEXT_COLS = {0:1, 6:1, 10:1, 11:1, 21:1, 22:1, 23:1, 24:1};
+  return row.map(function(v, c) {
+    return (!TEXT_COLS[c] && typeof v === 'string') ? txt_(v) : v;
+  });
+}
+
+/** 安全なミリ秒時刻パース（パース失敗・NaN時は fallback または 0 を返却） */
+function parseTime_(v, fallback) {
+  if (!v) return (fallback !== undefined ? fallback : 0);
+  var t = new Date(v).getTime();
+  return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
+}
+
+function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
-    lock.waitLock(30000); // 100人同時書き込みでも安全に順次処理（競合防止）
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    lock.waitLock(15000); // 最大15秒待機（クライアントタイムアウト30秒より短く設定し競合を解消）
+    var sheet = getDataSheet_();
     var headers = ['日時','登録名','場所','路面状況','気温','路面温度','タイム','体感','銘柄_前','銘柄_後','サイズ_前','サイズ_後','冷間_FL','冷間_FR','冷間_RL','冷間_RR','温間_FL','温間_FR','温間_RL','温間_RR','メモ','ID','端末ID','更新日時'];
     
     // 初回シート初期化時のみ書式設定（テキスト列のみ@を設定し、圧力・気温列は数値型を保持）
@@ -3855,37 +4191,46 @@ function openGuideModal(initialTab = 'usage'){
     }
 
     function buildRow(entry) {
-      var cp = entry.coldPressures || {};
-      var hp = entry.hotPressures || {};
+      var cp = entry.coldPressures || (entry.mode === "cold" ? entry.pressures : null) || {};
+      var hp = entry.hotPressures || (entry.mode === "hot" ? entry.pressures : null) || {};
+      var safeUpdated = entry.updatedAt;
+      if (!safeUpdated || isNaN(new Date(safeUpdated).getTime())) {
+        safeUpdated = entry.timestamp;
+        if (!safeUpdated || isNaN(new Date(safeUpdated).getTime())) {
+          safeUpdated = new Date().toISOString();
+        }
+      }
       return [
         entry.timestamp || '',
-        entry.car || 'マイカー',
-        entry.track || '',
-        entry.condition || '',
-        (entry.ambientTemp !== null && entry.ambientTemp !== undefined && entry.ambientTemp !== '') ? Number(entry.ambientTemp) : '',
-        (entry.trackTemp !== null && entry.trackTemp !== undefined && entry.trackTemp !== '') ? Number(entry.trackTemp) : '',
+        txt_(entry.car || 'マイカー'),
+        txt_(entry.track || ''),
+        txt_(entry.condition || ''),
+        num_(entry.ambientTemp),
+        num_(entry.trackTemp),
         entry.lapTime || '',
-        entry.feel || '',
-        entry.tireBrandFront || '',
-        entry.tireBrandRear || '',
+        txt_(entry.feel || ''),
+        txt_(entry.tireBrandFront || ''),
+        txt_(entry.tireBrandRear || ''),
         entry.sizeFront || '',
         entry.sizeRear || '',
-        (cp.FL !== undefined && cp.FL !== null && cp.FL !== '') ? Number(cp.FL) : '',
-        (cp.FR !== undefined && cp.FR !== null && cp.FR !== '') ? Number(cp.FR) : '',
-        (cp.RL !== undefined && cp.RL !== null && cp.RL !== '') ? Number(cp.RL) : '',
-        (cp.RR !== undefined && cp.RR !== null && cp.RR !== '') ? Number(cp.RR) : '',
-        (hp.FL !== undefined && hp.FL !== null && hp.FL !== '') ? Number(hp.FL) : '',
-        (hp.FR !== undefined && hp.FR !== null && hp.FR !== '') ? Number(hp.FR) : '',
-        (hp.RL !== undefined && hp.RL !== null && hp.RL !== '') ? Number(hp.RL) : '',
-        (hp.RR !== undefined && hp.RR !== null && hp.RR !== '') ? Number(hp.RR) : '',
-        entry.notes || '',
+        num_(cp.FL),
+        num_(cp.FR),
+        num_(cp.RL),
+        num_(cp.RR),
+        num_(hp.FL),
+        num_(hp.FR),
+        num_(hp.RL),
+        num_(hp.RR),
+        txt_(entry.notes || ''),
         String(entry.id || ''),
         String(entry.deviceId || ''),
-        entry.updatedAt || entry.timestamp || new Date().toISOString()
+        safeUpdated
       ];
     }
 
     var data = JSON.parse(e.postData.contents);
+
+    // 1. 個別セッション保存・更新
     if (data.action === 'save' && data.entry) {
       var entry = data.entry;
       var newRow = buildRow(entry);
@@ -3896,12 +4241,12 @@ function openGuideModal(initialTab = 'usage'){
       if (lastRow > 1 && entry.id) {
         var existingData = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
         var targetId = String(entry.id).trim().replace(/^'/, '');
-        var newUpdateTime = new Date(entry.updatedAt || entry.timestamp || 0).getTime();
+        var newUpdateTime = parseTime_(entry.updatedAt || entry.timestamp, 0);
 
         for (var i = 0; i < existingData.length; i++) {
-          if (String(existingData[i][21]).trim().replace(/^'/, '') === targetId) {
-            var existingUpdateTime = new Date(existingData[i][23] || existingData[i][0] || 0).getTime();
-            if (newUpdateTime < existingUpdateTime) {
+          if (rowKey_(existingData[i]) === targetId) {
+            var existingUpdateTime = parseTime_(existingData[i][23] || existingData[i][0], 0);
+            if (existingUpdateTime > 0 && (newUpdateTime === 0 || newUpdateTime < existingUpdateTime)) {
               // クラウド側の方が新しい編集（競合回避：古い未送信で上書きしない）
               skipped = true;
               updated = false;
@@ -3919,33 +4264,50 @@ function openGuideModal(initialTab = 'usage'){
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok', updated: updated, skipped: skipped })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 2. 一括アップロード（メモリ上で一括照合＆一括書き込み）
     if (data.action === 'bulk_upload' && Array.isArray(data.entries)) {
+      // 送信データ内の同一IDは最新の updatedAt の1件に絞る（二重登録防止）
+      var byId = {};
+      var noId = [];
+      data.entries.forEach(function(en) {
+        if (!en) return;
+        var k = String(en.id || '').trim().replace(/^'/, '');
+        if (!k) { noId.push(en); return; }
+        var cur = byId[k];
+        var enTime = parseTime_(en.updatedAt || en.timestamp, 0);
+        var curTime = cur ? parseTime_(cur.updatedAt || cur.timestamp, 0) : -1;
+        if (!cur || enTime >= curTime) byId[k] = en;
+      });
+      data.entries = Object.keys(byId).map(function(k) { return byId[k]; }).concat(noId);
       var lastRow = sheet.getLastRow();
       var toAppend = [];
       var updatedCount = 0;
       var skippedCount = 0;
 
       if (lastRow > 1) {
-        // メモリ上で一括照合＆更新（1行ごとのAPI呼び出しを廃止し、数百件でも数秒以内で高速完了）
         var allValues = sheet.getRange(2, 1, lastRow - 1, 24).getValues();
+        var allDisplay = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
         var idMap = {};
         for (var i = 0; i < allValues.length; i++) {
-          var idStr = String(allValues[i][21]).trim().replace(/^'/, '');
+          var idStr = rowKey_(allDisplay[i]);
           if (idStr) idMap[idStr] = i;
         }
 
         var hasUpdates = false;
+        var changedRows = {};
         data.entries.forEach(function(entry) {
           var row = buildRow(entry);
           var entryId = String(entry.id || '').trim().replace(/^'/, '');
           if (entryId && idMap[entryId] !== undefined) {
             var rowIdx = idMap[entryId];
-            var existingRow = allValues[rowIdx];
-            var existingUpdateTime = new Date(existingRow[23] || existingRow[0] || 0).getTime();
-            var incomingUpdateTime = new Date(entry.updatedAt || entry.timestamp || 0).getTime();
+            var existingRow = allDisplay[rowIdx];
+            var existingUpdateTime = parseTime_(existingRow[23] || existingRow[0], 0);
+            var incomingUpdateTime = parseTime_(entry.updatedAt || entry.timestamp, 0);
 
-            if (incomingUpdateTime >= existingUpdateTime) {
+            if (incomingUpdateTime >= existingUpdateTime || existingUpdateTime === 0) {
               allValues[rowIdx] = row;
+              allDisplay[rowIdx] = row.map(String);
+              changedRows[rowIdx] = true;
               updatedCount++;
               hasUpdates = true;
             } else {
@@ -3956,7 +4318,22 @@ function openGuideModal(initialTab = 'usage'){
           }
         });
 
-        if (hasUpdates) {
+        var changedIdx = Object.keys(changedRows);
+        if (hasUpdates && changedIdx.length <= 40) {
+          // 変更が少ないときは変更行だけを書き込む（未変更行には一切触れない＝数式化・書式変化の恐れがない）
+          changedIdx.forEach(function(k) {
+            var ri = Number(k);
+            sheet.getRange(ri + 2, 1, 1, 24).setValues([allValues[ri]]);
+          });
+        } else if (hasUpdates) {
+          // 未変更行も一括で書き戻すため、文字列セルが数式に化けないよう再エスケープ（テキスト書式列 A,G,K,L,V,W,X 以外）
+          var TEXT_COLS = {0:1, 6:1, 10:1, 11:1, 21:1, 22:1, 23:1};
+          for (var r = 0; r < allValues.length; r++) {
+            if (changedRows[r]) continue;
+            for (var c = 0; c < 24; c++) {
+              if (!TEXT_COLS[c] && typeof allValues[r][c] === 'string') allValues[r][c] = txt_(allValues[r][c]);
+            }
+          }
           sheet.getRange(2, 1, allValues.length, 24).setValues(allValues);
         }
       } else {
@@ -3978,34 +4355,64 @@ function openGuideModal(initialTab = 'usage'){
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 3. 個別削除（ゴミ箱シートへ自動退避した上でメインシートから削除）
     if (data.action === 'delete' && data.id) {
       var lastRow = sheet.getLastRow();
       if (lastRow > 1) {
-        var idValues = sheet.getRange(2, 22, lastRow - 1, 1).getDisplayValues();
+        var idValues = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues().map(function(r) { return [rowKey_(r)]; });
         var targetId = String(data.id).trim().replace(/^'/, '');
         for (var i = 0; i < idValues.length; i++) {
           if (String(idValues[i][0]).trim().replace(/^'/, '') === targetId) {
+            // ゴミ箱へ退避
+            var rowToTrash = sheet.getRange(i + 2, 1, 1, 24).getValues()[0];
+            rowToTrash.push(new Date().toISOString()); // 25列目: 削除日時
+            getTrashSheet_().appendRow(escapeRowForWrite_(rowToTrash));
+
+            // メインシートから削除
             sheet.deleteRow(i + 2);
             break;
           }
         }
       }
+      purgeOldTrash_(TRASH_RETENTION_DAYS);
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
     }
 
+    // 4. 一括削除（ゴミ箱シートへ一括退避した上でメインシートから削除）
     if (data.action === 'bulk_delete' && Array.isArray(data.ids) && data.ids.length > 0) {
       var lastRow = sheet.getLastRow();
       if (lastRow > 1) {
-        var idValues = sheet.getRange(2, 22, lastRow - 1, 1).getDisplayValues();
+        var idValues = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues().map(function(r) { return [rowKey_(r)]; });
+        var allRowValues = sheet.getRange(2, 1, lastRow - 1, 24).getValues();
         var idSet = {};
         data.ids.forEach(function(id) { idSet[String(id).trim().replace(/^'/, '')] = true; });
-        for (var i = idValues.length - 1; i >= 0; i--) {
+
+        var rowsToTrash = [];
+        var rowsToDelete = [];
+        var nowIso = new Date().toISOString();
+
+        for (var i = 0; i < idValues.length; i++) {
           var rowId = String(idValues[i][0]).trim().replace(/^'/, '');
           if (idSet[rowId]) {
-            sheet.deleteRow(i + 2);
+            var r = allRowValues[i];
+            r.push(nowIso); // 25列目: 削除日時
+            rowsToTrash.push(escapeRowForWrite_(r));
+            rowsToDelete.push(i + 2);
           }
         }
+
+        if (rowsToTrash.length > 0) {
+          var trashSheet = getTrashSheet_();
+          var startTrashRow = trashSheet.getLastRow() + 1;
+          trashSheet.getRange(startTrashRow, 1, rowsToTrash.length, 25).setValues(rowsToTrash);
+        }
+
+        // 逆順で行削除
+        for (var d = rowsToDelete.length - 1; d >= 0; d--) {
+          sheet.deleteRow(rowsToDelete[d]);
+        }
       }
+      purgeOldTrash_(TRASH_RETENTION_DAYS);
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
     }
 
@@ -4013,13 +4420,15 @@ function openGuideModal(initialTab = 'usage'){
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   } finally {
-    lock.releaseLock();
+    try { lock.releaseLock(); } catch(e) {}
   }
 }
 
 function doGet(e) {
+  var lock = LockService.getScriptLock();
   try {
-    var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    lock.waitLock(10000); // 最大10秒待機（書き込み中の行入れ替わり・不完全データ取得を防止）
+    var sheet = getDataSheet_();
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
       return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [] })).setMimeType(ContentService.MimeType.JSON);
@@ -4046,9 +4455,8 @@ function doGet(e) {
       var trk = parseFloat(clean(row[5]));
       var ts = clean(row[0]) || new Date().toISOString();
       var up = clean(row[23]) || ts;
-      // 手入力でIDが空の行には日時・車両・タイム・行番号を組み合わせた安定IDを生成（削除で行番号が変わっても追従）
-      var rawId = clean(row[21]);
-      var rowId = rawId ? rawId : ('manual_' + clean(row[0]).replace(/[^0-9]/g, '') + '_' + clean(row[1]) + '_' + clean(row[6]) + '_' + clean(row[12]));
+      // 手入力でIDが空の行には内容に基づく安定IDを生成（削除で行番号が変わっても追従）
+      var rowId = rowKey_(row);
 
       return {
         id: rowId,
@@ -4074,8 +4482,11 @@ function doGet(e) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
+  } finally {
+    try { lock.releaseLock(); } catch(e) {}
   }
-}`;
+}
+`;
 
 
 
@@ -4203,7 +4614,7 @@ function doGet(e) {
             <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--amber);font-weight:700;">貼り付け用 GAS コード（排他制御ロック＆重複防止対応）</span>
             <button id="copyGasCodeBtn" style="background:#232b36;border:1px solid #3d4a5c;color:#ffffff;font-size:11px;padding:3px 8px;border-radius:4px;cursor:pointer;">コードをコピー</button>
           </div>
-          <textarea id="gasCodeTextarea" readonly style="width:100%;height:80px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${gasCodeEscaped}</textarea>
+          <textarea id="gasCodeTextarea" readonly style="width:100%;height:80px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${escapeHtml(gasCodeEscaped)}</textarea>
         </div>
       </div>
     </div>
@@ -4415,6 +4826,8 @@ function saveEntry(){
         if(notesVal){
           matchingSession.notes = matchingSession.notes ? (matchingSession.notes + ' / ' + notesVal) : notesVal;
         }
+        matchingSession.updatedAt = now.toISOString();
+        matchingSession.syncedAt = null;
         showToast('前回の温間カードに冷間を追加しました');
       }
     } else {
@@ -4499,14 +4912,14 @@ function updateTrackFilterOptions(){
   const filterTrack = document.getElementById('filterTrack');
   const currentTrack = filterTrack ? filterTrack.value : '';
   if(filterTrack){
-    filterTrack.innerHTML = '<option value="">すべて</option>' + trackHistory.map(t=>`<option value="${t}">${t}</option>`).join('');
+    filterTrack.innerHTML = '<option value="">すべて</option>' + trackHistory.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
     if(trackHistory.includes(currentTrack)) filterTrack.value = currentTrack;
   }
 
   const filterBrand = document.getElementById('filterTireBrand');
   const currentBrand = filterBrand ? filterBrand.value : '';
   if(filterBrand){
-    filterBrand.innerHTML = '<option value="">すべて</option>' + tireBrandHistory.map(b=>`<option value="${b}">${b}</option>`).join('');
+    filterBrand.innerHTML = '<option value="">すべて</option>' + tireBrandHistory.map(b=>`<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('');
     if(tireBrandHistory.includes(currentBrand)) filterBrand.value = currentBrand;
   }
 
@@ -4521,7 +4934,7 @@ function renderSizePresets(){
         sel.innerHTML = '<option value="">履歴サイズ（なし）</option>';
       } else {
         sel.innerHTML = '<option value="">履歴サイズ</option>' + 
-          sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+          sizeHistory.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
       }
     }
     const fSel = document.getElementById(`filterPresetSize${prefix}`);
@@ -4531,7 +4944,7 @@ function renderSizePresets(){
         fSel.innerHTML = '<option value="">履歴サイズ（なし）</option>';
       } else {
         fSel.innerHTML = '<option value="">履歴サイズ</option>' + 
-          sizeHistory.map(s => `<option value="${s}">${s}</option>`).join('');
+          sizeHistory.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
       }
     }
   });
@@ -4650,7 +5063,7 @@ function setupTrackAutocomplete(){
       listEl.innerHTML = '';
       return;
     }
-    listEl.innerHTML = matches.slice(0, 10).map(v => `<div class="autocomplete-item">${v}</div>`).join('');
+    listEl.innerHTML = matches.slice(0, 10).map(v => `<div class="autocomplete-item">${escapeHtml(v)}</div>`).join('');
     listEl.classList.add('show');
   }
 
@@ -4698,7 +5111,7 @@ function setupTireBrandAutocomplete(){
       listEl.innerHTML = '';
       return;
     }
-    listEl.innerHTML = matches.slice(0, 10).map(v => `<div class="autocomplete-item">${v}</div>`).join('');
+    listEl.innerHTML = matches.slice(0, 10).map(v => `<div class="autocomplete-item">${escapeHtml(v)}</div>`).join('');
     listEl.classList.add('show');
   }
 
@@ -4891,7 +5304,7 @@ function openEditModal(id){
     <div style="margin-bottom:12px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#cbd5e1;display:block;margin-bottom:4px;">登録車両</label>
       <select id="editCar" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:8px;font-size:14px;">
-        ${carList.map(c => `<option value="${c}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>🚗 ${c}</option>`).join('')}
+        ${carList.map(c => `<option value="${escapeHtml(c)}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>🚗 ${escapeHtml(c)}</option>`).join('')}
       </select>
     </div>
 
@@ -4901,10 +5314,10 @@ function openEditModal(id){
         冷間 COLD 空気圧 (kPa)
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FL</span><input type="number" step="0.1" id="editColdFL" value="${cp.FL !== undefined && cp.FL !== null ? cp.FL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FR</span><input type="number" step="0.1" id="editColdFR" value="${cp.FR !== undefined && cp.FR !== null ? cp.FR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RL</span><input type="number" step="0.1" id="editColdRL" value="${cp.RL !== undefined && cp.RL !== null ? cp.RL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RR</span><input type="number" step="0.1" id="editColdRR" value="${cp.RR !== undefined && cp.RR !== null ? cp.RR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FL</span><input type="number" step="0.1" id="editColdFL" value="${escapeHtml(cp.FL !== undefined && cp.FL !== null ? cp.FL : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FR</span><input type="number" step="0.1" id="editColdFR" value="${escapeHtml(cp.FR !== undefined && cp.FR !== null ? cp.FR : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RL</span><input type="number" step="0.1" id="editColdRL" value="${escapeHtml(cp.RL !== undefined && cp.RL !== null ? cp.RL : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RR</span><input type="number" step="0.1" id="editColdRR" value="${escapeHtml(cp.RR !== undefined && cp.RR !== null ? cp.RR : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
       </div>
     </div>
 
@@ -4914,28 +5327,28 @@ function openEditModal(id){
         温間 HOT 空気圧 (kPa)
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;">
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FL</span><input type="number" step="0.1" id="editHotFL" value="${hp.FL !== undefined && hp.FL !== null ? hp.FL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FR</span><input type="number" step="0.1" id="editHotFR" value="${hp.FR !== undefined && hp.FR !== null ? hp.FR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RL</span><input type="number" step="0.1" id="editHotRL" value="${hp.RL !== undefined && hp.RL !== null ? hp.RL : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
-        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RR</span><input type="number" step="0.1" id="editHotRR" value="${hp.RR !== undefined && hp.RR !== null ? hp.RR : ''}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FL</span><input type="number" step="0.1" id="editHotFL" value="${escapeHtml(hp.FL !== undefined && hp.FL !== null ? hp.FL : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">FR</span><input type="number" step="0.1" id="editHotFR" value="${escapeHtml(hp.FR !== undefined && hp.FR !== null ? hp.FR : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RL</span><input type="number" step="0.1" id="editHotRL" value="${escapeHtml(hp.RL !== undefined && hp.RL !== null ? hp.RL : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
+        <div><span style="font-size:11px;color:var(--amber);font-weight:700;">RR</span><input type="number" step="0.1" id="editHotRR" value="${escapeHtml(hp.RR !== undefined && hp.RR !== null ? hp.RR : '')}" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:6px;font-size:14px;text-align:center;"></div>
       </div>
     </div>
 
     <!-- 場所 -->
     <div style="margin-bottom:12px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">場所</label>
-      <input type="text" id="editTrack" value="${entry.track || ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+      <input type="text" id="editTrack" value="${escapeHtml(entry.track)}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
     </div>
 
     <!-- 銘柄 -->
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
       <div>
         <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">フロント銘柄</label>
-        <input type="text" id="editTireBrandFront" value="${entry.tireBrandFront || ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+        <input type="text" id="editTireBrandFront" value="${escapeHtml(entry.tireBrandFront)}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
       </div>
       <div>
         <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">リア銘柄</label>
-        <input type="text" id="editTireBrandRear" value="${entry.tireBrandRear || ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
+        <input type="text" id="editTireBrandRear" value="${escapeHtml(entry.tireBrandRear)}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-size:14px;">
       </div>
     </div>
 
@@ -4943,11 +5356,11 @@ function openEditModal(id){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
       <div>
         <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">フロントサイズ</label>
-        <input type="text" id="editSizeFront" value="${entry.sizeFront || ''}" placeholder="215/45R17" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+        <input type="text" id="editSizeFront" value="${escapeHtml(entry.sizeFront)}" placeholder="215/45R17" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
       </div>
       <div>
         <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">リアサイズ</label>
-        <input type="text" id="editSizeRear" value="${entry.sizeRear || ''}" placeholder="215/45R17" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+        <input type="text" id="editSizeRear" value="${escapeHtml(entry.sizeRear)}" placeholder="215/45R17" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
       </div>
     </div>
 
@@ -4955,11 +5368,11 @@ function openEditModal(id){
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
       <div>
         <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">気温 (℃)</label>
-        <input type="number" step="0.5" id="editAmbientTemp" value="${entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+        <input type="number" step="0.5" id="editAmbientTemp" value="${escapeHtml(entry.ambientTemp !== null && entry.ambientTemp !== undefined ? entry.ambientTemp : '')}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
       </div>
       <div>
         <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">路面温度 (℃)</label>
-        <input type="number" step="0.5" id="editTrackTemp" value="${entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : ''}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+        <input type="number" step="0.5" id="editTrackTemp" value="${escapeHtml(entry.trackTemp !== null && entry.trackTemp !== undefined ? entry.trackTemp : '')}" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
       </div>
     </div>
 
@@ -4989,24 +5402,24 @@ function openEditModal(id){
 
     <div style="margin-bottom:12px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">ラップタイム</label>
-      <input type="text" id="editLapTime" value="${entry.lapTime || ''}" placeholder="02:05.123" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
+      <input type="text" id="editLapTime" value="${escapeHtml(entry.lapTime)}" placeholder="02:05.123" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'JetBrains Mono',monospace;font-size:14px;">
     </div>
 
     <div style="margin-bottom:16px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#d8dce2;display:block;margin-bottom:4px;">メモ</label>
-      <textarea id="editNotes" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'Inter',sans-serif;font-size:13px;resize:vertical;min-height:50px;">${entry.notes || ''}</textarea>
+      <textarea id="editNotes" style="width:100%;background:#20252b;color:#e9e6df;border:1px solid #2b3038;border-radius:6px;padding:8px;font-family:'Inter',sans-serif;font-size:13px;resize:vertical;min-height:50px;">${escapeHtml(entry.notes)}</textarea>
     </div>
 
     ${(entry.coldPressures && entry.hotPressures) ? `
       <div style="margin-bottom:14px;">
-        <button type="button" onclick="splitSession('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
+        <button type="button" onclick="splitSession('${jsArg(entry.id)}')" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
           冷間と温間を別カードに分割
         </button>
       </div>
     ` : ''}
     ${(!entry.coldPressures && entry.hotPressures && findColdMatch(entry)) ? `
       <div style="margin-bottom:14px;">
-        <button type="button" onclick="bundleWithEarlierCold('${entry.id}')" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
+        <button type="button" onclick="bundleWithEarlierCold('${jsArg(entry.id)}')" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);color:var(--amber);border:1px solid var(--amber);border-radius:8px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;cursor:pointer;">
           直前の冷間カードとまとめる
         </button>
       </div>
@@ -5104,7 +5517,25 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=2.60').catch(() => {});
+    navigator.serviceWorker.register('sw.js?v=1.87').then((reg) => {
+      function notifyUpdate() {
+        showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
+          window.location.reload();
+        });
+      }
+      if (reg.waiting) {
+        notifyUpdate();
+      }
+      reg.addEventListener('updatefound', () => {
+        const newWorker = reg.installing;
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            notifyUpdate();
+          }
+        });
+      });
+    }).catch(() => {});
   });
 }
 </script>
