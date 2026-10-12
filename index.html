@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync v1.89 — PIT WALL LOG</title>
+<title>TPSync v1.90 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -302,7 +302,10 @@
     background:transparent;border:none;border-radius:6px;color:#94a3b8;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;padding:8px 2px;letter-spacing:-0.02em;cursor:pointer;transition:all .15s ease;white-space:nowrap;text-align:center;
   }
   @media (max-width: 360px){
-    .filter-tab-btn{ font-size: 11px; padding: 7px 1px; }
+    .filter-tab-btn{ font-size: 10px; padding: 7px 1px; letter-spacing: -0.04em; }
+  }
+  @media (max-width: 330px){
+    .filter-tab-btn{ font-size: 9.5px; padding: 6px 0px; letter-spacing: -0.05em; }
   }
   .filter-tab-btn.active{
     background:var(--amber);color:#1a1400;box-shadow:0 2px 8px rgba(0,0,0,0.4);
@@ -960,7 +963,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync v1.89</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync v1.90</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1147,11 +1150,11 @@
   <div id="filterPanelBody" style="display:none;">
     <!-- 2タブ切り替え（ユーザー指定: 場所・エア・気温 / タイヤ・タイム・他） -->
     <div class="filter-tab-bar">
-      <button type="button" class="filter-tab-btn active" id="fTabBtn-main" onclick="switchFilterCategory('main')">場所・エア・気温</button>
-      <button type="button" class="filter-tab-btn" id="fTabBtn-detail" onclick="switchFilterCategory('detail')">タイヤ・タイム・その他</button>
+      <button type="button" class="filter-tab-btn active" id="fTabBtn-main" onclick="switchFilterCategory('main')">場所・エア・温度・銘柄</button>
+      <button type="button" class="filter-tab-btn" id="fTabBtn-detail" onclick="switchFilterCategory('detail')">サイズ・タイム・その他</button>
     </div>
 
-    <!-- TAB 1: 場所・エア・気温 -->
+    <!-- TAB 1: 場所・エア・温度・銘柄 -->
     <div id="fTabContent-main">
       <div class="grid2">
         <!-- 1行目: 場所 -->
@@ -1231,13 +1234,8 @@
             <select class="filter-temp-select" id="filterHotPressMax" onchange="applyFilters()"></select>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- TAB 2: タイヤ・タイム・他 -->
-    <div id="fTabContent-detail" style="display:none;">
-      <div class="grid2">
-        <!-- 1行目: タイヤ銘柄 -->
+        <!-- 4行目: タイヤ銘柄 -->
         <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイヤ銘柄</label>
@@ -1248,7 +1246,7 @@
           </select>
         </div>
 
-        <!-- 1行目: 体感 -->
+        <!-- 4行目: 体感 -->
         <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">体感</label>
@@ -1263,8 +1261,13 @@
             <option value="E">E</option>
           </select>
         </div>
+      </div>
+    </div>
 
-        <!-- 2行目: フロントサイズ -->
+    <!-- TAB 2: サイズ・タイム・その他 -->
+    <div id="fTabContent-detail" style="display:none;">
+      <div class="grid2">
+        <!-- 1行目: フロントサイズ -->
         <div class="field wide field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
             <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">フロント タイヤサイズ</label>
@@ -1282,7 +1285,7 @@
           </div>
         </div>
 
-        <!-- 3行目: リアサイズ -->
+        <!-- 2行目: リアサイズ -->
         <div class="field wide field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
             <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">リア タイヤサイズ</label>
@@ -1300,7 +1303,7 @@
           </div>
         </div>
 
-        <!-- 4行目: タイム下限 -->
+        <!-- 3行目: タイム下限 -->
         <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイム 下限</label>
@@ -1315,7 +1318,7 @@
           </div>
         </div>
 
-        <!-- 4行目: タイム上限 -->
+        <!-- 3行目: タイム上限 -->
         <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイム 上限</label>
@@ -1330,7 +1333,7 @@
           </div>
         </div>
 
-        <!-- 5行目: メモ検索 -->
+        <!-- 4行目: メモ検索 -->
         <div class="field wide">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">メモ検索</label>
@@ -1339,7 +1342,7 @@
           <input type="text" id="filterNotes" oninput="applyFiltersDebounced()" placeholder="キーワード">
         </div>
 
-        <!-- 6行目: 表示車両 -->
+        <!-- 5行目: 表示車両 -->
         <div class="field wide field-dark" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;">
           <div>
             <label style="margin-bottom:2px;">表示車両（複数選択で他車と混合表示可能）</label>
@@ -1409,6 +1412,8 @@ const STORE_KEY = 'tire_pressure_entries';
 const PENDING_SYNC_KEY = 'tire_pending_sync';
 const PENDING_DELETES_KEY = 'tire_pending_deletes';
 const GAS_URL_KEY = 'tire_pressure_gas_url';
+// 代表者デプロイ済みのデフォルト連携URL（端末ローカル設定がない場合に自動適用）
+const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyjXa0K-K6lVPRbQxGy80MjhD0sO-fxhrien42Mr48l3BZ8ft3vlL6hyqj3l-sovG-ZNQ/exec';
 // CAR keys defined at top
 
 
@@ -1488,7 +1493,10 @@ async function gasFetch(url, opts, timeoutMs = 30000){
 }
 
 function getGasUrl(){
-  return (localStorage.getItem(GAS_URL_KEY) || '').trim();
+  const saved = localStorage.getItem(GAS_URL_KEY);
+  if(saved === '__DISABLED__') return '';
+  if(saved !== null && saved !== undefined && saved.trim() !== '') return saved.trim();
+  return (typeof DEFAULT_GAS_URL === 'string') ? DEFAULT_GAS_URL.trim() : '';
 }
 function setGasUrl(url){
   localStorage.setItem(GAS_URL_KEY, (url || '').trim());
@@ -1629,6 +1637,36 @@ async function flushPendingQueues(){
     updateCloudStatusUI();
   }
 }
+// 車両ごとのカラー識別丸アイコン（最大限多くの12色を用意）
+const CAR_COLOR_CIRCLES = [
+  '🔴', // 赤
+  '🔵', // 青
+  '🟢', // 緑
+  '🟡', // 黄
+  '🟣', // 紫
+  '🟠', // 橙
+  '🟤', // 茶
+  '⚪', // 白
+  '⚫', // 黒
+  '🩷', // ピンク
+  '🩵', // 水色
+  '🩶'  // グレー
+];
+
+function getCarIcon(carName){
+  if(!carName) return '🔴';
+  const idx = carList.indexOf(carName);
+  if(idx >= 0){
+    return CAR_COLOR_CIRCLES[idx % CAR_COLOR_CIRCLES.length];
+  }
+  let h = 0;
+  for(let i = 0; i < carName.length; i++){
+    h = ((h << 5) - h) + carName.charCodeAt(i);
+    h |= 0;
+  }
+  return CAR_COLOR_CIRCLES[Math.abs(h) % CAR_COLOR_CIRCLES.length];
+}
+
 const CAR_LIST_KEY = 'tire_pressure_cars';
 const CURRENT_CAR_KEY = 'tire_pressure_current_car';
 let carList = [];
@@ -1666,9 +1704,9 @@ function updateCarFilterBtnUI(){
 
   if(panelTxt){
     if(isMulti){
-      panelTxt.textContent = `選択中: ${active.length}台 (${active.join(', ')})`;
+      panelTxt.textContent = `選択中: ${active.length}台 (${active.map(c => getCarIcon(c) + ' ' + c).join(', ')})`;
     } else {
-      panelTxt.textContent = `現在選択中の車両のみ (${active[0]})`;
+      panelTxt.textContent = `現在選択中の車両のみ (${getCarIcon(active[0])} ${active[0]})`;
     }
   }
 }
@@ -1691,7 +1729,7 @@ function openCarFilterModal(){
       <label style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:#222832;border:1px solid ${isChecked ? 'var(--amber)' : '#333e4f'};border-radius:8px;margin-bottom:6px;cursor:pointer;">
         <input type="checkbox" name="displayCarChoice" value="${escapeHtml(c)}"${isChecked ? ' checked' : ''} style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer;">
         <div style="flex:1;font-size:14px;font-weight:700;color:#fff;">
-          🚗 ${escapeHtml(c)} ${isCurrent ? '<span style="font-size:11px;color:var(--amber);font-weight:normal;">(現在の選択)</span>' : ''}
+          ${getCarIcon(c)} ${escapeHtml(c)} ${isCurrent ? '<span style="font-size:11px;color:var(--amber);font-weight:normal;">(現在の選択)</span>' : ''}
         </div>
         <div style="font-size:12px;color:#94a3b8;font-family:\'JetBrains Mono\',monospace;">
           ${count}件
@@ -1842,7 +1880,7 @@ function getCarEntries(){
 function renderCarSelector(){
   const sel = document.getElementById('carSelector');
   if(!sel) return;
-  sel.innerHTML = carList.map(c => `<option value="${escapeHtml(c)}"${c===currentCar?' selected':''}>🚗 ${escapeHtml(c)}</option>`).join('');
+  sel.innerHTML = carList.map(c => `<option value="${escapeHtml(c)}"${c===currentCar?' selected':''}>${getCarIcon(c)} ${escapeHtml(c)}</option>`).join('');
   sel.value = currentCar;
 }
 
@@ -1882,7 +1920,7 @@ function openCarManager(){
     row.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
 
     const name = document.createElement('div');
-    name.textContent = (car === currentCar ? '🚗 ' : '　') + car;
+    name.textContent = getCarIcon(car) + ' ' + car + (car === currentCar ? ' (現在選択中)' : '');
     name.style.cssText = "flex:1;color:#e9e6df;font-family:'Inter',sans-serif;font-size:14px;";
 
     const renameBtn = document.createElement('button');
@@ -3349,9 +3387,9 @@ function applyFilters(){
   }
   updateCarFilterBtnUI();
 
-  // カテゴリタブのアクティブ状態インジケーター（2タブ構成: エア・環境 vs 車両・詳細）
-  const mainActive = !isNaN(coldMin) || !isNaN(coldMax) || !isNaN(hotMin) || !isNaN(hotMax) || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || !!track || !!condition;
-  const detailActive = isMultiCar || !!tireBrand || !!feel || (lapMinRaw && lapMinRaw !== '00:00.000') || (lapMaxRaw && lapMaxRaw !== '00:00.000') || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || notesQuery !== '';
+  // カテゴリタブのアクティブ状態インジケーター（場所・エア・温度・銘柄 vs サイズ・タイム・その他）
+  const mainActive = !isNaN(coldMin) || !isNaN(coldMax) || !isNaN(hotMin) || !isNaN(hotMax) || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || !!track || !!condition || !!tireBrand || !!feel;
+  const detailActive = isMultiCar || (lapMinRaw && lapMinRaw !== '00:00.000') || (lapMaxRaw && lapMaxRaw !== '00:00.000') || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || notesQuery !== '';
 
   const btnMain = document.getElementById('fTabBtn-main');
   const btnDetail = document.getElementById('fTabBtn-detail');
@@ -3499,7 +3537,7 @@ function renderLogCardHtml(e){
       <div class="log-head">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="log-date">${dateStr}</span>
-          ${(getActiveDisplayCars().length > 1) ? `<span style="background:#222832;border:1px solid #384252;color:#ffffff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'Inter',sans-serif;">🚗 ${escapeHtml(e.car || 'マイカー')}</span>` : ''}
+          ${(getActiveDisplayCars().length > 1) ? `<span style="background:#222832;border:1px solid #384252;color:#ffffff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'Inter',sans-serif;">${getCarIcon(e.car || 'マイカー')} ${escapeHtml(e.car || 'マイカー')}</span>` : ''}
           ${badgeHtml}
         </div>
       </div>
@@ -3559,7 +3597,7 @@ function renderLog(list_){
     });
     if(counts.size > 0){
       const btns = Array.from(counts.entries()).map(([c, n]) =>
-        `<button type="button" class="topbar-csv-btn" style="margin:4px;" onclick="switchToCar('${jsArg(c)}')">🚗 ${escapeHtml(c)}（${n}件）</button>`
+        `<button type="button" class="topbar-csv-btn" style="margin:4px;" onclick="switchToCar('${jsArg(c)}')">${getCarIcon(c)} ${escapeHtml(c)}（${n}件）</button>`
       ).join('');
       list.innerHTML = `<div class="empty">「${escapeHtml(cur)}」の記録はまだありません<br>他の車両に記録があります。タップで切替：<br><div style="margin-top:12px;">${btns}</div></div>`;
     } else {
@@ -4385,25 +4423,51 @@ function saveGasUrlFromInput(){
   const input = document.getElementById('gasUrlInput');
   if(!input) return;
   const url = input.value.trim();
-  if(url && !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){
+  if(!url){
+    setGasUrl('__DISABLED__');
+    updateCloudStatusUI();
+    showToast('連携を解除しました');
+    return;
+  }
+  if(!/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){
     showToast('⚠️ URLが正しくありません（https://script.google.com/... で始まるウェブアプリURL）');
     return;
   }
-  if(url && !/\/exec(\?.*)?$/.test(url)){
+  if(!/\/exec(\?.*)?$/.test(url)){
     showToast('⚠️ URLの末尾が /exec ではありません。「デプロイ」で発行されたウェブアプリURLを貼ってください');
     return;
   }
   setGasUrl(url);
   updateCloudStatusUI();
-  showToast(url ? '連携URLを保存しました' : '連携を解除しました');
-  if(url){
-    flushPendingQueues().catch(() => {});
+  showToast('連携URLを保存しました');
+  flushPendingQueues().catch(() => {});
+}
+
+function copyCurrentGasUrl(){
+  const url = getGasUrl();
+  if(!url){
+    showToast('⚠️ 連携URLが未設定です。先にURLを入力して保存してください');
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('📋 連携URLをコピーしました！LINE等で仲間に共有できます');
+    }).catch(() => {
+      prompt('以下のURLをコピーして仲間に渡してください:', url);
+    });
+  } else {
+    prompt('以下のURLをコピーして仲間に渡してください:', url);
   }
 }
+window.copyCurrentGasUrl = copyCurrentGasUrl;
 
 function updateCloudStatusUI(){
   const statusEl = document.getElementById('cloudStatusIndicator');
   const url = getGasUrl();
+  const shareDisp = document.getElementById('shareGasUrlDisplay');
+  if(shareDisp){
+    shareDisp.textContent = url || '（連携URLが設定されるとここに表示されます）';
+  }
   const pendingSync = getPendingSyncMap();
   const pendingDeletes = getPendingDeletesMap();
   const pendingCount = Object.keys(pendingSync).length + Object.keys(pendingDeletes).length;
@@ -4445,7 +4509,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync v1.89 - Google Apps Script (GAS) バックエンド
+ * TPSync v1.90 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -4934,6 +4998,17 @@ function doGet(e) {
             保存
           </button>
         </div>
+        <!-- 仲間に渡す連携URLの1タップコピー枠 -->
+        <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:10px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:12px;font-weight:700;color:var(--amber);">👥 後から参加する仲間に渡す連携URL</span>
+            <button type="button" onclick="copyCurrentGasUrl()" style="background:#2a3340;border:1px solid #4a5568;color:#ffffff;border-radius:5px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;">📋 URLをコピー</button>
+          </div>
+          <div id="shareGasUrlDisplay" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;word-break:break-all;user-select:all;background:#1b2028;padding:6px 8px;border-radius:4px;border:1px solid #28303d;"></div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5;">
+            このURLをLINEやメールで仲間に送るだけで、同じスプレッドシートに全員でリアルタイム共有できます。
+          </div>
+        </div>
         <div style="display:flex;flex-direction:column;gap:8px;">
           <button id="migUploadAllBtn" style="width:100%;padding:10px 0;border-radius:6px;border:1px solid rgba(223,172,88,0.4);background:rgba(223,172,88,0.08);color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;">
             過去データをスプレッドシートへ一括送信（アップロード）
@@ -4981,8 +5056,16 @@ function doGet(e) {
           1. このアプリに戻り、上の入力枠にURLを貼り付けて「<strong>保存</strong>」を押します。<br>
           2. これ以降、走行枠を記録するたびに自動でスプレッドシートへ送信・永久保存されます！<br><br>
 
+          <strong style="color:var(--amber);font-size:13px;">📌 「デプロイを管理」から後から参加する人に渡すURLを出す方法：</strong><br>
+          チームに後から新しいメンバーが加わった際、代表者のGoogleスプレッドシートからいつでもURLを再確認・取得できます：<br>
+          1. Googleスプレッドシートを開き、メニューの「<strong>拡張機能</strong>」→「<strong>Apps Script</strong>」を開きます。<br>
+          2. 画面右上の青い「<strong>デプロイ</strong>」ボタンを押し、<strong>「デプロイを管理」</strong>をクリックします。<br>
+          3. 左側のリストから最新の「<strong>ウェブアプリ</strong>」を選択します。<br>
+          4. 右側に表示される「<strong>ウェブアプリのURL</strong>」の横にある「<strong>コピー</strong>」を押します。<br>
+          5. コピーしたURLをLINE等で新しいメンバーに渡し、相手のTPSyncの「共有使用」欄に貼ってもらえば完了です！<br><br>
+
           <strong style="color:#ffffff;">👥 仲間に共有する方法：</strong><br>
-          代表者はコピーしたURLをLINE等で仲間に送ります。仲間は自分のTPSyncの「共有使用」欄にそのURLを貼って「保存」を押すだけで全員がリアルタイムで繋がります。<br><br>
+          代表者はコピーしたURL（または上の「URLをコピー」ボタンで取得したURL）をLINE等で仲間に送ります。仲間は自分のTPSyncの「共有使用」欄にそのURLを貼って「保存」を押すだけで全員がリアルタイムで繋がります。<br><br>
 
           <strong style="color:#ffffff;">🏎️ 複数人シェア vs 個人愛車の使い分け：</strong><br>
           ・<strong>1台をシェアする場合</strong>：全員で同じ車両名（例: <code>GR86</code>）に設定すると、別々のスマホで測った冷温間が1つのカードに自動合体！<br>
@@ -5685,7 +5768,7 @@ function openEditModal(id){
     <div style="margin-bottom:12px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#cbd5e1;display:block;margin-bottom:4px;">登録車両</label>
       <select id="editCar" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:8px;font-size:14px;">
-        ${carList.map(c => `<option value="${escapeHtml(c)}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>🚗 ${escapeHtml(c)}</option>`).join('')}
+        ${carList.map(c => `<option value="${escapeHtml(c)}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>${getCarIcon(c)} ${escapeHtml(c)}</option>`).join('')}
       </select>
     </div>
 
@@ -5898,7 +5981,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.89').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.90').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
