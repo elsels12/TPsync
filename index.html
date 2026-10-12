@@ -1142,42 +1142,42 @@
   </div>
   <div id="filterSummary" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--paper-dim);margin-bottom:6px;"></div>
   <div id="filterPanelBody" style="display:none;">
-    <!-- 2タブ切り替え（エア・コース / 車両・詳細） -->
+    <!-- 2タブ切り替え（ユーザー指定: 場所・エア・気温 / タイヤ・タイム・他） -->
     <div class="filter-tab-bar">
-      <button type="button" class="filter-tab-btn active" id="fTabBtn-main" onclick="switchFilterCategory('main')">💨 エア・環境</button>
-      <button type="button" class="filter-tab-btn" id="fTabBtn-detail" onclick="switchFilterCategory('detail')">🚗 車両・詳細</button>
+      <button type="button" class="filter-tab-btn active" id="fTabBtn-main" onclick="switchFilterCategory('main')">場所・エア・気温</button>
+      <button type="button" class="filter-tab-btn" id="fTabBtn-detail" onclick="switchFilterCategory('detail')">タイヤ・タイム・他</button>
     </div>
 
-    <!-- TAB 1: エア・環境（冷間・温間・気温・路温・場所・路面） -->
+    <!-- TAB 1: 場所・エア・気温 -->
     <div id="fTabContent-main">
       <div class="grid2">
-        <!-- 冷間エア (下限 〜 上限) -->
-        <div class="field">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <label style="margin-bottom:0;">冷間エア (kPa)</label>
-            <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterColdPress')" title="クリア">クリア</button>
+        <!-- 1行目: 場所 -->
+        <div class="field field-dark">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="margin-bottom:0;">場所</label>
+            <button type="button" class="temp-clear-btn" onclick="clearFilterField('track')" title="クリア">クリア</button>
           </div>
-          <div class="filter-range-row">
-            <select class="filter-temp-select" id="filterColdPressMin" onchange="applyFilters()"></select>
-            <span class="filter-temp-sep">〜</span>
-            <select class="filter-temp-select" id="filterColdPressMax" onchange="applyFilters()"></select>
-          </div>
+          <select id="filterTrack" onchange="applyFilters()">
+            <option value="">すべて</option>
+          </select>
         </div>
 
-        <!-- 温間エア (下限 〜 上限) -->
-        <div class="field">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <label style="margin-bottom:0;">温間エア (kPa)</label>
-            <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterHotPress')" title="クリア">クリア</button>
+        <!-- 1行目: 路面 -->
+        <div class="field field-dark">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="margin-bottom:0;">路面</label>
+            <button type="button" class="temp-clear-btn" onclick="clearFilterField('condition')" title="クリア">クリア</button>
           </div>
-          <div class="filter-range-row">
-            <select class="filter-temp-select" id="filterHotPressMin" onchange="applyFilters()"></select>
-            <span class="filter-temp-sep">〜</span>
-            <select class="filter-temp-select" id="filterHotPressMax" onchange="applyFilters()"></select>
-          </div>
+          <select id="filterCondition" onchange="applyFilters()">
+            <option value="">すべて</option>
+            <option value="Dry">ドライ</option>
+            <option value="HalfWet">ハーフウェット</option>
+            <option value="Wet">ウェット</option>
+            <option value="BabyWet">ベビーウェット</option>
+          </select>
         </div>
 
-        <!-- 気温 (下限 〜 上限) -->
+        <!-- 2行目: 気温 (下限 〜 上限) -->
         <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <label style="margin-bottom:0;">気温 (℃)</label>
@@ -1190,7 +1190,7 @@
           </div>
         </div>
 
-        <!-- 路面温度 (下限 〜 上限) -->
+        <!-- 2行目: 路面温度 (下限 〜 上限) -->
         <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <label style="margin-bottom:0;">路面温度 (℃)</label>
@@ -1203,45 +1203,38 @@
           </div>
         </div>
 
-        <!-- 場所 -->
-        <div class="field field-dark">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <label style="margin-bottom:0;">場所</label>
-            <button type="button" class="temp-clear-btn" onclick="clearFilterField('track')" title="クリア">クリア</button>
+        <!-- 3行目: 冷間エア (下限 〜 上限: 170スタート) -->
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="margin-bottom:0;">冷間エア (kPa)</label>
+            <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterColdPress')" title="クリア">クリア</button>
           </div>
-          <select id="filterTrack" onchange="applyFilters()">
-            <option value="">すべて</option>
-          </select>
+          <div class="filter-range-row">
+            <select class="filter-temp-select" id="filterColdPressMin" onchange="applyFilters()"></select>
+            <span class="filter-temp-sep">〜</span>
+            <select class="filter-temp-select" id="filterColdPressMax" onchange="applyFilters()"></select>
+          </div>
         </div>
 
-        <!-- 路面状態 -->
-        <div class="field field-dark">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <label style="margin-bottom:0;">路面状態</label>
-            <button type="button" class="temp-clear-btn" onclick="clearFilterField('condition')" title="クリア">クリア</button>
+        <!-- 3行目: 温間エア (下限 〜 上限: 190スタート) -->
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <label style="margin-bottom:0;">温間エア (kPa)</label>
+            <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterHotPress')" title="クリア">クリア</button>
           </div>
-          <select id="filterCondition" onchange="applyFilters()">
-            <option value="">すべて</option>
-            <option value="Dry">ドライ</option>
-            <option value="HalfWet">ハーフウェット</option>
-            <option value="Wet">ウェット</option>
-            <option value="BabyWet">ベビーウェット</option>
-          </select>
+          <div class="filter-range-row">
+            <select class="filter-temp-select" id="filterHotPressMin" onchange="applyFilters()"></select>
+            <span class="filter-temp-sep">〜</span>
+            <select class="filter-temp-select" id="filterHotPressMax" onchange="applyFilters()"></select>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- TAB 2: 車両・詳細 -->
+    <!-- TAB 2: タイヤ・タイム・他 -->
     <div id="fTabContent-detail" style="display:none;">
       <div class="grid2">
-        <div class="field wide field-dark" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;">
-          <div>
-            <label style="margin-bottom:2px;">表示車両（複数選択で他車と混合表示可能）</label>
-            <span id="filterPanelCarText" style="font-size:13px;font-weight:700;color:var(--amber);">現在選択中の車両のみ</span>
-          </div>
-          <button type="button" class="topbar-csv-btn" onclick="openCarFilterModal()" style="padding:6px 14px;">変更...</button>
-        </div>
-
+        <!-- 1行目: タイヤ銘柄 -->
         <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイヤ銘柄</label>
@@ -1252,6 +1245,7 @@
           </select>
         </div>
 
+        <!-- 1行目: 体感 -->
         <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">体感</label>
@@ -1267,34 +1261,7 @@
           </select>
         </div>
 
-        <div class="field">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <label style="margin-bottom:0;">タイム 下限</label>
-            <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMin')" title="クリア">クリア</button>
-          </div>
-          <div class="laptime-boxes">
-            <input type="text" id="filterLapMinMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
-            <span class="lap-sep">:</span>
-            <input type="text" id="filterLapMinSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
-            <span class="lap-sep">.</span>
-            <input type="text" id="filterLapMinHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
-          </div>
-        </div>
-
-        <div class="field">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-            <label style="margin-bottom:0;">タイム 上限</label>
-            <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMax')" title="クリア">クリア</button>
-          </div>
-          <div class="laptime-boxes">
-            <input type="text" id="filterLapMaxMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
-            <span class="lap-sep">:</span>
-            <input type="text" id="filterLapMaxSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
-            <span class="lap-sep">.</span>
-            <input type="text" id="filterLapMaxHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
-          </div>
-        </div>
-
+        <!-- 2行目: フロントサイズ -->
         <div class="field wide field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
             <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">フロント タイヤサイズ</label>
@@ -1312,6 +1279,7 @@
           </div>
         </div>
 
+        <!-- 3行目: リアサイズ -->
         <div class="field wide field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
             <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">リア タイヤサイズ</label>
@@ -1329,12 +1297,52 @@
           </div>
         </div>
 
+        <!-- 4行目: タイム下限 -->
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="margin-bottom:0;">タイム 下限</label>
+            <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMin')" title="クリア">クリア</button>
+          </div>
+          <div class="laptime-boxes">
+            <input type="text" id="filterLapMinMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+            <span class="lap-sep">:</span>
+            <input type="text" id="filterLapMinSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+            <span class="lap-sep">.</span>
+            <input type="text" id="filterLapMinHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
+          </div>
+        </div>
+
+        <!-- 4行目: タイム上限 -->
+        <div class="field">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <label style="margin-bottom:0;">タイム 上限</label>
+            <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMax')" title="クリア">クリア</button>
+          </div>
+          <div class="laptime-boxes">
+            <input type="text" id="filterLapMaxMin" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+            <span class="lap-sep">:</span>
+            <input type="text" id="filterLapMaxSec" class="lap-seg" maxlength="2" inputmode="numeric" pattern="[0-9]*" placeholder="00" oninput="applyFilters()">
+            <span class="lap-sep">.</span>
+            <input type="text" id="filterLapMaxHund" class="lap-seg lap-seg-3" maxlength="3" inputmode="numeric" pattern="[0-9]*" placeholder="000" oninput="applyFilters()">
+          </div>
+        </div>
+
+        <!-- 5行目: メモ検索 -->
         <div class="field wide">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">メモ検索</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterField('notes')" title="クリア">クリア</button>
           </div>
           <input type="text" id="filterNotes" oninput="applyFiltersDebounced()" placeholder="キーワード">
+        </div>
+
+        <!-- 6行目: 表示車両 -->
+        <div class="field wide field-dark" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;">
+          <div>
+            <label style="margin-bottom:2px;">表示車両（複数選択で他車と混合表示可能）</label>
+            <span id="filterPanelCarText" style="font-size:13px;font-weight:700;color:var(--amber);">現在選択中の車両のみ</span>
+          </div>
+          <button type="button" class="topbar-csv-btn" onclick="openCarFilterModal()" style="padding:6px 14px;">変更...</button>
         </div>
       </div>
     </div>
