@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync v1.90 — PIT WALL LOG</title>
+<title>TPSync Ver1.00 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -764,9 +764,9 @@
     width:100%;
     padding:13px 18px;
     border-radius:8px;
-    border:1px solid #363f4e;
-    background:#1a2028;
-    color:#cbd5e1;
+    border:1.5px solid var(--amber);
+    background:rgba(223,172,88,0.06);
+    color:var(--amber);
     font-family:'Oswald',sans-serif;
     font-size:15px;
     font-weight:700;
@@ -777,9 +777,9 @@
     text-align:center;
   }
   .reset-filter-btn:hover, .reset-filter-btn:active{
-    background:#2d3a4d;
-    border-color:var(--amber);
-    color:var(--amber);
+    background:rgba(223,172,88,0.2);
+    border-color:#fef08a;
+    color:#fef08a;
   }
 
   .bulk-del-btn{
@@ -963,7 +963,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync v1.90</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.00</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1210,7 +1210,7 @@
         </div>
 
         <!-- 3行目: 冷間エア (下限 〜 上限: 170スタート) -->
-        <div class="field">
+        <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <label style="margin-bottom:0;">冷間エア (kPa)</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterColdPress')" title="クリア">クリア</button>
@@ -1223,7 +1223,7 @@
         </div>
 
         <!-- 3行目: 温間エア (下限 〜 上限: 190スタート) -->
-        <div class="field">
+        <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <label style="margin-bottom:0;">温間エア (kPa)</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterHotPress')" title="クリア">クリア</button>
@@ -1236,7 +1236,7 @@
         </div>
 
         <!-- 4行目: タイヤ銘柄 -->
-        <div class="field field-dark">
+        <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイヤ銘柄</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterField('tireBrand')" title="クリア">クリア</button>
@@ -1247,7 +1247,7 @@
         </div>
 
         <!-- 4行目: 体感 -->
-        <div class="field field-dark">
+        <div class="field">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">体感</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterField('feel')" title="クリア">クリア</button>
@@ -1286,7 +1286,7 @@
         </div>
 
         <!-- 2行目: リアサイズ -->
-        <div class="field wide field-dark">
+        <div class="field wide">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
             <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">リア タイヤサイズ</label>
             <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
@@ -1304,7 +1304,7 @@
         </div>
 
         <!-- 3行目: タイム下限 -->
-        <div class="field">
+        <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイム 下限</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMin')" title="クリア">クリア</button>
@@ -1319,7 +1319,7 @@
         </div>
 
         <!-- 3行目: タイム上限 -->
-        <div class="field">
+        <div class="field field-dark">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
             <label style="margin-bottom:0;">タイム 上限</label>
             <button type="button" class="temp-clear-btn" onclick="clearFilterField('lapMax')" title="クリア">クリア</button>
@@ -4509,7 +4509,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync v1.90 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.00 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -5981,7 +5981,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.90').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.00').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
