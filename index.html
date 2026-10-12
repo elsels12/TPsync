@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync v1.87 — PIT WALL LOG</title>
+<title>TPSync v1.88 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -938,7 +938,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync v1.87</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync v1.88</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -960,6 +960,7 @@
   </div>
   <div class="car-selector-row">
     <select id="carSelector" class="car-selector" onchange="handleCarSelectorChange()"></select>
+    <button type="button" class="topbar-csv-btn" id="carFilterBtn" onclick="openCarFilterModal()">表示車両</button>
     <button class="topbar-csv-btn" onclick="openCarManager()">車両管理</button>
   </div>
 </div>
@@ -1173,6 +1174,32 @@
       </div>
     </div>
 
+    <!-- 冷間エア (上限 〜 下限) -->
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label style="margin-bottom:0;">冷間エア</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterColdPress')" title="クリア">クリア</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">
+        <select class="filter-temp-select" id="filterColdPressMax" onchange="applyFilters()"></select>
+        <div class="filter-temp-sep">〜</div>
+        <select class="filter-temp-select" id="filterColdPressMin" onchange="applyFilters()"></select>
+      </div>
+    </div>
+
+    <!-- 温間エア (上限 〜 下限) -->
+    <div class="field">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <label style="margin-bottom:0;">温間エア</label>
+        <button type="button" class="temp-clear-btn" onclick="clearFilterRange('filterHotPress')" title="クリア">クリア</button>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:3px;align-items:stretch;">
+        <select class="filter-temp-select" id="filterHotPressMax" onchange="applyFilters()"></select>
+        <div class="filter-temp-sep">〜</div>
+        <select class="filter-temp-select" id="filterHotPressMin" onchange="applyFilters()"></select>
+      </div>
+    </div>
+
     <div class="field field-dark">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <label style="margin-bottom:0;">タイヤ銘柄</label>
@@ -1267,6 +1294,13 @@
       </div>
       <input type="text" id="filterNotes" oninput="applyFiltersDebounced()" placeholder="キーワード">
     </div>
+    <div class="field wide field-dark" style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;">
+      <div>
+        <label style="margin-bottom:2px;">表示車両（複数選択で他車と混合表示可能）</label>
+        <span id="filterPanelCarText" style="font-size:13px;font-weight:700;color:var(--amber);">現在選択中の車両のみ</span>
+      </div>
+      <button type="button" class="topbar-csv-btn" onclick="openCarFilterModal()" style="padding:6px 14px;">変更...</button>
+    </div>
   </div>
   <div class="filter-actions-stack">
     <button type="button" class="reset-filter-btn" onclick="resetFilters()">絞り込みリセット / RESET</button>
@@ -1343,7 +1377,7 @@ const CONDITION_LABELS = {
   BabyWet: 'ベビーウェット'
 };
 
-// v1.87: ユーザー入力値(メモ・場所・車両名など)をHTMLへ埋め込む際のエスケープ。
+// v1.88: ユーザー入力値(メモ・場所・車両名など)をHTMLへ埋め込む際のエスケープ。
 // 「<」等が含まれると以降の履歴カードが丸ごと崩れて消える不具合の対策。
 function escapeHtml(v){
   return String(v === null || v === undefined ? '' : v)
@@ -1387,7 +1421,7 @@ function carNamesFromEntries(){
   return Array.from(latest.entries()).sort((a, b) => b[1] - a[1]).map(x => x[0]);
 }
 
-// v1.87: 電波が弱いサーキットで通信が固まっても、同期処理が永久に止まらないようタイムアウトを付ける
+// v1.88: 電波が弱いサーキットで通信が固まっても、同期処理が永久に止まらないようタイムアウトを付ける
 async function gasFetch(url, opts, timeoutMs = 30000){
   const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
@@ -1544,6 +1578,148 @@ const CAR_LIST_KEY = 'tire_pressure_cars';
 const CURRENT_CAR_KEY = 'tire_pressure_current_car';
 let carList = [];
 let currentCar = '';
+let selectedDisplayCars = null; // null = デフォルト(現在選択中の車両のみ)
+
+function getActiveDisplayCars(){
+  if(selectedDisplayCars && Array.isArray(selectedDisplayCars) && selectedDisplayCars.length > 0){
+    return selectedDisplayCars;
+  }
+  return [currentCar || 'マイカー'];
+}
+
+function updateCarFilterBtnUI(){
+  const btn = document.getElementById('carFilterBtn');
+  const panelTxt = document.getElementById('filterPanelCarText');
+  const active = getActiveDisplayCars();
+  const isMulti = active.length > 1;
+
+  if(btn){
+    if(isMulti){
+      btn.textContent = `表示: ${active.length}台`;
+      btn.style.borderColor = 'var(--amber)';
+      btn.style.color = 'var(--amber)';
+      btn.style.background = 'rgba(223,172,88,0.15)';
+    } else {
+      btn.textContent = '表示車両';
+      btn.style.borderColor = '';
+      btn.style.color = '';
+      btn.style.background = '';
+    }
+  }
+
+  if(panelTxt){
+    if(isMulti){
+      panelTxt.textContent = `選択中: ${active.length}台 (${active.join(', ')})`;
+    } else {
+      panelTxt.textContent = `現在選択中の車両のみ (${escapeHtml(active[0])})`;
+    }
+  }
+}
+
+function openCarFilterModal(){
+  const overlay = document.createElement('div');
+  overlay.id = 'carFilterModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:100;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1b1f24;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:440px;width:100%;color:#e9e6df;box-shadow:0 8px 30px rgba(0,0,0,0.7);';
+
+  const currentActive = new Set(getActiveDisplayCars());
+
+  const carCheckboxesHtml = carList.map(c => {
+    const isChecked = currentActive.has(c);
+    const isCurrent = c === currentCar;
+    const count = entries.filter(e => (e.car || 'マイカー') === c).length;
+    return `
+      <label style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:#222832;border:1px solid ${isChecked ? 'var(--amber)' : '#333e4f'};border-radius:8px;margin-bottom:6px;cursor:pointer;">
+        <input type="checkbox" name="displayCarChoice" value="${escapeHtml(c)}"${isChecked ? ' checked' : ''} style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer;">
+        <div style="flex:1;font-size:14px;font-weight:700;color:#fff;">
+          🚗 ${escapeHtml(c)} ${isCurrent ? '<span style="font-size:11px;color:var(--amber);font-weight:normal;">(現在の選択)</span>' : ''}
+        </div>
+        <div style="font-size:12px;color:#94a3b8;font-family:\'JetBrains Mono\',monospace;">
+          ${count}件
+        </div>
+      </label>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      🚗 履歴に表示する車両の選択
+    </div>
+    <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:12px;">
+      通常は現在選択中の車両のみ表示されます。他の車両の記録も混ぜて見比べたい場合は、複数チェックを入れてください。
+    </div>
+
+    <div style="display:flex;gap:6px;margin-bottom:12px;">
+      <button type="button" id="carFilterOnlyMineBtn" style="flex:1;padding:7px 0;background:#181e26;border:1px solid #384252;color:#cbd5e1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
+        自分のみ (${escapeHtml(currentCar)})
+      </button>
+      <button type="button" id="carFilterSelectAllBtn" style="flex:1;padding:7px 0;background:#181e26;border:1px solid #384252;color:#cbd5e1;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;">
+        すべての車両を選択
+      </button>
+    </div>
+
+    <div id="carFilterCheckList" style="max-height:220px;overflow-y:auto;margin-bottom:14px;">
+      ${carCheckboxesHtml}
+    </div>
+
+    <div style="display:flex;gap:8px;">
+      <button type="button" id="applyCarFilterBtn" style="flex:1;padding:12px 0;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:8px;cursor:pointer;">
+        この設定で表示
+      </button>
+      <button type="button" id="closeCarFilterBtn" style="padding:12px 18px;background:transparent;color:#94a3b8;border:1px solid #384252;border-radius:8px;font-size:13px;cursor:pointer;">
+        閉じる
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('carFilterOnlyMineBtn').onclick = () => {
+    const cbs = box.querySelectorAll('input[name="displayCarChoice"]');
+    cbs.forEach(cb => {
+      cb.checked = (cb.value === currentCar);
+      cb.closest('label').style.borderColor = cb.checked ? 'var(--amber)' : '#333e4f';
+    });
+  };
+
+  document.getElementById('carFilterSelectAllBtn').onclick = () => {
+    const cbs = box.querySelectorAll('input[name="displayCarChoice"]');
+    cbs.forEach(cb => {
+      cb.checked = true;
+      cb.closest('label').style.borderColor = 'var(--amber)';
+    });
+  };
+
+  box.querySelectorAll('input[name="displayCarChoice"]').forEach(cb => {
+    cb.onchange = () => {
+      cb.closest('label').style.borderColor = cb.checked ? 'var(--amber)' : '#333e4f';
+    };
+  });
+
+  document.getElementById('applyCarFilterBtn').onclick = () => {
+    const cbs = box.querySelectorAll('input[name="displayCarChoice"]:checked');
+    const chosen = Array.from(cbs).map(cb => cb.value);
+    if(chosen.length === 0){
+      alert('少なくとも1台は選択してください');
+      return;
+    }
+    if(chosen.length === 1 && chosen[0] === currentCar){
+      selectedDisplayCars = null; // 自分のみ
+    } else {
+      selectedDisplayCars = chosen;
+    }
+    document.body.removeChild(overlay);
+    updateCarFilterBtnUI();
+    applyFilters();
+  };
+
+  document.getElementById('closeCarFilterBtn').onclick = () => {
+    document.body.removeChild(overlay);
+  };
+}
 
 function persistCars(){
   localStorage.setItem(CAR_LIST_KEY, JSON.stringify(carList));
@@ -1616,6 +1792,8 @@ function renderCarSelector(){
 function handleCarSelectorChange(){
   const sel = document.getElementById('carSelector');
   if(sel && sel.value) currentCar = sel.value;
+  selectedDisplayCars = null;
+  updateCarFilterBtnUI();
   persistCars();
   updateTrackFilterOptions();
   restoreLastSessionDefaults(false);
@@ -1638,7 +1816,7 @@ function openCarManager(){
   const tipBox = document.createElement('div');
   tipBox.style.cssText = 'background:#262c36;border:1px solid #384252;border-radius:8px;padding:10px 12px;margin-bottom:12px;font-size:12px;color:#cbd5e1;line-height:1.6;';
   tipBox.innerHTML = '<strong>💡 チーム共有・シェア時の使い分け</strong><br>' +
-    '・<strong>1台を複数人で乗る場合（耐久など）</strong>：全員で<strong>全く同じ車両名</strong>（例: <code>GR86-耐久号</code>）に設定すると、別々のスマホで測った冷間・温間が12時間以内なら1つのカードに自動統合されます。<br>' +
+    '・<strong>1台を複数人でシェアする場合</strong>：全員で<strong>全く同じ車両名</strong>（例: <code>GR86</code>）に設定すると、別々のスマホで測った冷間・温間が12時間以内なら1つのカードに自動統合されます。<br>' +
     '・<strong>各自が別々の車で走る場合</strong>：<code>ロードスター_佐藤</code> のように名前を付けると、走行データが混ざらず別々に管理できます。';
 
   const list = document.createElement('div');
@@ -1742,7 +1920,7 @@ function openCarManager(){
     <div style="font-family:'Oswald',sans-serif;font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">
       ＋ 新規車両の登録
     </div>
-    <input type="text" id="newCarInput" placeholder="例: GR86-耐久号 または ロードスター_佐藤" style="width:100%;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:13px;box-sizing:border-box;outline:none;margin-bottom:6px;">
+    <input type="text" id="newCarInput" placeholder="例: GR86 または ロードスター_佐藤" style="width:100%;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:13px;box-sizing:border-box;outline:none;margin-bottom:6px;">
     <div id="carInputNotice" style="display:none;font-size:11px;line-height:1.5;padding:6px 10px;border-radius:6px;margin-bottom:8px;"></div>
     <div style="display:flex;gap:8px;">
       <button type="button" id="submitAddCarBtn" style="flex:1;padding:8px 0;background:var(--amber);color:#1a1400;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:12px;">登録する</button>
@@ -2052,11 +2230,57 @@ function setupFilterTempPicker(selId, min, max, unit, placeholder){
   });
 }
 
+function buildFilterPressureOptions(selectEl, min, max, step, unit, placeholder){
+  let html = `<option value="" selected>${placeholder}</option>`;
+  for(let v = min; v <= max; v += step){
+    html += `<option value="${v}">${v}${unit}</option>`;
+  }
+  selectEl.innerHTML = html;
+}
+
+function setupFilterPressurePicker(selId, min, max, step, unit, placeholder, defaultCenter){
+  const sel = document.getElementById(selId);
+  if(!sel) return;
+
+  buildFilterPressureOptions(sel, min, max, step, unit, placeholder);
+  sel.value = '';
+
+  let wasEmptyOnOpen = false;
+
+  const onOpen = () => {
+    if(sel.value === ''){
+      wasEmptyOnOpen = true;
+      sel.value = String(defaultCenter);
+    }
+  };
+  sel.addEventListener('pointerdown', onOpen);
+  sel.addEventListener('touchstart', onOpen, {passive: true});
+  sel.addEventListener('mousedown', onOpen);
+  sel.addEventListener('focus', onOpen);
+
+  sel.addEventListener('change', () => {
+    wasEmptyOnOpen = false;
+    applyFilters();
+  });
+
+  sel.addEventListener('blur', () => {
+    if(wasEmptyOnOpen && sel.value === String(defaultCenter)){
+      applyFilters();
+    }
+    wasEmptyOnOpen = false;
+  });
+}
+
 function setupFilterFields(){
   setupFilterTempPicker('filterAmbientTempMax', -10, 50, '℃', '上限なし');
   setupFilterTempPicker('filterAmbientTempMin', -10, 50, '℃', '下限なし');
   setupFilterTempPicker('filterTrackTempMax', -10, 75, '℃', '上限なし');
   setupFilterTempPicker('filterTrackTempMin', -10, 75, '℃', '下限なし');
+
+  setupFilterPressurePicker('filterColdPressMax', 100, 400, 5, 'kPa', '上限なし', 200);
+  setupFilterPressurePicker('filterColdPressMin', 100, 400, 5, 'kPa', '下限なし', 200);
+  setupFilterPressurePicker('filterHotPressMax', 100, 400, 5, 'kPa', '上限なし', 230);
+  setupFilterPressurePicker('filterHotPressMin', 100, 400, 5, 'kPa', '下限なし', 230);
 
   ['Front', 'Rear'].forEach(prefix => {
     buildFilterRangeOptions(document.getElementById(`filterSize${prefix}Width`), 125, 405, 10, '');
@@ -2236,7 +2460,7 @@ function updateSessionBundleNotice(){
   if(!container) return;
 
   const carEntries = getCarEntries();
-  const BUNDLE_WINDOW_MS = 12 * 60 * 60 * 1000; // 長時間の耐久レース等も考慮した12時間枠
+  const BUNDLE_WINDOW_MS = 12 * 60 * 60 * 1000; // 走行枠の間隔を考慮した12時間枠
   const now = Date.now();
 
   if(carEntries.length === 0){
@@ -2705,6 +2929,14 @@ function clearFilterField(field){
     case 'trackTemp':
       clearFilterRange('filterTrackTemp');
       return;
+    case 'coldPress':
+    case 'filterColdPress':
+      clearFilterRange('filterColdPress');
+      return;
+    case 'hotPress':
+    case 'filterHotPress':
+      clearFilterRange('filterHotPress');
+      return;
     case 'tireBrand':
       const b = document.getElementById('filterTireBrand');
       if(b) b.value = '';
@@ -2754,6 +2986,12 @@ function resetFilters(){
   const ambMax = document.getElementById('filterAmbientTempMax'); if(ambMax) ambMax.value = '';
   const trkMin = document.getElementById('filterTrackTempMin'); if(trkMin) trkMin.value = '';
   const trkMax = document.getElementById('filterTrackTempMax'); if(trkMax) trkMax.value = '';
+  const cpMin = document.getElementById('filterColdPressMin'); if(cpMin) cpMin.value = '';
+  const cpMax = document.getElementById('filterColdPressMax'); if(cpMax) cpMax.value = '';
+  const hpMin = document.getElementById('filterHotPressMin'); if(hpMin) hpMin.value = '';
+  const hpMax = document.getElementById('filterHotPressMax'); if(hpMax) hpMax.value = '';
+  selectedDisplayCars = null;
+  updateCarFilterBtnUI();
   const feel = document.getElementById('filterFeel'); if(feel) feel.value = '';
   ['filterSizeFrontWidth','filterSizeFrontAspect','filterSizeFrontDiam','filterSizeRearWidth','filterSizeRearAspect','filterSizeRearDiam','filterLapMinMin','filterLapMinSec','filterLapMinHund','filterLapMaxMin','filterLapMaxSec','filterLapMaxHund'].forEach(id => {
     const el = document.getElementById(id);
@@ -2864,7 +3102,7 @@ function applyFiltersDebounced(delay = 120){
 }
 
 function applyFilters(){
-  const targetCar = currentCar || 'マイカー';
+  const activeCars = new Set(getActiveDisplayCars());
   const track = document.getElementById('filterTrack') ? document.getElementById('filterTrack').value : '';
   const condition = document.getElementById('filterCondition') ? document.getElementById('filterCondition').value : '';
   const tireBrand = document.getElementById('filterTireBrand') ? document.getElementById('filterTireBrand').value : '';
@@ -2902,6 +3140,36 @@ function applyFilters(){
     trkMin = trkBottom;
   }
 
+  const coldTopRaw = document.getElementById('filterColdPressMax') ? document.getElementById('filterColdPressMax').value.trim() : '';
+  const coldBottomRaw = document.getElementById('filterColdPressMin') ? document.getElementById('filterColdPressMin').value.trim() : '';
+  const coldTop = coldTopRaw !== '' ? parseFloat(coldTopRaw) : NaN;
+  const coldBottom = coldBottomRaw !== '' ? parseFloat(coldBottomRaw) : NaN;
+
+  let coldMin = NaN, coldMax = NaN;
+  if(!isNaN(coldTop) && !isNaN(coldBottom)){
+    coldMin = Math.min(coldTop, coldBottom);
+    coldMax = Math.max(coldTop, coldBottom);
+  } else if(!isNaN(coldTop)){
+    coldMax = coldTop;
+  } else if(!isNaN(coldBottom)){
+    coldMin = coldBottom;
+  }
+
+  const hotTopRaw = document.getElementById('filterHotPressMax') ? document.getElementById('filterHotPressMax').value.trim() : '';
+  const hotBottomRaw = document.getElementById('filterHotPressMin') ? document.getElementById('filterHotPressMin').value.trim() : '';
+  const hotTop = hotTopRaw !== '' ? parseFloat(hotTopRaw) : NaN;
+  const hotBottom = hotBottomRaw !== '' ? parseFloat(hotBottomRaw) : NaN;
+
+  let hotMin = NaN, hotMax = NaN;
+  if(!isNaN(hotTop) && !isNaN(hotBottom)){
+    hotMin = Math.min(hotTop, hotBottom);
+    hotMax = Math.max(hotTop, hotBottom);
+  } else if(!isNaN(hotTop)){
+    hotMax = hotTop;
+  } else if(!isNaN(hotBottom)){
+    hotMin = hotBottom;
+  }
+
   const fWidth = document.getElementById('filterSizeFrontWidth') ? document.getElementById('filterSizeFrontWidth').value : '';
   const fAspect = document.getElementById('filterSizeFrontAspect') ? document.getElementById('filterSizeFrontAspect').value : '';
   const fDiam = document.getElementById('filterSizeFrontDiam') ? document.getElementById('filterSizeFrontDiam').value : '';
@@ -2917,7 +3185,8 @@ function applyFilters(){
 
   let totalCarCount = 0;
   let filtered = entries.filter(e=>{
-    if((e.car || 'マイカー') !== targetCar) return false;
+    const eCar = e.car || 'マイカー';
+    if(!activeCars.has(eCar)) return false;
     totalCarCount++;
     if(track && String(e.track || '').trim() !== String(track).trim()) return false;
     if(condition){
@@ -2963,15 +3232,46 @@ function applyFilters(){
       const entryLap = parseLapTime(e.lapTime);
       if(entryLap === null || entryLap > lapMaxVal) return false;
     }
+    if(!isNaN(coldMin) || !isNaN(coldMax)){
+      const cp = e.coldPressures || (e.mode === 'cold' ? e.pressures : null);
+      if(!cp) return false;
+      const cVals = [cp.FL, cp.FR, cp.RL, cp.RR].filter(v => v !== null && v !== undefined && !isNaN(parseFloat(v))).map(Number);
+      if(cVals.length === 0) return false;
+      if(!isNaN(coldMin) && !isNaN(coldMax)){
+        if(!cVals.some(v => v >= coldMin && v <= coldMax)) return false;
+      } else if(!isNaN(coldMin)){
+        if(!cVals.some(v => v >= coldMin)) return false;
+      } else if(!isNaN(coldMax)){
+        if(!cVals.some(v => v <= coldMax)) return false;
+      }
+    }
+
+    if(!isNaN(hotMin) || !isNaN(hotMax)){
+      const hp = e.hotPressures || (e.mode === 'hot' ? e.pressures : null);
+      if(!hp) return false;
+      const hVals = [hp.FL, hp.FR, hp.RL, hp.RR].filter(v => v !== null && v !== undefined && !isNaN(parseFloat(v))).map(Number);
+      if(hVals.length === 0) return false;
+      if(!isNaN(hotMin) && !isNaN(hotMax)){
+        if(!hVals.some(v => v >= hotMin && v <= hotMax)) return false;
+      } else if(!isNaN(hotMin)){
+        if(!hVals.some(v => v >= hotMin)) return false;
+      } else if(!isNaN(hotMax)){
+        if(!hVals.some(v => v <= hotMax)) return false;
+      }
+    }
+
     if(notesQuery && (!e.notes || !e.notes.toLowerCase().includes(notesQuery))) return false;
     return true;
   });
 
-  const activeFilters = track || condition || tireBrand || feel || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || (lapMinRaw && lapMinRaw !== '00:00.000') || (lapMaxRaw && lapMaxRaw !== '00:00.000') || notesQuery !== '';
+  const activeFilters = track || condition || tireBrand || feel || !isNaN(ambMin) || !isNaN(ambMax) || !isNaN(trkMin) || !isNaN(trkMax) || !isNaN(coldMin) || !isNaN(coldMax) || !isNaN(hotMin) || !isNaN(hotMax) || fWidth || fAspect || fDiam || rWidth || rAspect || rDiam || (lapMinRaw && lapMinRaw !== '00:00.000') || (lapMaxRaw && lapMaxRaw !== '00:00.000') || notesQuery !== '';
   const summary = document.getElementById('filterSummary');
+  const isMultiCar = activeCars.size > 1;
+  const carText = isMultiCar ? `[${activeCars.size}台] ` : '';
   if(summary){
-    summary.textContent = activeFilters ? `${filtered.length} / ${totalCarCount} 件表示中` : '';
+    summary.textContent = (activeFilters || isMultiCar) ? `${carText}${filtered.length} / ${totalCarCount} 件表示中` : '';
   }
+  updateCarFilterBtnUI();
 
   currentFilteredEntries = filtered;
   renderLog(filtered);
@@ -3031,13 +3331,7 @@ function renderLogCardHtml(e){
 
   if(hasCold && hasHot){
     badgeHtml = `<span class="session-badge is-both">冷温</span>`;
-    tabsHtml = `
-      <div class="card-view-tabs">
-        <button type="button" class="card-view-btn ${currentCardView === 'both' ? 'active' : ''}" data-view="both" onclick="setCardView('${idArg}', 'both')">上下並び</button>
-        <button type="button" class="card-view-btn is-cold ${currentCardView === 'cold' ? 'active' : ''}" data-view="cold" onclick="setCardView('${idArg}', 'cold')">冷間</button>
-        <button type="button" class="card-view-btn is-hot ${currentCardView === 'hot' ? 'active' : ''}" data-view="hot" onclick="setCardView('${idArg}', 'hot')">温間</button>
-      </div>
-    `;
+    tabsHtml = '';
   } else if(hasCold && !hasHot){
     badgeHtml = `<span class="session-badge is-cold">冷間のみ</span>`;
   } else if(!hasCold && hasHot){
@@ -3081,7 +3375,7 @@ function renderLogCardHtml(e){
       return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? escapeHtml(v) : '—'}</div></div>`;
     }).join('');
     coldBlockHtml = `
-      <div class="log-pressure-row is-cold" style="${(hasHot && currentCardView === 'hot') ? 'display:none;' : ''}">
+      <div class="log-pressure-row is-cold">
         <div class="log-pressure-title cold-title"><span>冷間 COLD</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
         <div class="log-grid">${cornersCold}</div>
       </div>
@@ -3103,7 +3397,7 @@ function renderLogCardHtml(e){
       return `<div class="log-corner"><div class="lbl">${c}</div><div class="val">${v !== null && v !== undefined ? escapeHtml(v) : '—'}</div>${deltaHtml}</div>`;
     }).join('');
     hotBlockHtml = `
-      <div class="log-pressure-row is-hot" style="${(hasCold && currentCardView === 'cold') ? 'display:none;' : ''}">
+      <div class="log-pressure-row is-hot">
         <div class="log-pressure-title hot-title"><span>温間 HOT</span><span style="font-size:11px;color:var(--paper-dim);">kPa</span></div>
         <div class="log-grid">${cornersHot}</div>
       </div>
@@ -3120,9 +3414,9 @@ function renderLogCardHtml(e){
       <div class="log-head">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
           <span class="log-date">${dateStr}</span>
+          ${(getActiveDisplayCars().length > 1) ? `<span style="background:#222832;border:1px solid #384252;color:#ffffff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:4px;font-family:'Inter',sans-serif;">🚗 ${escapeHtml(e.car || 'マイカー')}</span>` : ''}
           ${badgeHtml}
         </div>
-        ${tabsHtml}
       </div>
 
       <div class="log-info-grid">
@@ -3164,7 +3458,9 @@ function safeCardHtml(e){
 function renderLog(list_){
   const carEntries = getCarEntries();
   const data = list_ || carEntries;
-  document.getElementById('entryCount').textContent = carEntries.length + ' SESSIONS';
+  const activeCars = getActiveDisplayCars();
+  const displayCount = (activeCars.length > 1) ? entries.filter(e => activeCars.includes(e.car || 'マイカー')).length : carEntries.length;
+  document.getElementById('entryCount').textContent = displayCount + ' SESSIONS';
   const list = document.getElementById('logList');
 
   if(carEntries.length === 0){
@@ -4064,7 +4360,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync v1.87 - Google Apps Script (GAS) バックエンド
+ * TPSync v1.88 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -4520,8 +4816,8 @@ function doGet(e) {
           1. ピットイン後、「<strong>温間 HOT</strong>」を選んで4輪空気圧やラップタイム・体感を入力します。<br>
           2. 「<strong>前回の冷間とまとめる</strong>」が選ばれた状態で「記録する」を押すと、直前の冷間カードに温間が自動追加され、<strong>各タイヤの昇圧差分（例: +35.0 kPa）</strong>が表示されます。<br>
           ※別の走行枠として分けたい場合は「<strong>新規セッションとして区切る</strong>」を選んで記録してください。<br><br>
-          <strong style="color:#ffffff;">【耐久レース対応：12時間以内まとめ】</strong><br>
-          長時間のインターバルや耐久レースでも、12時間以内であれば前回の冷間カードと自動でまとめることができます。
+          <strong style="color:#ffffff;">【走行枠のインターバル（12時間以内）まとめ】</strong><br>
+          午前と午後で走行時間が空いても、12時間以内であれば前回の冷間カードと自動でまとめることができます。
         </div>
       </div>
 
@@ -4603,8 +4899,8 @@ function doGet(e) {
           <strong style="color:#ffffff;">👥 仲間に共有する方法：</strong><br>
           代表者はコピーしたURLをLINE等で仲間に送ります。仲間は自分のTPSyncの「共有使用」欄にそのURLを貼って「保存」を押すだけで全員がリアルタイムで繋がります。<br><br>
 
-          <strong style="color:#ffffff;">🏎️ 耐久シェア vs 個人愛車の使い分け：</strong><br>
-          ・<strong>1台をシェア（耐久等）</strong>：全員で同じ車両名（例: <code>GR86-耐久号</code>）に設定すると、別々のスマホで測った冷温間が1つのカードに自動合体！<br>
+          <strong style="color:#ffffff;">🏎️ 複数人シェア vs 個人愛車の使い分け：</strong><br>
+          ・<strong>1台をシェアする場合</strong>：全員で同じ車両名（例: <code>GR86</code>）に設定すると、別々のスマホで測った冷温間が1つのカードに自動合体！<br>
           ・<strong>別々の車で走る場合</strong>：<code>ロードスター_佐藤</code>、<code>GR86_山田</code> のように名前をつければデータが混ざりません。
         </div>
 
@@ -5517,7 +5813,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.87').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.88').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
