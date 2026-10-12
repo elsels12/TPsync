@@ -14,7 +14,7 @@
 <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync v1.88 — PIT WALL LOG</title>
+<title>TPSync v1.89 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -299,7 +299,10 @@
     display:grid;grid-template-columns:1fr 1fr;gap:6px;background:#14171b;padding:4px;border-radius:10px;margin-bottom:12px;border:1px solid #2d3542;
   }
   .filter-tab-btn{
-    background:transparent;border:none;border-radius:6px;color:#94a3b8;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;padding:8px 2px;cursor:pointer;transition:all .15s ease;white-space:nowrap;text-align:center;
+    background:transparent;border:none;border-radius:6px;color:#94a3b8;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;padding:8px 2px;letter-spacing:-0.02em;cursor:pointer;transition:all .15s ease;white-space:nowrap;text-align:center;
+  }
+  @media (max-width: 360px){
+    .filter-tab-btn{ font-size: 11px; padding: 7px 1px; }
   }
   .filter-tab-btn.active{
     background:var(--amber);color:#1a1400;box-shadow:0 2px 8px rgba(0,0,0,0.4);
@@ -957,7 +960,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync v1.88</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync v1.89</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1145,7 +1148,7 @@
     <!-- 2タブ切り替え（ユーザー指定: 場所・エア・気温 / タイヤ・タイム・他） -->
     <div class="filter-tab-bar">
       <button type="button" class="filter-tab-btn active" id="fTabBtn-main" onclick="switchFilterCategory('main')">場所・エア・気温</button>
-      <button type="button" class="filter-tab-btn" id="fTabBtn-detail" onclick="switchFilterCategory('detail')">タイヤ・タイム・他</button>
+      <button type="button" class="filter-tab-btn" id="fTabBtn-detail" onclick="switchFilterCategory('detail')">タイヤ・タイム・その他</button>
     </div>
 
     <!-- TAB 1: 場所・エア・気温 -->
@@ -1422,7 +1425,7 @@ const CONDITION_LABELS = {
   BabyWet: 'ベビーウェット'
 };
 
-// v1.88: ユーザー入力値(メモ・場所・車両名など)をHTMLへ埋め込む際のエスケープ。
+// v1.89: ユーザー入力値(メモ・場所・車両名など)をHTMLへ埋め込む際のエスケープ。
 // 「<」等が含まれると以降の履歴カードが丸ごと崩れて消える不具合の対策。
 function escapeHtml(v){
   return String(v === null || v === undefined ? '' : v)
@@ -1431,7 +1434,14 @@ function escapeHtml(v){
 }
 // onclick="fn('...')" の引数用（JS文字列としてもHTML属性としても安全にする）
 function jsArg(v){
-  return escapeHtml(String(v === null || v === undefined ? '' : v).replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/\r/g, '\\r').replace(/\n/g, '\\n').replace(/\u2028/g, '\\u2028').replace(/\u2029/g, '\\u2029'));
+  return String(v === null || v === undefined ? '' : v)
+    .replace(/\\/g, '\\\\')
+    .replace(/'/g, "\\'")
+    .replace(/"/g, '&quot;')
+    .replace(/\r/g, '\\r')
+    .replace(/\n/g, '\\n')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 function entryTime(e){
   const t = new Date(e && e.timestamp).getTime();
@@ -1466,7 +1476,7 @@ function carNamesFromEntries(){
   return Array.from(latest.entries()).sort((a, b) => b[1] - a[1]).map(x => x[0]);
 }
 
-// v1.88: 電波が弱いサーキットで通信が固まっても、同期処理が永久に止まらないようタイムアウトを付ける
+// v1.89: 電波が弱いサーキットで通信が固まっても、同期処理が永久に止まらないようタイムアウトを付ける
 async function gasFetch(url, opts, timeoutMs = 30000){
   const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
@@ -1627,7 +1637,9 @@ let selectedDisplayCars = null; // null = デフォルト(現在選択中の車�
 
 function getActiveDisplayCars(){
   if(selectedDisplayCars && Array.isArray(selectedDisplayCars) && selectedDisplayCars.length > 0){
-    return selectedDisplayCars;
+    // 名前変更・削除で存在しなくなった車両名は除外（全滅したら現在の車両に戻す）
+    const valid = selectedDisplayCars.filter(c => carList.includes(c) || c === currentCar);
+    if(valid.length > 0) return valid;
   }
   return [currentCar || 'マイカー'];
 }
@@ -1656,7 +1668,7 @@ function updateCarFilterBtnUI(){
     if(isMulti){
       panelTxt.textContent = `選択中: ${active.length}台 (${active.join(', ')})`;
     } else {
-      panelTxt.textContent = `現在選択中の車両のみ (${escapeHtml(active[0])})`;
+      panelTxt.textContent = `現在選択中の車両のみ (${active[0]})`;
     }
   }
 }
@@ -1942,6 +1954,11 @@ function openCarManager(){
         syncBulkDeleteToCloud(carDelIds);
         carList = carList.filter(c => c !== car);
         if(currentCar === car) currentCar = carList[0];
+        if(selectedDisplayCars){
+          selectedDisplayCars = selectedDisplayCars.filter(c => c !== car);
+          if(selectedDisplayCars.length === 0) selectedDisplayCars = null;
+        }
+        updateCarFilterBtnUI();
         persistEntries();
         persistCars();
         document.body.removeChild(overlay);
@@ -3062,7 +3079,11 @@ function bulkDeleteFiltered(){
     return;
   }
   const count = currentFilteredEntries.length;
-  if(!confirm(`現在絞り込まれている ${count} 件の記録をすべて削除しますか？\n（この操作は元に戻せません）`)){
+  const delCars = Array.from(new Set(currentFilteredEntries.map(e => e.car || 'マイカー')));
+  const carWarn = delCars.length > 1 ? `
+⚠️ ${delCars.length}台分（${delCars.join(', ')}）の記録が含まれます。共有中の他の人の記録も削除されます。` : '';
+  if(!confirm(`現在絞り込まれている ${count} 件の記録をすべて削除しますか？${carWarn}
+（この操作は元に戻せません）`)){
     return;
   }
   const deleteIds = new Set(currentFilteredEntries.map(e => e.id));
@@ -4424,7 +4445,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync v1.88 - Google Apps Script (GAS) バックエンド
+ * TPSync v1.89 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -5877,7 +5898,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.88').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.89').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
