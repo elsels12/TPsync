@@ -8,10 +8,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TPSync">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-<link rel="shortcut icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
 <title>TPSync Ver1.00 — PIT WALL LOG</title>
@@ -213,8 +210,8 @@
     font-size:14px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;
     transition:all .15s ease;
   }
-  .mode-btn.active[data-mode="cold"]{background:rgba(63,169,245,0.15);border-color:var(--cold);color:var(--cold);}
-  .mode-btn.active[data-mode="hot"]{background:rgba(255,90,46,0.15);border-color:var(--hot);color:var(--hot);}
+  .mode-btn.active[data-mode="cold"]{background:rgba(63,169,245,0.22);border-color:var(--cold);color:#70baff;text-shadow:0 0 10px rgba(63,169,245,0.4);}
+  .mode-btn.active[data-mode="hot"]{background:rgba(255,90,46,0.22);border-color:var(--hot);color:#ff7a52;text-shadow:0 0 10px rgba(255,90,46,0.4);}
 
   .car-diagram{
     display:grid;
@@ -229,13 +226,13 @@
   }
   .corner{
     background:var(--panel-light);
-    border:1px solid #4a5568;
+    border:1.5px solid #5a667a;
     border-radius:10px;
     padding:10px 4px;
     text-align:center;
     transition:border-color .2s ease;
     min-width:0;
-    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.06);
+    box-shadow:0 3px 12px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.08);
   }
   #corner-FL{grid-area:fl;}
   #corner-FR{grid-area:fr;}
@@ -247,7 +244,7 @@
     color:#cbd5e1;line-height:1.2;margin-bottom:3px;
   }
   .corner .label .sub-code{
-    display:block;font-size:10px;font-weight:700;color:#94a3b8;
+    display:block;font-size:10px;font-weight:700;color:#cbd5e1;
   }
   .corner .value-select{
     width:100%;
@@ -269,7 +266,7 @@
   .corner .value-select option{
     background:#20252b;color:#ffffff;
   }
-  .corner .unit{font-size:11px;font-weight:600;color:#94a3b8;margin-bottom:4px;}
+  .corner .unit{font-size:11px;font-weight:700;color:#cbd5e1;margin-bottom:4px;}
   .corner .value-input{
     width:100%;background:transparent;border:1px solid rgba(255,255,255,0.14);border-radius:6px;
     color:#ffffff;font-family:'JetBrains Mono',monospace;font-size:14px;font-weight:700;text-align:center;
@@ -363,7 +360,7 @@
     font-family:'JetBrains Mono',monospace;
     font-size:12px;
     font-weight:700;
-    color:#cbd5e1;
+    color:#e2e8f0;
     letter-spacing:.05em;
     display:block;
     margin-bottom:5px;
@@ -509,6 +506,34 @@
     color:var(--paper-dim);
     flex-shrink:0;
     padding:0 3px;
+  }
+
+  .filter-size-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:8px;
+    gap:6px;
+    flex-wrap:wrap;
+    width:100%;
+  }
+  .filter-size-header label{
+    margin-bottom:0;
+    white-space:nowrap;
+  }
+  .filter-size-tools{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    flex-shrink:0;
+  }
+  @media (max-width: 360px){
+    .filter-size-header label{ font-size: 11px; }
+    .size-preset-select{ max-width: 95px !important; font-size: 10px !important; padding: 2px 4px !important; }
+  }
+  @media (max-width: 330px){
+    .filter-size-header label{ font-size: 10.5px; }
+    .size-preset-select{ max-width: 85px !important; font-size: 9.5px !important; padding: 2px 2px !important; }
   }
 
   .size-preset-select{
@@ -900,7 +925,7 @@
     display:inline-flex;align-items:baseline;gap:6px;
   }
   .info-tag .lbl{
-    color:#94a3b8;font-weight:700;font-size:12px;letter-spacing:.02em;white-space:nowrap;
+    color:#cbd5e1;font-weight:700;font-size:12px;letter-spacing:.02em;white-space:nowrap;
   }
   .info-tag .val-lg{
     color:#ffffff;font-weight:700;font-size:16px;font-family:'Inter',sans-serif;
@@ -909,7 +934,7 @@
     font-family:'JetBrains Mono',monospace;font-size:16px;
   }
   .info-tag .val-lg.highlight{
-    color:#ffda66;font-weight:800;
+    color:#ffe066;font-weight:800;text-shadow:0 0 8px rgba(255,218,102,0.3);
   }
 
   .log-pressures-block{
@@ -928,7 +953,7 @@
   .log-pressure-title.hot-title{color:var(--hot);}
   .log-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;}
   .log-corner{background:#16191e;border-radius:6px;padding:8px 2px;}
-  .log-corner .lbl{font-size:12px;font-weight:700;color:#94a3b8;font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
+  .log-corner .lbl{font-size:12px;font-weight:700;color:#cbd5e1;font-family:'JetBrains Mono',monospace;margin-bottom:2px;}
   .log-corner .val{font-family:'JetBrains Mono',monospace;font-size:20px;font-weight:800;color:#ffffff;}
   .log-corner .delta{font-size:12px;font-weight:800;color:var(--hot);margin-top:2px;font-family:'JetBrains Mono',monospace;}
   .log-empty-hint{
@@ -958,6 +983,34 @@
   }
   .toast.show{opacity:1;transform:translateX(-50%) translateY(-4px);}
 
+
+  /* ===== 視認性改善（debug6）: 情報量を減らさず、余白を詰めて数値を目立たせる ===== */
+  /* 数字の桁をそろえて読み比べやすく（等幅数字） */
+  .log-date,.log-corner .val,.log-corner .delta,.info-tag .val-lg.mono,#entryCount,
+  .corner .value-select,.corner .value-input{font-variant-numeric:tabular-nums;}
+  /* 履歴カード: 空気圧を一番上に（最重要情報を最初に）、余白を詰めて1画面あたりの情報量を増やす */
+  .log-entry{display:flex;flex-direction:column;padding:12px 12px 10px;margin-bottom:12px;}
+  .log-entry > *{order:3;}
+  .log-entry > .log-head{order:0;margin-bottom:8px;padding-bottom:6px;}
+  .log-entry > .log-pressures-block{order:1;gap:6px;margin-bottom:8px;}
+  .log-entry > .log-info-grid{order:2;gap:4px;padding:8px 10px;margin-bottom:8px;}
+  .log-info-row{gap:2px 14px;font-size:14px;line-height:1.35;padding-bottom:4px;}
+  .info-tag{gap:5px;}
+  .info-tag .lbl{font-size:11px;color:#aab4c3;}
+  .info-tag .val-lg,.info-tag .val-lg.mono{font-size:15px;}
+  .log-pressure-row{padding:6px 8px;}
+  .log-pressure-title{margin-bottom:4px;font-size:12px;}
+  .log-grid{gap:5px;}
+  .log-corner{padding:4px 2px 5px;}
+  .log-corner .lbl{font-size:11px;margin-bottom:0;color:#aab4c3;}
+  .log-corner .val{font-size:23px;line-height:1.15;letter-spacing:-0.01em;}
+  .log-note{margin-top:0;padding:6px 9px;font-size:13px;line-height:1.45;color:#e2e8f0;}
+  /* 入力: 手入力値が優先されていることを明示（プルダウンの大きな数字を薄くし、手入力欄を強調） */
+  .corner:has(.value-input:not(:placeholder-shown)) .value-select{opacity:.28;}
+  .corner .value-input:not(:placeholder-shown){border-color:var(--amber);background:rgba(223,172,88,0.14);color:#fff7e0;font-size:16px;font-weight:800;}
+  /* 下部の記録ボタン: 文字が2行に折り返して読みにくくならないように */
+  .sticky-save-btn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.02em;}
+  @media (max-width: 360px){ .sticky-save-btn{font-size:12px;letter-spacing:-0.01em;padding:0 4px;} .log-corner .val{font-size:21px;} }
 </style>
 </head>
 <body>
@@ -982,6 +1035,14 @@
     <button type="button" class="guide-nav-btn" onclick="openGuideModal('backup')">
       バックアップ・復元
     </button>
+  </div>
+  <div class="cloud-preset-bar" id="cloudPresetBar" style="display:flex;align-items:center;justify-content:space-between;gap:8px;background:rgba(223,172,88,0.06);border:1px solid rgba(223,172,88,0.25);border-radius:8px;padding:6px 12px;margin:8px 0 10px;">
+    <div style="display:flex;align-items:center;gap:6px;min-width:0;flex:1;">
+      <span style="font-size:12px;">☁️</span>
+      <span style="font-size:11px;color:#94a3b8;font-weight:600;white-space:nowrap;">接続先:</span>
+      <span id="currentPresetNameBadge" style="font-size:12px;font-weight:700;color:var(--amber);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">メイン共有シート</span>
+    </div>
+    <button type="button" class="topbar-csv-btn" onclick="openCloudPresetModal()" style="padding:4px 10px;font-size:11px;font-weight:700;background:#242a35;border-color:var(--amber);color:var(--amber);cursor:pointer;flex-shrink:0;">切替 ▾</button>
   </div>
   <div class="car-selector-row">
     <select id="carSelector" class="car-selector" onchange="handleCarSelectorChange()"></select>
@@ -1065,7 +1126,7 @@
         <option value="Dry">ドライ</option>
         <option value="HalfWet">ハーフウェット</option>
         <option value="Wet">ウェット</option>
-        <option value="BabyWet">ベビーウェット</option>
+        <option value="HeavyWet">ヘビーウェット</option>
       </select>
     </div>
     <div class="field field-dark" style="position:relative;">
@@ -1179,7 +1240,7 @@
             <option value="Dry">ドライ</option>
             <option value="HalfWet">ハーフウェット</option>
             <option value="Wet">ウェット</option>
-            <option value="BabyWet">ベビーウェット</option>
+            <option value="HeavyWet">ヘビーウェット</option>
           </select>
         </div>
 
@@ -1269,9 +1330,9 @@
       <div class="grid2">
         <!-- 1行目: フロントサイズ -->
         <div class="field wide field-dark">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
-            <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">フロント タイヤサイズ</label>
-            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="filter-size-header">
+            <label>フロント タイヤサイズ</label>
+            <div class="filter-size-tools">
               <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeFront')" title="クリア">クリア</button>
               <select id="filterPresetSizeFront" class="size-preset-select" onchange="applyFilterSizePreset('Front', this.value); this.value='';"></select>
             </div>
@@ -1287,9 +1348,9 @@
 
         <!-- 2行目: リアサイズ -->
         <div class="field wide">
-          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;gap:8px;">
-            <label style="margin-bottom:0;white-space:nowrap;flex-shrink:0;">リア タイヤサイズ</label>
-            <div style="display:flex;align-items:center;gap:10px;flex-shrink:0;">
+          <div class="filter-size-header">
+            <label>リア タイヤサイズ</label>
+            <div class="filter-size-tools">
               <button type="button" class="temp-clear-btn" onclick="clearFilterField('sizeRear')" title="クリア">クリア</button>
               <select id="filterPresetSizeRear" class="size-preset-select" onchange="applyFilterSizePreset('Rear', this.value); this.value='';"></select>
             </div>
@@ -1427,7 +1488,8 @@ const CONDITION_LABELS = {
   Dry: 'ドライ',
   HalfWet: 'ハーフウェット',
   Wet: 'ウェット',
-  BabyWet: 'ベビーウェット'
+  HeavyWet: 'ヘビーウェット',
+  BabyWet: 'ヘビーウェット'
 };
 
 // v1.89: ユーザー入力値(メモ・場所・車両名など)をHTMLへ埋め込む際のエスケープ。
@@ -1439,14 +1501,14 @@ function escapeHtml(v){
 }
 // onclick="fn('...')" の引数用（JS文字列としてもHTML属性としても安全にする）
 function jsArg(v){
-  return String(v === null || v === undefined ? '' : v)
+  // JS文字列としてエスケープした後、HTML属性用に escapeHtml（& も必ず変換。&#39; 等の実体参照で ' が復活して JS が壊れる/注入されるのを防ぐ）
+  return escapeHtml(String(v === null || v === undefined ? '' : v)
     .replace(/\\/g, '\\\\')
     .replace(/'/g, "\\'")
-    .replace(/"/g, '&quot;')
     .replace(/\r/g, '\\r')
     .replace(/\n/g, '\\n')
     .replace(/\u2028/g, '\\u2028')
-    .replace(/\u2029/g, '\\u2029');
+    .replace(/\u2029/g, '\\u2029'));
 }
 function entryTime(e){
   const t = new Date(e && e.timestamp).getTime();
@@ -1491,6 +1553,298 @@ async function gasFetch(url, opts, timeoutMs = 30000){
     if(timer) clearTimeout(timer);
   }
 }
+
+
+// === 接続先スプレッドシート プリセット管理＆ワンタップ切替 ===
+const GAS_PRESETS_KEY = 'tire_pressure_gas_presets';
+const ACTIVE_PRESET_ID_KEY = 'tire_pressure_active_preset_id';
+
+function getGasPresets(){
+  try {
+    const raw = localStorage.getItem(GAS_PRESETS_KEY);
+    let list = raw ? JSON.parse(raw) : [];
+    if(!Array.isArray(list)) list = [];
+    if(list.length === 0){
+      const curUrl = getGasUrl();
+      if(curUrl){
+        list = [{ id: 'p_default', name: 'メイン共有シート', url: curUrl }];
+        localStorage.setItem(GAS_PRESETS_KEY, JSON.stringify(list));
+      }
+    }
+    return list;
+  } catch(e){
+    return [];
+  }
+}
+
+function saveGasPresets(list){
+  try {
+    localStorage.setItem(GAS_PRESETS_KEY, JSON.stringify(list));
+  } catch(e){}
+}
+
+function getActivePreset(){
+  const presets = getGasPresets();
+  const curUrl = getGasUrl();
+  const activeId = localStorage.getItem(ACTIVE_PRESET_ID_KEY);
+  if(activeId){
+    const found = presets.find(p => p.id === activeId);
+    if(found && (!curUrl || found.url === curUrl)) return found;
+  }
+  const byUrl = presets.find(p => p.url === curUrl);
+  if(byUrl) return byUrl;
+  return presets.length > 0 ? presets[0] : null;
+}
+
+function updatePresetUI(){
+  const active = getActivePreset();
+  const badge = document.getElementById('currentPresetNameBadge');
+  if(badge){
+    badge.textContent = active ? active.name : (getGasUrl() ? 'カスタム接続' : '未設定');
+  }
+
+  // Update chips inside guide modal if open
+  const chipsContainer = document.getElementById('guidePresetChips');
+  if(chipsContainer){
+    const presets = getGasPresets();
+    if(presets.length === 0){
+      chipsContainer.innerHTML = '<span style="font-size:11px;color:#94a3b8;">登録された接続先はありません</span>';
+    } else {
+      chipsContainer.innerHTML = presets.map(p => {
+        const isActive = active && active.id === p.id;
+        return `
+          <button type="button" onclick="switchToGasPreset('${p.id}')" style="display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;background:${isActive ? 'rgba(223,172,88,0.2)' : '#1e242d'};border:1px solid ${isActive ? 'var(--amber)' : '#384252'};color:${isActive ? 'var(--amber)' : '#cbd5e1'};">
+            <span>${isActive ? '🟢' : '⚪'}</span>
+            <span>${escapeHtml(p.name)}</span>
+          </button>
+        `;
+      }).join('');
+    }
+  }
+}
+
+async function switchToGasPreset(presetId){
+  const presets = getGasPresets();
+  const target = presets.find(p => p.id === presetId);
+  if(!target) return;
+
+  // 切替前に、今の接続先あての未送信データを今の接続先へ送っておく（切替後に別シートへ送られるのを防ぐ）
+  const prevUrl = getGasUrl();
+  if(prevUrl && prevUrl !== target.url && navigator.onLine){
+    try { await flushPendingQueues(); } catch(e){}
+  }
+  if(prevUrl && prevUrl !== target.url){
+    const remain = Object.keys(getPendingSyncMap()).length + Object.keys(getPendingDeletesMap()).length;
+    if(remain > 0 && !confirm(`未送信のデータが${remain}件あります。切り替えると、これらは「${target.name}」へ送信されます。切り替えますか？`)) return;
+  }
+
+  setGasUrl(target.url);
+  localStorage.setItem(ACTIVE_PRESET_ID_KEY, target.id);
+  updateCloudStatusUI();
+  updatePresetUI();
+
+  // If guide modal has URL input open, reflect it
+  const input = document.getElementById('gasUrlInput');
+  if(input) input.value = target.url;
+
+  const modal = document.getElementById('cloudPresetModalOverlay');
+  if(modal) document.body.removeChild(modal);
+
+  showToast(`⚡「${target.name}」に切り替えました。最新データを取得中...`, 1600);
+  try {
+    await quickCloudSync(true);
+    showToast(`✔「${target.name}」の同期が完了しました`);
+  } catch(e){}
+}
+window.switchToGasPreset = switchToGasPreset;
+
+function openAddPresetModal(editPreset = null){
+  const overlay = document.createElement('div');
+  overlay.id = 'addPresetModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:220;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const isEdit = !!editPreset;
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1a1e25;border:1px solid #384252;border-radius:12px;padding:18px 16px;max-width:420px;width:100%;color:#e9e6df;box-shadow:0 8px 30px rgba(0,0,0,0.8);';
+
+  box.innerHTML = `
+    <div style="font-family:'Oswald',sans-serif;font-size:16px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+      ${isEdit ? '✏️ 接続先の編集' : '＋ 新しい接続先の追加'}
+    </div>
+    <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:12px;">
+      チーム名や用途（例: 86耐久チーム、個人用）と、発行されたウェブアプリURLを登録します。
+    </div>
+    <div style="margin-bottom:10px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;">接続先の表示名</label>
+      <input type="text" id="presetNameInput" value="${escapeHtml(isEdit ? editPreset.name : '')}" placeholder="例: 86耐久チーム または 個人練習用" style="width:100%;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:13px;box-sizing:border-box;outline:none;">
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="display:block;font-size:11px;font-weight:700;color:var(--amber);margin-bottom:4px;">ウェブアプリURL</label>
+      <input type="text" id="presetUrlInput" value="${escapeHtml(isEdit ? editPreset.url : '')}" placeholder="https://script.google.com/macros/s/.../exec" style="width:100%;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:11px;font-family:'JetBrains Mono',monospace;box-sizing:border-box;outline:none;">
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button type="button" id="savePresetBtn" style="flex:1;padding:10px 0;background:var(--amber);color:#1a1400;font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;border:none;border-radius:6px;cursor:pointer;">
+        ${isEdit ? '更新する' : '登録して切り替え'}
+      </button>
+      <button type="button" id="cancelPresetBtn" style="padding:10px 14px;background:transparent;color:#94a3b8;border:1px solid #384252;border-radius:6px;font-size:12px;cursor:pointer;">
+        キャンセル
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('cancelPresetBtn').onclick = () => document.body.removeChild(overlay);
+
+  document.getElementById('savePresetBtn').onclick = async () => {
+    const name = document.getElementById('presetNameInput').value.trim();
+    const url = document.getElementById('presetUrlInput').value.trim();
+
+    if(!name){
+      alert('接続先の表示名を入力してください');
+      return;
+    }
+    if(!url || !/^https:\/\/script\.google(usercontent)?\.com\//.test(url)){
+      alert('URLが正しくありません（https://script.google.com/... で始まるウェブアプリURL）');
+      return;
+    }
+    if(!/\/exec(\?.*)?$/.test(url)){
+      alert('URLの末尾が /exec ではありません');
+      return;
+    }
+
+    const presets = getGasPresets();
+    if(isEdit){
+      const target = presets.find(p => p.id === editPreset.id);
+      if(target){
+        target.name = name;
+        target.url = url;
+      }
+    } else {
+      const newId = 'p_' + Date.now().toString(36);
+      presets.push({ id: newId, name, url });
+      localStorage.setItem(ACTIVE_PRESET_ID_KEY, newId);
+      setGasUrl(url);
+    }
+    saveGasPresets(presets);
+    document.body.removeChild(overlay);
+
+    updateCloudStatusUI();
+    updatePresetUI();
+
+    // Re-render preset modal if open
+    const openModal = document.getElementById('cloudPresetModalOverlay');
+    if(openModal){
+      document.body.removeChild(openModal);
+      openCloudPresetModal();
+    }
+
+    if(!isEdit){
+      showToast(`⚡「${name}」を登録し、切り替えました！`, 1600);
+      await quickCloudSync(true);
+    } else {
+      showToast(`「${name}」を更新しました`);
+    }
+  };
+}
+window.openAddPresetModal = openAddPresetModal;
+
+function openCloudPresetModal(){
+  const overlay = document.createElement('div');
+  overlay.id = 'cloudPresetModalOverlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:210;display:flex;align-items:center;justify-content:center;padding:16px;';
+
+  const box = document.createElement('div');
+  box.style.cssText = 'background:#1a1e25;border:1px solid #384252;border-radius:14px;padding:20px 16px;max-width:440px;width:100%;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
+
+  const presets = getGasPresets();
+  const active = getActivePreset();
+
+  const presetListHtml = presets.map(p => {
+    const isActive = active && active.id === p.id;
+    return `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;background:#222832;border:1px solid ${isActive ? 'var(--amber)' : '#333e4f'};border-radius:8px;margin-bottom:8px;">
+        <button type="button" onclick="switchToGasPreset('${p.id}')" style="flex:1;text-align:left;background:transparent;border:none;color:#fff;cursor:pointer;padding:0;">
+          <div style="font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <span>${isActive ? '🟢' : '⚪'}</span>
+            <span style="color:${isActive ? 'var(--amber)' : '#ffffff'};">${escapeHtml(p.name)}</span>
+            ${isActive ? '<span style="font-size:10px;background:rgba(223,172,88,0.2);color:var(--amber);padding:1px 6px;border-radius:3px;">接続中</span>' : ''}
+          </div>
+          <div style="font-size:10px;color:#94a3b8;font-family:'JetBrains Mono',monospace;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:280px;">
+            ${escapeHtml(p.url)}
+          </div>
+        </button>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button type="button" onclick="openAddPresetModal(${JSON.stringify(p).replace(/"/g, '&quot;')})" style="background:transparent;border:1px solid #384252;color:#94a3b8;border-radius:4px;padding:4px 6px;font-size:11px;cursor:pointer;" title="編集">✏️</button>
+          ${presets.length > 1 ? `<button type="button" onclick="deleteGasPreset('${p.id}')" style="background:transparent;border:1px solid rgba(239,68,68,0.4);color:#f87171;border-radius:4px;padding:4px 6px;font-size:11px;cursor:pointer;" title="削除">🗑️</button>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  box.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <div style="font-family:'Oswald',sans-serif;font-size:17px;font-weight:700;color:var(--amber);">
+        ☁️ 接続先スプレッドシートの切替
+      </div>
+      <button id="closePresetModalTopBtn" style="background:transparent;border:none;color:#94a3b8;font-size:20px;cursor:pointer;">✕</button>
+    </div>
+    <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:14px;">
+      タップするだけで接続先スプレッドシートが瞬時に切り替わり、最新データが同期されます。
+    </div>
+
+    <div style="max-height:260px;overflow-y:auto;margin-bottom:12px;">
+      ${presetListHtml}
+    </div>
+
+    <button type="button" onclick="openAddPresetModal()" style="width:100%;padding:10px 0;background:rgba(223,172,88,0.1);border:1px dashed var(--amber);color:var(--amber);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;margin-bottom:12px;">
+      ＋ 新しい接続先（URL）を登録
+    </button>
+
+    <div style="display:flex;gap:8px;">
+      <button type="button" onclick="openGuideModal('cloud'); document.body.removeChild(document.getElementById('cloudPresetModalOverlay'));" style="flex:1;padding:10px 0;background:#222832;border:1px solid #384252;color:#cbd5e1;border-radius:8px;font-size:12px;cursor:pointer;">
+        詳細設定・コード確認
+      </button>
+      <button type="button" id="closePresetModalBottomBtn" style="padding:10px 18px;background:transparent;border:1px solid #384252;color:#94a3b8;border-radius:8px;font-size:12px;cursor:pointer;">
+        閉じる
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  document.getElementById('closePresetModalTopBtn').onclick = () => document.body.removeChild(overlay);
+  document.getElementById('closePresetModalBottomBtn').onclick = () => document.body.removeChild(overlay);
+}
+window.openCloudPresetModal = openCloudPresetModal;
+
+function deleteGasPreset(id){
+  const presets = getGasPresets();
+  const target = presets.find(p => p.id === id);
+  if(!target) return;
+  if(!confirm(`接続先「${target.name}」を削除しますか？`)) return;
+
+  const remaining = presets.filter(p => p.id !== id);
+  // 削除「前」に接続中かどうかを判定する（削除後に調べると、別の接続先が接続中に見えてしまい URL が切り替わらない）
+  const activeBefore = getActivePreset();
+  saveGasPresets(remaining);
+
+  if(activeBefore && activeBefore.id === id && remaining.length > 0){
+    switchToGasPreset(remaining[0].id);
+  } else {
+    updateCloudStatusUI();
+    updatePresetUI();
+  }
+
+  const modal = document.getElementById('cloudPresetModalOverlay');
+  if(modal){
+    document.body.removeChild(modal);
+    openCloudPresetModal();
+  }
+}
+window.deleteGasPreset = deleteGasPreset;
 
 function getGasUrl(){
   const saved = localStorage.getItem(GAS_URL_KEY);
@@ -2706,14 +3060,14 @@ function autoRepairCorruptedEntries(){
     if(!e) return;
     const sizeInLap = parseSizeString(e.lapTime);
     const lapInSize = e.sizeFront && /^\d{1,2}:\d{2}/.test(String(e.sizeFront).trim());
-    const brandInCond = e.condition && !['Dry','HalfWet','Wet','BabyWet','ドライ','ハーフウェット','ウェット','ベビーウェット'].includes(e.condition);
+    const brandInCond = e.condition && !['Dry','HalfWet','Wet','HeavyWet','BabyWet','ドライ','ハーフウェット','ウェット','ヘビーウェット','ベビーウェット'].includes(e.condition);
     const tempInBrand = e.tireBrandFront && !isNaN(parseFloat(e.tireBrandFront)) && String(e.tireBrandFront).length <= 4;
 
     if(sizeInLap || lapInSize || (brandInCond && tempInBrand)){
       const correctedSize = sizeInLap ? e.lapTime : e.sizeFront;
       const correctedLap = lapInSize ? e.sizeFront : (sizeInLap ? null : e.lapTime);
       const correctedBrand = brandInCond ? e.condition : e.tireBrandFront;
-      const correctedCond = ['Dry','HalfWet','Wet','BabyWet','ドライ','ハーフウェット','ウェット','ベビーウェット'].includes(e.feel) ? e.feel : 'Dry';
+      const correctedCond = ['Dry','HalfWet','Wet','HeavyWet','BabyWet','ドライ','ハーフウェット','ウェット','ヘビーウェット','ベビーウェット'].includes(e.feel) ? e.feel : 'Dry';
       const correctedAmb = tempInBrand ? parseFloat(e.tireBrandFront) : e.ambientTemp;
       const correctedTrk = (e.tireBrandRear && !isNaN(parseFloat(e.tireBrandRear))) ? parseFloat(e.tireBrandRear) : e.trackTemp;
       const correctedFeel = (e.sizeRear && ['A','B','C','D','E'].includes(e.sizeRear)) ? e.sizeRear : e.feel;
@@ -2777,6 +3131,7 @@ async function loadEntries(){
   safe(applyFilters);
   safe(updateSessionBundleNotice);
   safe(updateCloudStatusUI);
+  safe(updatePresetUI);
 
   if(navigator.onLine && getGasUrl()){
     flushPendingQueues().catch(() => {});
@@ -3307,7 +3662,7 @@ function applyFilters(){
       const eCond = (e.condition === 'ドライ' || e.condition === 'Dry') ? 'Dry' :
                     (e.condition === 'ハーフウェット' || e.condition === 'HalfWet') ? 'HalfWet' :
                     (e.condition === 'ウェット' || e.condition === 'Wet') ? 'Wet' :
-                    (e.condition === 'ベビーウェット' || e.condition === 'BabyWet') ? 'BabyWet' : e.condition;
+                    (e.condition === 'ヘビーウェット' || e.condition === 'HeavyWet' || e.condition === 'ベビーウェット' || e.condition === 'BabyWet') ? 'HeavyWet' : e.condition;
       if(eCond !== condition) return false;
     }
     if(tireBrand && e.tireBrandFront !== tireBrand && e.tireBrandRear !== tireBrand) return false;
@@ -3821,7 +4176,7 @@ function parseCSVToEntries(text){
     if(s === 'ドライ' || s.toLowerCase() === 'dry') return 'Dry';
     if(s === 'ハーフウェット' || s.toLowerCase() === 'halfwet') return 'HalfWet';
     if(s === 'ウェット' || s.toLowerCase() === 'wet') return 'Wet';
-    if(s === 'ベビーウェット' || s.toLowerCase() === 'babywet') return 'BabyWet';
+    if(s === 'ヘビーウェット' || s.toLowerCase() === 'heavywet' || s === 'ベビーウェット' || s.toLowerCase() === 'babywet') return 'HeavyWet';
     return s;
   };
 
@@ -4438,7 +4793,18 @@ function saveGasUrlFromInput(){
     return;
   }
   setGasUrl(url);
+  const activePreset = getActivePreset();
+  if(activePreset && url){
+    activePreset.url = url;
+    const presets = getGasPresets();
+    const idx = presets.findIndex(p => p.id === activePreset.id);
+    if(idx !== -1){
+      presets[idx].url = url;
+      saveGasPresets(presets);
+    }
+  }
   updateCloudStatusUI();
+  updatePresetUI();
   showToast('連携URLを保存しました');
   flushPendingQueues().catch(() => {});
 }
@@ -4496,6 +4862,7 @@ function switchGuideTab(tabName){
     const input = document.getElementById('gasUrlInput');
     if(input) input.value = getGasUrl();
     updateCloudStatusUI();
+    updatePresetUI();
   }
 }
 window.switchGuideTab = switchGuideTab;
@@ -4988,6 +5355,15 @@ function doGet(e) {
         <div style="font-family:'Oswald',sans-serif;font-size:14px;font-weight:700;color:var(--amber);letter-spacing:.04em;margin-bottom:6px;">
           ☁️ スプレッドシート連携設定
         </div>
+
+        <!-- 登録済み接続先のワンタップ切替枠 -->
+        <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:10px 12px;margin-bottom:12px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span style="font-size:12px;font-weight:700;color:var(--amber);">⚡ 登録済み接続先（タップで即時切替）</span>
+            <button type="button" onclick="openAddPresetModal()" style="background:var(--amber);color:#1a1400;border:none;border-radius:4px;padding:3px 8px;font-size:11px;font-weight:700;cursor:pointer;">＋ 接続先を追加</button>
+          </div>
+          <div id="guidePresetChips" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+        </div>
         <div id="cloudStatusIndicator" style="font-size:12px;margin-bottom:8px;"></div>
         <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;">
           ウェブアプリURLを設定すると、記録時に自動でスプレッドシートへリアルタイム追記されます（オフライン時もローカルに安全保持）。
@@ -5001,7 +5377,7 @@ function doGet(e) {
         <!-- 仲間に渡す連携URLの1タップコピー枠 -->
         <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:10px;margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-            <span style="font-size:12px;font-weight:700;color:var(--amber);">👥 後から参加する仲間に渡す連携URL</span>
+            <span style="font-size:12px;font-weight:700;color:var(--amber);">👥 仲間に渡す共有連携URL</span>
             <button type="button" onclick="copyCurrentGasUrl()" style="background:#2a3340;border:1px solid #4a5568;color:#ffffff;border-radius:5px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;">📋 URLをコピー</button>
           </div>
           <div id="shareGasUrlDisplay" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;word-break:break-all;user-select:all;background:#1b2028;padding:6px 8px;border-radius:4px;border:1px solid #28303d;"></div>
@@ -5056,7 +5432,7 @@ function doGet(e) {
           1. このアプリに戻り、上の入力枠にURLを貼り付けて「<strong>保存</strong>」を押します。<br>
           2. これ以降、走行枠を記録するたびに自動でスプレッドシートへ送信・永久保存されます！<br><br>
 
-          <strong style="color:var(--amber);font-size:13px;">📌 「デプロイを管理」から後から参加する人に渡すURLを出す方法：</strong><br>
+          <strong style="color:var(--amber);font-size:13px;">📌 共有URLを再確認して新しいメンバーに渡す手順（デプロイの管理画面）：</strong><br>
           チームに後から新しいメンバーが加わった際、代表者のGoogleスプレッドシートからいつでもURLを再確認・取得できます：<br>
           1. Googleスプレッドシートを開き、メニューの「<strong>拡張機能</strong>」→「<strong>Apps Script</strong>」を開きます。<br>
           2. 画面右上の青い「<strong>デプロイ</strong>」ボタンを押し、<strong>「デプロイを管理」</strong>をクリックします。<br>
@@ -5069,7 +5445,41 @@ function doGet(e) {
 
           <strong style="color:#ffffff;">🏎️ 複数人シェア vs 個人愛車の使い分け：</strong><br>
           ・<strong>1台をシェアする場合</strong>：全員で同じ車両名（例: <code>GR86</code>）に設定すると、別々のスマホで測った冷温間が1つのカードに自動合体！<br>
-          ・<strong>別々の車で走る場合</strong>：<code>ロードスター_佐藤</code>、<code>GR86_山田</code> のように名前をつければデータが混ざりません。
+          ・<strong>別々の車で走る場合</strong>：<code>ロードスター_佐藤</code>、<code>GR86_山田</code> のように名前をつければデータが混ざりません。<br><br>
+
+          <!-- すでにデータを保存していて後から共有に参加する方の手順 -->
+          <div style="background:#1b212b;border:1px solid #384252;border-radius:8px;padding:12px;margin:10px 0;">
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+              📱 すでにデータを保存していて、後から共有に参加する方へ
+            </div>
+            <div style="font-size:12px;color:#cbd5e1;line-height:1.7;">
+              これまで単体で記録していて、後からチームの共有スプレッドシートに参加する場合でも、<strong>既存のデータが消えることはありません</strong>。以下の簡単な手順で安全に合流できます：<br><br>
+              <strong>① 車両名を区別できる名前にしておく（推奨）：</strong><br>
+              上部の「車両切替」→「車両管理」から、愛車名が「マイカー」のままの場合は「<code>GR86_山田</code>」のようにドライバー名を付けておくと、チーム内の他メンバーの記録と混ざらず個別に管理できます。<br><br>
+              <strong>② 代表者からもらったURLを保存：</strong><br>
+              この画面上部の入力欄にURLを貼り付けて「<strong>保存</strong>」を押します。<br><br>
+              <strong>③ 自分の過去データをスプレッドシートへ合流：</strong><br>
+              すぐ下にある「<strong>過去データをスプレッドシートへ一括送信（アップロード）</strong>」を押します。これで、あなたのスマホ内の過去データが共有シートへ安全に追加されます。<br><br>
+              <strong>④ 仲間のデータを取得：</strong><br>
+              画面上部の「<strong>更新</strong>」（くるくるアイコン）を押すと、仲間が記録した最新データもあなたのスマホに読み込まれ、全員のデータが合体します。
+            </div>
+          </div>
+
+          <!-- 複数のスプレッドシートに入りたい人（使い分け）のための説明 -->
+          <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:12px;margin:10px 0;">
+            <div style="font-size:13px;font-weight:700;color:var(--amber);margin-bottom:6px;">
+              🏎️ 複数のスプレッドシート（複数チーム・個人用）を使い分けたい場合
+            </div>
+            <div style="font-size:12px;color:#cbd5e1;line-height:1.7;">
+              「個人用の記録シート」と「チーム共有シート」、「Aチーム」と「Bチーム」など、複数のスプレッドシートに参加したい場合は、<strong>ブラウザを使い分ける方法が最も安全・確実でおすすめ</strong>です：<br><br>
+              ・<strong>iPhone（Safari と Chrome の使い分け）：</strong><br>
+              　<strong>Safari</strong> でシートAのURLを設定して「ホーム画面に追加」<br>
+              　<strong>Chrome</strong> でシートBのURLを設定して「ホーム画面に追加」<br>
+              　※ブラウザごとにデータの保存領域が完全に独立しているため、データが混ざることなく2つの別アプリとして完璧に使い分けられます。<br><br>
+              ・<strong>同一ブラウザで切り替える場合：</strong><br>
+              　「共有使用」のURLをその都度貼り替えて「保存」→「更新」することで接続先を変更できます（※端末内のデータは保持されます）。
+            </div>
+          </div>
         </div>
 
         <!-- GAS Code box -->
@@ -5359,11 +5769,11 @@ function updateTrackFilterOptions(){
     }
     if(e.tireBrandFront){
       const bf = String(e.tireBrandFront).trim();
-      if(bf && isNaN(parseFloat(bf)) && !CONDITION_LABELS[bf] && !['Dry','HalfWet','Wet','BabyWet'].includes(bf)) brandSet.add(bf);
+      if(bf && isNaN(parseFloat(bf)) && !CONDITION_LABELS[bf] && !['Dry','HalfWet','Wet','HeavyWet','BabyWet'].includes(bf)) brandSet.add(bf);
     }
     if(e.tireBrandRear){
       const br = String(e.tireBrandRear).trim();
-      if(br && isNaN(parseFloat(br)) && !CONDITION_LABELS[br] && !['Dry','HalfWet','Wet','BabyWet'].includes(br)) brandSet.add(br);
+      if(br && isNaN(parseFloat(br)) && !CONDITION_LABELS[br] && !['Dry','HalfWet','Wet','HeavyWet','BabyWet'].includes(br)) brandSet.add(br);
     }
     if(e.sizeFront && parseSizeString(e.sizeFront)) sizeSet.add(String(e.sizeFront).trim());
     if(e.sizeRear && parseSizeString(e.sizeRear)) sizeSet.add(String(e.sizeRear).trim());
@@ -5848,7 +6258,7 @@ function openEditModal(id){
           <option value="Dry"${entry.condition==='Dry'?' selected':''}>ドライ</option>
           <option value="HalfWet"${entry.condition==='HalfWet'?' selected':''}>ハーフウェット</option>
           <option value="Wet"${entry.condition==='Wet'?' selected':''}>ウェット</option>
-          <option value="BabyWet"${entry.condition==='BabyWet'?' selected':''}>ベビーウェット</option>
+          <option value="HeavyWet"${(entry.condition==='HeavyWet'||entry.condition==='BabyWet')?' selected':''}>ヘビーウェット</option>
         </select>
       </div>
       <div>
