@@ -1,5 +1,5 @@
 /**
- * TPSync Ver1.02 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.05 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -109,6 +109,23 @@ function parseTime_(v, fallback) {
   return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
 }
 
+// 削除ロック（任意）。スクリプトプロパティ DELETE_KEY を設定すると、管理者の合言葉が一致しない要求は
+// 「その端末（端末ID）が記録した行」だけを削除できる（他の人の記録は削除されず、skipped に件数が返る）。
+// 管理者（合言葉が一致）は全件削除可能。閲覧・記録の追加・編集は誰でも従来どおり。
+// 未設定なら従来どおり（URLを知っていれば誰の記録でも削除可能）。
+function isDeleteAdmin_(provided) {
+  var key = PropertiesService.getScriptProperties().getProperty('DELETE_KEY');
+  if (!key) return true;
+  return String(provided === undefined || provided === null ? '' : provided) === String(key);
+}
+// 管理者でない場合、行の端末ID（W列=index 22）が要求元の端末IDと一致するときだけ削除を許可
+function canDeleteRow_(isAdmin, row, deviceId) {
+  if (isAdmin) return true;
+  var dev = String(deviceId === undefined || deviceId === null ? '' : deviceId).trim();
+  if (!dev) return false;
+  return String(row[22] === undefined || row[22] === null ? '' : row[22]).trim().replace(/^'/, '') === dev;
+}
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
@@ -164,6 +181,7 @@ function doPost(e) {
     }
 
     var data = JSON.parse(e.postData.contents);
+    var isAdmin_ = isDeleteAdmin_(data.key);
 
     // 1. 個別セッション保存・更新
     if (data.action === 'save' && data.entry) {
@@ -298,6 +316,9 @@ function doPost(e) {
         var targetId = String(data.id).trim().replace(/^'/, '');
         for (var i = 0; i < idValues.length; i++) {
           if (String(idValues[i][0]).trim().replace(/^'/, '') === targetId) {
+            if (!canDeleteRow_(isAdmin_, sheet.getRange(i + 2, 1, 1, 24).getDisplayValues()[0], data.deviceId)) {
+              return ContentService.createTextOutput(JSON.stringify({ status: 'ok', skipped: 1 })).setMimeType(ContentService.MimeType.JSON);
+            }
             // ゴミ箱へ退避
             var rowToTrash = sheet.getRange(i + 2, 1, 1, 24).getValues()[0];
             rowToTrash.push(new Date().toISOString()); // 25列目: 削除日時
@@ -316,9 +337,11 @@ function doPost(e) {
     // 4. 一括削除（ゴミ箱シートへ一括退避した上でメインシートから削除）
     if (data.action === 'bulk_delete' && Array.isArray(data.ids) && data.ids.length > 0) {
       var lastRow = sheet.getLastRow();
+      var delSkipped = 0;
       if (lastRow > 1) {
         var idValues = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues().map(function(r) { return [rowKey_(r)]; });
         var allRowValues = sheet.getRange(2, 1, lastRow - 1, 24).getValues();
+        var idDisp = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
         var idSet = {};
         data.ids.forEach(function(id) { idSet[String(id).trim().replace(/^'/, '')] = true; });
 
@@ -329,6 +352,7 @@ function doPost(e) {
         for (var i = 0; i < idValues.length; i++) {
           var rowId = String(idValues[i][0]).trim().replace(/^'/, '');
           if (idSet[rowId]) {
+            if (!canDeleteRow_(isAdmin_, idDisp[i], data.deviceId)) { delSkipped++; continue; }
             var r = allRowValues[i];
             r.push(nowIso); // 25列目: 削除日時
             rowsToTrash.push(escapeRowForWrite_(r));
@@ -353,7 +377,7 @@ function doPost(e) {
         }
       }
       purgeOldTrash_(TRASH_RETENTION_DAYS);
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', skipped: delSkipped })).setMimeType(ContentService.MimeType.JSON);
     }
 
     return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_action' })).setMimeType(ContentService.MimeType.JSON);

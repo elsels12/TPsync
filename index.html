@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.02 — PIT WALL LOG</title>
+<title>TPSync Ver1.05 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1019,7 +1019,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.02</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.05</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1547,7 +1547,48 @@ function carNamesFromEntries(){
 }
 
 // v1.89: 電波が弱いサーキットで通信が固まっても、同期処理が永久に止まらないようタイムアウトを付ける
+// 削除結果の共通処理。サーバーが「管理者のみ」と拒否したら、待ち行列から外して知らせる（クラウドの記録は残る）
+function handleDeleteResult_(json, ids){
+  if(json && json.status === 'ok'){
+    ids.forEach(id => unmarkIdPendingDelete(id));
+    if(json.skipped > 0){
+      showToast('🔒 他の端末の記録 ' + json.skipped + '件は削除されませんでした（管理者のみ削除可）。次の更新で戻ります', 4500);
+    }
+    return true;
+  }
+  return false;
+}
+// 管理者の合言葉（任意）。連携URLごとに端末へ保存し、すべての通信に付けて送る。
+const GAS_KEYS_KEY = 'tire_pressure_gas_keys';
+function gasKeyBase_(url){ return String(url || '').split('?')[0]; }
+function getGasKey(url){
+  try{
+    const m = JSON.parse(localStorage.getItem(GAS_KEYS_KEY) || '{}');
+    return (m && m[gasKeyBase_(url)]) || '';
+  }catch(e){ return ''; }
+}
+function setGasKey(url, key){
+  try{
+    const m = JSON.parse(localStorage.getItem(GAS_KEYS_KEY) || '{}') || {};
+    const b = gasKeyBase_(url);
+    if(key) m[b] = key; else delete m[b];
+    localStorage.setItem(GAS_KEYS_KEY, JSON.stringify(m));
+  }catch(e){}
+}
 async function gasFetch(url, opts, timeoutMs = 30000){
+  const gk = getGasKey(url);
+  opts = Object.assign({}, opts || {});
+  if(typeof opts.body === 'string'){
+    // 送信元の端末IDを付ける（削除ロック時、自分の端末の記録だけ削除できる判定に使う）。管理者の合言葉があれば併せて付ける
+    try{
+      const o = JSON.parse(opts.body);
+      o.deviceId = getDeviceId();
+      if(gk) o.key = gk;
+      opts.body = JSON.stringify(o);
+    }catch(e){}
+  } else if(gk){
+    url = url + (url.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(gk);
+  }
   const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
   const timer = ctrl ? setTimeout(() => ctrl.abort(), timeoutMs) : null;
   try{
@@ -1656,6 +1697,7 @@ async function switchToGasPreset(presetId){
   // If guide modal has URL input open, reflect it
   const input = document.getElementById('gasUrlInput');
   if(input) input.value = target.url;
+  { const ki = document.getElementById('gasKeyInput'); if(ki) ki.value = getGasKey(target.url); }
 
   const modal = document.getElementById('cloudPresetModalOverlay');
   if(modal) document.body.removeChild(modal);
@@ -1960,9 +2002,7 @@ async function flushPendingQueues(){
           body: JSON.stringify({ action: 'bulk_delete', ids: delIds })
         });
         const json = await res.json().catch(() => null);
-        if(json && json.status === 'ok'){
-          delIds.forEach(id => unmarkIdPendingDelete(id));
-        }
+        handleDeleteResult_(json, delIds);
       } catch(e){
         console.warn('Background flush pending deletes failed:', e);
       }
@@ -2035,12 +2075,21 @@ const CAR_LIST_KEY = 'tire_pressure_cars';
 const CURRENT_CAR_KEY = 'tire_pressure_current_car';
 let carList = [];
 let currentCar = '';
+// 「車両一覧から外したが、記録は残してある車両」。記録が0件になれば自動で一覧から消える。
+const UNLISTED_KEY = 'tire_pressure_unlisted_cars';
+let unlistedCars = [];
+function persistUnlisted(){ try{ localStorage.setItem(UNLISTED_KEY, JSON.stringify(unlistedCars)); }catch(e){} }
+function isUnlisted(c){ return unlistedCars.includes(c); }
+function relistCar(c){
+  if(unlistedCars.includes(c)){ unlistedCars = unlistedCars.filter(x => x !== c); persistUnlisted(); }
+}
+function hasEntriesForCar(c){ return entries.some(e => e && (e.car || 'マイカー') === c); }
 let selectedDisplayCars = null; // null = デフォルト(現在選択中の車両のみ)
 
 function getActiveDisplayCars(){
   if(selectedDisplayCars && Array.isArray(selectedDisplayCars) && selectedDisplayCars.length > 0){
     // 名前変更・削除で存在しなくなった車両名は除外（全滅したら現在の車両に戻す）
-    const valid = selectedDisplayCars.filter(c => carList.includes(c) || c === currentCar);
+    const valid = selectedDisplayCars.filter(c => carList.includes(c) || c === currentCar || hasEntriesForCar(c));
     if(valid.length > 0) return valid;
   }
   return [currentCar || 'マイカー'];
@@ -2085,7 +2134,8 @@ function openCarFilterModal(){
 
   const currentActive = new Set(getActiveDisplayCars());
 
-  const carCheckboxesHtml = carList.map(c => {
+  const filterCarNames = carList.concat(carNamesFromEntries().filter(c => !carList.includes(c)));
+  const carCheckboxesHtml = filterCarNames.map(c => {
     const isChecked = currentActive.has(c);
     const isCurrent = c === currentCar;
     const count = entries.filter(e => (e.car || 'マイカー') === c).length;
@@ -2093,7 +2143,7 @@ function openCarFilterModal(){
       <label style="display:flex;align-items:center;gap:10px;padding:9px 10px;background:#222832;border:1px solid ${isChecked ? 'var(--amber)' : '#333e4f'};border-radius:8px;margin-bottom:6px;cursor:pointer;">
         <input type="checkbox" name="displayCarChoice" value="${escapeHtml(c)}"${isChecked ? ' checked' : ''} style="width:18px;height:18px;accent-color:var(--amber);cursor:pointer;">
         <div style="flex:1;font-size:14px;font-weight:700;color:#fff;">
-          ${getCarIcon(c)} ${escapeHtml(c)} ${isCurrent ? '<span style="font-size:11px;color:var(--amber);font-weight:normal;">(現在の選択)</span>' : ''}
+          ${getCarIcon(c)} ${escapeHtml(c)} ${isCurrent ? '<span style="font-size:11px;color:var(--amber);font-weight:normal;">(現在の選択)</span>' : ''}${!carList.includes(c) ? '<span style="font-size:11px;color:#94a3b8;font-weight:normal;">(一覧外・記録のみ)</span>' : ''}
         </div>
         <div style="font-size:12px;color:#94a3b8;font-family:\'JetBrains Mono\',monospace;">
           ${count}件
@@ -2187,6 +2237,15 @@ function persistCars(){
 
 function initCars(){
   try{
+    const rawUn = localStorage.getItem(UNLISTED_KEY);
+    unlistedCars = rawUn ? JSON.parse(rawUn) : [];
+  }catch(e){ unlistedCars = []; }
+  if(!Array.isArray(unlistedCars)) unlistedCars = [];
+  // 記録が0件になった車両は「一覧外」の管理から外す
+  const nameSet = new Set(carNamesFromEntries());
+  const un2 = unlistedCars.filter(c => typeof c === 'string' && nameSet.has(c));
+  if(un2.length !== unlistedCars.length){ unlistedCars = un2; persistUnlisted(); }
+  try{
     const rawList = localStorage.getItem(CAR_LIST_KEY);
     carList = rawList ? JSON.parse(rawList) : [];
   }catch(e){
@@ -2224,12 +2283,13 @@ function initCars(){
   // 記録にあるのに車両リストに無い車両を補完（セレクタに出ず履歴が見えなくなるのを防ぐ）
   let listChanged = false;
   carNamesFromEntries().forEach(c => {
-    if(!carList.includes(c)){ carList.push(c); listChanged = true; }
+    if(!carList.includes(c) && !isUnlisted(c)){ carList.push(c); listChanged = true; }
   });
   if(listChanged) persistCars();
 }
 
 function switchToCar(name){
+  relistCar(name);
   if(!carList.includes(name)) carList.push(name);
   currentCar = name;
   renderCarSelector();
@@ -2280,6 +2340,70 @@ function renameCarEntries(oldName, newName){
   }
 }
 
+// === 「全削除」用パスワード（この端末だけで有効。誤操作・いたずら防止用） ===
+const PURGE_PW_KEY = 'tire_pressure_purge_pw';
+async function hashPw_(str){
+  try{
+    if(window.crypto && crypto.subtle){
+      const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tpsync:' + str));
+      return 's:' + Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+  }catch(e){}
+  let h = 5381; const t = 'tpsync:' + str;
+  for(let i = 0; i < t.length; i++){ h = ((h << 5) + h + t.charCodeAt(i)) | 0; }
+  return 'd:' + (h >>> 0).toString(16);
+}
+function askPassword_(message){
+  return new Promise(resolve => {
+    const ov = document.createElement('div');
+    ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;';
+    const box = document.createElement('div');
+    box.style.cssText = 'background:#1b1f24;border:1px solid #384252;border-radius:12px;padding:16px;max-width:380px;width:100%;color:#e9e6df;';
+    const msg = document.createElement('div');
+    msg.style.cssText = 'font-size:13px;line-height:1.6;margin-bottom:10px;white-space:pre-line;';
+    msg.textContent = message;
+    const inp = document.createElement('input');
+    inp.type = 'password'; inp.autocomplete = 'off';
+    inp.style.cssText = 'width:100%;box-sizing:border-box;background:#14171b;border:1px solid #384252;border-radius:6px;padding:10px;color:#fff;font-size:16px;margin-bottom:12px;';
+    const row = document.createElement('div');
+    row.style.cssText = 'display:flex;gap:8px;';
+    const ok = document.createElement('button');
+    ok.textContent = 'OK';
+    ok.style.cssText = 'flex:1;padding:10px 0;background:var(--amber);color:#1a1400;font-weight:700;border:none;border-radius:6px;cursor:pointer;';
+    const ng = document.createElement('button');
+    ng.textContent = 'キャンセル';
+    ng.style.cssText = 'padding:10px 14px;background:transparent;color:#94a3b8;border:1px solid #384252;border-radius:6px;cursor:pointer;';
+    const done = v => { if(ov.parentNode) ov.parentNode.removeChild(ov); resolve(v); };
+    ok.onclick = () => done(inp.value);
+    ng.onclick = () => done(null);
+    inp.onkeydown = ev => { if(ev.key === 'Enter') done(inp.value); };
+    row.appendChild(ok); row.appendChild(ng);
+    box.appendChild(msg); box.appendChild(inp); box.appendChild(row);
+    ov.appendChild(box); document.body.appendChild(ov);
+    setTimeout(() => inp.focus(), 50);
+  });
+}
+// パスワード確認。未設定なら新規設定させる。通ったら true。
+async function requirePurgePassword_(){
+  let stored = null;
+  try{ stored = localStorage.getItem(PURGE_PW_KEY); }catch(e){}
+  if(!stored){
+    const a = await askPassword_('「全削除」用のパスワードを新しく設定します（4文字以上）。\n忘れると、この端末では全削除できなくなります。');
+    if(a === null) return false;
+    if(a.length < 4){ showToast('4文字以上で設定してください'); return false; }
+    const b = await askPassword_('確認のため、もう一度入力してください。');
+    if(b === null) return false;
+    if(a !== b){ showToast('パスワードが一致しません'); return false; }
+    try{ localStorage.setItem(PURGE_PW_KEY, await hashPw_(a)); }catch(e){}
+    showToast('全削除パスワードを設定しました');
+    return true;
+  }
+  const v = await askPassword_('「全削除」のパスワードを入力してください。');
+  if(v === null) return false;
+  if((await hashPw_(v)) !== stored){ showToast('パスワードが違います'); return false; }
+  return true;
+}
+
 function openCarManager(){
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -2323,10 +2447,12 @@ function openCarManager(){
           );
           if(!proceed) return;
           renameCarEntries(car, trimmed);
+          relistCar(trimmed);
           carList = carList.filter(c => c !== car);
           if(currentCar === car) currentCar = trimmed;
         } else {
           renameCarEntries(car, trimmed);
+          relistCar(trimmed);
           carList = carList.map(c => c === car ? trimmed : c);
           if(currentCar === car) currentCar = trimmed;
         }
@@ -2341,15 +2467,17 @@ function openCarManager(){
     };
 
     const delBtn = document.createElement('button');
-    delBtn.textContent = '削除';
+    delBtn.textContent = '全削除';
+    delBtn.title = '車両と、その車の記録をすべて削除します（パスワードが必要）';
     delBtn.style.cssText = 'background:transparent;border:1px solid var(--danger);color:#ff5a2e;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;';
-    delBtn.onclick = ()=>{
+    delBtn.onclick = async ()=>{
       if(carList.length <= 1){
         showToast('最後の1台は削除できません');
         return;
       }
+      if(!(await requirePurgePassword_())) return;
       const carEntryCount = entries.filter(e => e.car === car).length;
-      if(confirm(`「${car}」とその記録${carEntryCount}件を削除します。${getGasUrl() ? '\n※連携中のスプレッドシート上の記録も削除され、共有している全員の端末からも消えます。' : ''}\nよろしいですか？`)){
+      if(confirm(`「${car}」とその記録${carEntryCount}件を【全削除】します。${getGasUrl() ? '\n※連携中のスプレッドシート上の記録も削除され、共有している全員の端末からも消えます。' : ''}\nよろしいですか？`)){
         const carDelIds = entries.filter(e => e.car === car).map(e => e.id);
         carDelIds.forEach(id => markIdPendingDelete(id));
         entries = entries.filter(e => e.car !== car);
@@ -2372,7 +2500,37 @@ function openCarManager(){
     };
 
     row.appendChild(name);
+    const unlistBtn = document.createElement('button');
+    unlistBtn.textContent = '一覧から外す';
+    unlistBtn.title = '車両一覧から外します。記録は消えず、絞り込みの「表示車両」から引き続き選べます';
+    unlistBtn.style.cssText = 'background:transparent;border:1px solid #384252;color:#cbd5e1;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer;';
+    unlistBtn.onclick = ()=>{
+      if(carList.length <= 1){
+        showToast('最後の1台は外せません');
+        return;
+      }
+      const cnt = entries.filter(e => (e.car || 'マイカー') === car).length;
+      if(cnt === 0){
+        showToast('記録が0件です。不要なら「削除」を使ってください');
+        return;
+      }
+      if(confirm(`「${car}」を車両一覧から外します。\n記録${cnt}件は消えません（クラウドにも残ります）。絞り込みの「表示車両」から引き続き選べます。\nよろしいですか？`)){
+        carList = carList.filter(c => c !== car);
+        if(!unlistedCars.includes(car)) unlistedCars.push(car);
+        if(currentCar === car) currentCar = carList[0];
+        persistUnlisted();
+        persistCars();
+        document.body.removeChild(overlay);
+        renderCarSelector();
+        updateCarFilterBtnUI();
+        updateTrackFilterOptions();
+        applyFilters();
+        showToast('車両を一覧から外しました（記録は残っています）');
+      }
+    };
+
     row.appendChild(renameBtn);
+    row.appendChild(unlistBtn);
     row.appendChild(delBtn);
     list.appendChild(row);
   });
@@ -2440,6 +2598,7 @@ function openCarManager(){
       applyFilters();
       showToast(`「${val}」を選択しました（同一車両として共有）`);
     } else {
+      relistCar(val);
       carList.push(val);
       currentCar = val;
       persistCars();
@@ -4531,13 +4690,14 @@ async function executeImport(imported, newCarName, isFromCloud = false){
   entries.sort((a,b) => entryTime(b) - entryTime(a));
 
   if(newCarName){
+    relistCar(newCarName);
     if(!carList.includes(newCarName)){
       carList.push(newCarName);
     }
     currentCar = newCarName;
   } else {
     imported.forEach(e => {
-      if(e && e.car && !carList.includes(e.car)){
+      if(e && e.car && !carList.includes(e.car) && !isUnlisted(e.car)){
         carList.push(e.car);
       }
     });
@@ -4546,7 +4706,8 @@ async function executeImport(imported, newCarName, isFromCloud = false){
     if(getCarEntries().length === 0 && entries.length > 0){
       const names = carNamesFromEntries();
       if(names.length > 0){
-        currentCar = names[0];
+        currentCar = names.find(c => !isUnlisted(c)) || names[0];
+        relistCar(currentCar);
         if(!carList.includes(currentCar)) carList.push(currentCar);
       }
     }
@@ -4609,9 +4770,7 @@ async function syncDeleteToCloud(id){
       body: JSON.stringify({ action: 'delete', id: String(id) })
     });
     const json = await res.json().catch(() => null);
-    if(json && json.status === 'ok'){
-      unmarkIdPendingDelete(id);
-    }
+    handleDeleteResult_(json, [id]);
   } catch(err) {
     console.warn('Background cloud delete failed (queued for retry):', err);
   }
@@ -4629,9 +4788,7 @@ async function syncBulkDeleteToCloud(ids){
       body: JSON.stringify({ action: 'bulk_delete', ids: ids.map(String) })
     });
     const json = await res.json().catch(() => null);
-    if(json && json.status === 'ok'){
-      ids.forEach(id => unmarkIdPendingDelete(id));
-    }
+    handleDeleteResult_(json, ids);
   } catch(err) {
     console.warn('Background cloud bulk delete failed (queued for retry):', err);
   }
@@ -4685,9 +4842,7 @@ async function uploadAllToCloud(){
         body: JSON.stringify({ action: 'bulk_delete', ids: delIds })
       });
       const delJson = await delRes.json().catch(() => null);
-      if(delJson && delJson.status === 'ok'){
-        delIds.forEach(id => unmarkIdPendingDelete(id));
-      }
+      handleDeleteResult_(delJson, delIds);
     }
 
     // 2. Upload all current entries
@@ -4757,7 +4912,7 @@ async function quickCloudSync(isSilent){
         await flushPendingQueues();
       }
     } else {
-      if(!isSilent) showToast('データの取得に失敗しました');
+      if(!isSilent) showToast(json && json.status === 'error' && json.message ? ('取得失敗: ' + json.message) : 'データの取得に失敗しました');
     }
   } catch(err) {
     console.error('quickCloudSync error:', err);
@@ -4815,6 +4970,7 @@ function saveGasUrlFromInput(){
     return;
   }
   setGasUrl(url);
+  { const ki = document.getElementById('gasKeyInput'); if(ki) setGasKey(url, ki.value.trim()); }
   const activePreset = getActivePreset();
   if(activePreset && url){
     activePreset.url = url;
@@ -4884,6 +5040,7 @@ function switchGuideTab(tabName){
   if(tabName === 'cloud'){
     const input = document.getElementById('gasUrlInput');
     if(input) input.value = getGasUrl();
+    { const ki = document.getElementById('gasKeyInput'); if(ki) ki.value = getGasKey(getGasUrl()); }
     updateCloudStatusUI();
     updatePresetUI();
   }
@@ -4899,7 +5056,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync Ver1.02 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.05 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -5009,6 +5166,23 @@ function parseTime_(v, fallback) {
   return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
 }
 
+// 削除ロック（任意）。スクリプトプロパティ DELETE_KEY を設定すると、管理者の合言葉が一致しない要求は
+// 「その端末（端末ID）が記録した行」だけを削除できる（他の人の記録は削除されず、skipped に件数が返る）。
+// 管理者（合言葉が一致）は全件削除可能。閲覧・記録の追加・編集は誰でも従来どおり。
+// 未設定なら従来どおり（URLを知っていれば誰の記録でも削除可能）。
+function isDeleteAdmin_(provided) {
+  var key = PropertiesService.getScriptProperties().getProperty('DELETE_KEY');
+  if (!key) return true;
+  return String(provided === undefined || provided === null ? '' : provided) === String(key);
+}
+// 管理者でない場合、行の端末ID（W列=index 22）が要求元の端末IDと一致するときだけ削除を許可
+function canDeleteRow_(isAdmin, row, deviceId) {
+  if (isAdmin) return true;
+  var dev = String(deviceId === undefined || deviceId === null ? '' : deviceId).trim();
+  if (!dev) return false;
+  return String(row[22] === undefined || row[22] === null ? '' : row[22]).trim().replace(/^'/, '') === dev;
+}
+
 function doPost(e) {
   var lock = LockService.getScriptLock();
   try {
@@ -5064,6 +5238,7 @@ function doPost(e) {
     }
 
     var data = JSON.parse(e.postData.contents);
+    var isAdmin_ = isDeleteAdmin_(data.key);
 
     // 1. 個別セッション保存・更新
     if (data.action === 'save' && data.entry) {
@@ -5198,6 +5373,9 @@ function doPost(e) {
         var targetId = String(data.id).trim().replace(/^'/, '');
         for (var i = 0; i < idValues.length; i++) {
           if (String(idValues[i][0]).trim().replace(/^'/, '') === targetId) {
+            if (!canDeleteRow_(isAdmin_, sheet.getRange(i + 2, 1, 1, 24).getDisplayValues()[0], data.deviceId)) {
+              return ContentService.createTextOutput(JSON.stringify({ status: 'ok', skipped: 1 })).setMimeType(ContentService.MimeType.JSON);
+            }
             // ゴミ箱へ退避
             var rowToTrash = sheet.getRange(i + 2, 1, 1, 24).getValues()[0];
             rowToTrash.push(new Date().toISOString()); // 25列目: 削除日時
@@ -5216,9 +5394,11 @@ function doPost(e) {
     // 4. 一括削除（ゴミ箱シートへ一括退避した上でメインシートから削除）
     if (data.action === 'bulk_delete' && Array.isArray(data.ids) && data.ids.length > 0) {
       var lastRow = sheet.getLastRow();
+      var delSkipped = 0;
       if (lastRow > 1) {
         var idValues = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues().map(function(r) { return [rowKey_(r)]; });
         var allRowValues = sheet.getRange(2, 1, lastRow - 1, 24).getValues();
+        var idDisp = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
         var idSet = {};
         data.ids.forEach(function(id) { idSet[String(id).trim().replace(/^'/, '')] = true; });
 
@@ -5229,6 +5409,7 @@ function doPost(e) {
         for (var i = 0; i < idValues.length; i++) {
           var rowId = String(idValues[i][0]).trim().replace(/^'/, '');
           if (idSet[rowId]) {
+            if (!canDeleteRow_(isAdmin_, idDisp[i], data.deviceId)) { delSkipped++; continue; }
             var r = allRowValues[i];
             r.push(nowIso); // 25列目: 削除日時
             rowsToTrash.push(escapeRowForWrite_(r));
@@ -5253,7 +5434,7 @@ function doPost(e) {
         }
       }
       purgeOldTrash_(TRASH_RETENTION_DAYS);
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok' })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', skipped: delSkipped })).setMimeType(ContentService.MimeType.JSON);
     }
 
     return ContentService.createTextOutput(JSON.stringify({ status: 'unknown_action' })).setMimeType(ContentService.MimeType.JSON);
@@ -5402,13 +5583,16 @@ function doGet(e) {
             保存
           </button>
         </div>
+        <div style="display:flex;gap:6px;margin-bottom:10px;align-items:center;">
+          <input type="text" id="gasKeyInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="管理者の合言葉（削除に必要。管理者のみ入力・仲間は空欄）" style="-webkit-text-security:disc;flex:1;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px;color:#fff;font-size:12px;">
+        </div>
         <!-- 仲間に渡す連携URLの1タップコピー枠 -->
         <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:10px;margin-bottom:12px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
             <span style="font-size:12px;font-weight:700;color:var(--amber);">👥 仲間に渡す共有連携URL</span>
             <button type="button" onclick="copyCurrentGasUrl()" style="background:#2a3340;border:1px solid #4a5568;color:#ffffff;border-radius:5px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;">📋 URLをコピー</button>
           </div>
-          <div id="shareGasUrlDisplay" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;word-break:break-all;user-select:all;background:#1b2028;padding:6px 8px;border-radius:4px;border:1px solid #28303d;"></div>
+          <div id="shareGasUrlDisplay" style="-webkit-text-security:disc;font-family:'JetBrains Mono',monospace;font-size:11px;color:#94a3b8;word-break:break-all;user-select:all;background:#1b2028;padding:6px 8px;border-radius:4px;border:1px solid #28303d;"></div>
           <div style="font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5;">
             このURLをLINEやメールで仲間に送るだけで、同じスプレッドシートに全員でリアルタイム共有できます。
           </div>
@@ -6206,7 +6390,7 @@ function openEditModal(id){
     <div style="margin-bottom:12px;">
       <label style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#cbd5e1;display:block;margin-bottom:4px;">登録車両</label>
       <select id="editCar" style="width:100%;background:#16191e;color:#fff;border:1px solid #384252;border-radius:6px;padding:8px;font-size:14px;">
-        ${carList.map(c => `<option value="${escapeHtml(c)}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>${getCarIcon(c)} ${escapeHtml(c)}</option>`).join('')}
+        ${(carList.includes(entry.car) || !entry.car ? carList : carList.concat([entry.car])).map(c => `<option value="${escapeHtml(c)}"${c === (entry.car || currentCar || 'マイカー') ? ' selected' : ''}>${getCarIcon(c)} ${escapeHtml(c)}</option>`).join('')}
       </select>
     </div>
 
@@ -6419,7 +6603,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.02').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.05').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
