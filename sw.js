@@ -1,10 +1,11 @@
-const CACHE_NAME = 'tpsync-v1.00';
+const CACHE_NAME = 'tpsync-v1.02';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
-  './icon-512.png'
+  './icon-512.png',
+  './icon-512-maskable.png'
 ];
 
 self.addEventListener('install', (event) => {
@@ -98,3 +99,5 @@ self.addEventListener('fetch', (event) => {
     })()
   );
 });
+
+// bump 1791971128978

@@ -1,5 +1,5 @@
 /**
- * TPSync Ver1.00 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.02 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -342,9 +342,14 @@ function doPost(e) {
           trashSheet.getRange(startTrashRow, 1, rowsToTrash.length, 25).setValues(rowsToTrash);
         }
 
-        // 逆順で行削除
-        for (var d = rowsToDelete.length - 1; d >= 0; d--) {
-          sheet.deleteRow(rowsToDelete[d]);
+        // 連続した行はまとめて削除（行ごとに削除すると数百件で時間切れになるため）。下の行から順に処理して行番号のずれを防ぐ
+        var runs = [];
+        rowsToDelete.forEach(function(rn) {
+          var last = runs[runs.length - 1];
+          if (last && last.start + last.count === rn) { last.count++; } else { runs.push({ start: rn, count: 1 }); }
+        });
+        for (var d = runs.length - 1; d >= 0; d--) {
+          sheet.deleteRows(runs[d].start, runs[d].count);
         }
       }
       purgeOldTrash_(TRASH_RETENTION_DAYS);

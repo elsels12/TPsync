@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.00 — PIT WALL LOG</title>
+<title>TPSync Ver1.02 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -240,7 +240,7 @@
   #corner-RR{grid-area:rr;}
   .corner.flagged{border-color:var(--danger);}
   .corner .label{
-    font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:800;
+    font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:800;
     color:#cbd5e1;line-height:1.2;margin-bottom:3px;
   }
   .corner .label .sub-code{
@@ -543,6 +543,9 @@
     max-width:130px;text-overflow:ellipsis;
   }
   .size-preset-select option{background:#20252b;color:#ffffff;}
+  /* 絞り込み欄: プリセットの選択肢がカードの右端からはみ出さないよう、幅に合わせて縮める */
+  .filter-size-tools{min-width:0;max-width:100%;}
+  .filter-size-tools .size-preset-select{flex-shrink:1 !important;min-width:0;max-width:min(130px,38vw) !important;}
 
   .autocomplete-list{
     display:none;position:absolute;top:100%;left:0;right:0;z-index:30;
@@ -1016,7 +1019,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.00</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.02</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1473,8 +1476,8 @@ const STORE_KEY = 'tire_pressure_entries';
 const PENDING_SYNC_KEY = 'tire_pending_sync';
 const PENDING_DELETES_KEY = 'tire_pending_deletes';
 const GAS_URL_KEY = 'tire_pressure_gas_url';
-// 代表者デプロイ済みのデフォルト連携URL（端末ローカル設定がない場合に自動適用）
-const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyjXa0K-K6lVPRbQxGy80MjhD0sO-fxhrien42Mr48l3BZ8ft3vlL6hyqj3l-sovG-ZNQ/exec';
+// 連携URLは公開ページに直接書かない（URLを知る人は誰でもスプレッドシートを読み書きできるため）。端末ごとに「共有使用」で設定する。
+const DEFAULT_GAS_URL = '';
 // CAR keys defined at top
 
 
@@ -1628,6 +1631,13 @@ async function switchToGasPreset(presetId){
   const target = presets.find(p => p.id === presetId);
   if(!target) return;
 
+  // 接続先を替えると、この端末の記録は切替先シートの内容に入れ替わる（元に戻せば復活する）ことを先に伝える
+  {
+    const curUrl0 = getGasUrl();
+    if(curUrl0 && curUrl0 !== target.url && entries.length > 0){
+      if(!confirm(`「${target.name}」に切り替えます。\nこの端末に表示される記録は「${target.name}」のシートの内容に入れ替わります（${entries.length}件は元の接続先に戻すと再表示されます）。\n切り替えますか？`)) return;
+    }
+  }
   // 切替前に、今の接続先あての未送信データを今の接続先へ送っておく（切替後に別シートへ送られるのを防ぐ）
   const prevUrl = getGasUrl();
   if(prevUrl && prevUrl !== target.url && navigator.onLine){
@@ -2251,6 +2261,25 @@ function handleCarSelectorChange(){
   updateSessionBundleNotice();
 }
 
+// 車両名の変更を記録に反映し、クラウド（他端末）へも送る。
+// 更新日時を進めないと、他端末・スプレッドシートに旧名のまま残り、共有時に表示が食い違う。
+function renameCarEntries(oldName, newName){
+  const nowIso = new Date().toISOString();
+  const moved = [];
+  entries.forEach(e => {
+    if(e && (e.car || 'マイカー') === oldName){
+      e.car = newName;
+      e.updatedAt = nowIso;
+      e.syncedAt = null;
+      moved.push(e);
+    }
+  });
+  markEntriesPendingSyncBulk(moved);
+  if(moved.length > 0 && getGasUrl()){
+    flushPendingQueues().catch(() => {});
+  }
+}
+
 function openCarManager(){
   const overlay = document.createElement('div');
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:100;display:flex;align-items:center;justify-content:center;padding:20px;';
@@ -2293,35 +2322,16 @@ function openCarManager(){
             `この名称に変更すると、既存の「${trimmed}」とデータが1つの車両に統合されます。よろしいですか？`
           );
           if(!proceed) return;
-          const nowIso = new Date().toISOString();
-          const renamed = [];
-          entries.forEach(e => {
-            if(e && e.car === car) {
-              e.car = trimmed;
-              e.updatedAt = nowIso;
-              renamed.push(e);
-            }
-          });
-          markEntriesPendingSyncBulk(renamed);
+          renameCarEntries(car, trimmed);
           carList = carList.filter(c => c !== car);
           if(currentCar === car) currentCar = trimmed;
         } else {
-          const nowIso = new Date().toISOString();
-          const renamed = [];
-          entries.forEach(e => {
-            if(e && e.car === car) {
-              e.car = trimmed;
-              e.updatedAt = nowIso;
-              renamed.push(e);
-            }
-          });
-          markEntriesPendingSyncBulk(renamed);
+          renameCarEntries(car, trimmed);
           carList = carList.map(c => c === car ? trimmed : c);
           if(currentCar === car) currentCar = trimmed;
         }
         persistEntries();
         persistCars();
-        flushPendingQueues().catch(() => {});
         document.body.removeChild(overlay);
         renderCarSelector();
         updateTrackFilterOptions();
@@ -2339,7 +2349,7 @@ function openCarManager(){
         return;
       }
       const carEntryCount = entries.filter(e => e.car === car).length;
-      if(confirm(`「${car}」とその記録${carEntryCount}件を削除します。よろしいですか？`)){
+      if(confirm(`「${car}」とその記録${carEntryCount}件を削除します。${getGasUrl() ? '\n※連携中のスプレッドシート上の記録も削除され、共有している全員の端末からも消えます。' : ''}\nよろしいですか？`)){
         const carDelIds = entries.filter(e => e.car === car).map(e => e.id);
         carDelIds.forEach(id => markIdPendingDelete(id));
         entries = entries.filter(e => e.car !== car);
@@ -3035,14 +3045,17 @@ function showToast(msg, duration = 1600, onClick = null){
   t.textContent = msg;
   if(onClick){
     t.style.cursor = 'pointer';
+    t.style.pointerEvents = 'auto';
     t.onclick = () => {
       try { onClick(); } catch(e){}
       t.classList.remove('show');
       t.onclick = null;
       t.style.cursor = 'default';
+    t.style.pointerEvents = '';
     };
   } else {
     t.style.cursor = 'default';
+    t.style.pointerEvents = '';
     t.onclick = null;
   }
   t.classList.add('show');
@@ -3051,6 +3064,7 @@ function showToast(msg, duration = 1600, onClick = null){
     t.classList.remove('show');
     t.onclick = null;
     t.style.cursor = 'default';
+    t.style.pointerEvents = '';
   }, duration);
 }
 
@@ -4384,6 +4398,12 @@ function showImportConfirmModal(imported, importedCars, filename){
 }
 
 // 取り込みデータの正規化。IDが無い行（古いバックアップ/手編集CSV）は、黙って捨てずにIDを付与して取り込む。
+function toIsoIfPossible(v){
+  if(typeof v !== 'string' || v === '') return v;
+  if(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/.test(v)) return v;
+  const t = new Date(v).getTime();
+  return isNaN(t) ? v : new Date(t).toISOString();
+}
 function sanitizeImported(list, isFromCloud){
   const out = [];
   (Array.isArray(list) ? list : []).forEach((e, i) => {
@@ -4395,6 +4415,8 @@ function sanitizeImported(list, isFromCloud){
     ['coldPressures', 'hotPressures', 'pressures'].forEach(k => {
       if(e[k] !== undefined && e[k] !== null && typeof e[k] !== 'object') e[k] = null;
     });
+    if(e.timestamp) e.timestamp = toIsoIfPossible(e.timestamp);
+    if(e.updatedAt) e.updatedAt = toIsoIfPossible(e.updatedAt);
     out.push(e);
   });
   return out;
@@ -4815,6 +4837,7 @@ function copyCurrentGasUrl(){
     showToast('⚠️ 連携URLが未設定です。先にURLを入力して保存してください');
     return;
   }
+  if(!confirm('連携URLは「パスワード」と同じです。このURLを知る人は、記録を読み書き・削除できます。\n信頼できる仲間にだけ渡してください。コピーしますか？')) return;
   if(navigator.clipboard && navigator.clipboard.writeText){
     navigator.clipboard.writeText(url).then(() => {
       showToast('📋 連携URLをコピーしました！LINE等で仲間に共有できます');
@@ -4876,7 +4899,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync Ver1.00 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.02 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -5219,9 +5242,14 @@ function doPost(e) {
           trashSheet.getRange(startTrashRow, 1, rowsToTrash.length, 25).setValues(rowsToTrash);
         }
 
-        // 逆順で行削除
-        for (var d = rowsToDelete.length - 1; d >= 0; d--) {
-          sheet.deleteRow(rowsToDelete[d]);
+        // 連続した行はまとめて削除（行ごとに削除すると数百件で時間切れになるため）。下の行から順に処理して行番号のずれを防ぐ
+        var runs = [];
+        rowsToDelete.forEach(function(rn) {
+          var last = runs[runs.length - 1];
+          if (last && last.start + last.count === rn) { last.count++; } else { runs.push({ start: rn, count: 1 }); }
+        });
+        for (var d = runs.length - 1; d >= 0; d--) {
+          sheet.deleteRows(runs[d].start, runs[d].count);
         }
       }
       purgeOldTrash_(TRASH_RETENTION_DAYS);
@@ -5369,7 +5397,7 @@ function doGet(e) {
           ウェブアプリURLを設定すると、記録時に自動でスプレッドシートへリアルタイム追記されます（オフライン時もローカルに安全保持）。
         </div>
         <div style="display:flex;gap:6px;margin-bottom:10px;">
-          <input type="text" id="gasUrlInput" placeholder="ウェブアプリURL (https://script.google.com/macros/s/.../exec)" style="flex:1;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:12px;box-sizing:border-box;outline:none;">
+          <input type="text" id="gasUrlInput" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ウェブアプリURL (https://script.google.com/macros/s/.../exec)" style="-webkit-text-security:disc;flex:1;background:#14171b;border:1px solid #384252;border-radius:6px;padding:8px 10px;color:#fff;font-size:12px;box-sizing:border-box;outline:none;">
           <button id="saveGasUrlBtn" style="padding:8px 14px;border-radius:6px;border:none;background:var(--amber);color:#1a1400;font-weight:700;font-size:12px;cursor:pointer;white-space:nowrap;">
             保存
           </button>
@@ -6391,7 +6419,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.00').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.02').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
