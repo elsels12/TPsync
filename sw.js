@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpsync-v1.05';
+const CACHE_NAME = 'tpsync-v1.07';
 const ASSETS = [
   './',
   './index.html',
@@ -109,3 +109,7 @@ self.addEventListener('fetch', (event) => {
 // bump 1792018772372
 
 // bump 1792019261924
+
+// bump 1792270401789
+
+// bump 1792290496877
