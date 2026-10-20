@@ -1,5 +1,5 @@
 /**
- * TPSync Ver1.07 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.08 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -109,6 +109,11 @@ function parseTime_(v, fallback) {
   return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
 }
 
+var GAS_VERSION = '1.08';
+function deleteLockOn_() {
+  return !!PropertiesService.getScriptProperties().getProperty('DELETE_KEY');
+}
+
 // 削除ロック（任意）。スクリプトプロパティ DELETE_KEY を設定すると、管理者の合言葉が一致しない要求は
 // 「その端末（端末ID）が記録した行」だけを削除できる（他の人の記録は削除されず、skipped に件数が返る）。
 // 管理者（合言葉が一致）は全件削除可能。閲覧・記録の追加・編集は誰でも従来どおり。
@@ -182,6 +187,11 @@ function doPost(e) {
 
     var data = JSON.parse(e.postData.contents);
     var isAdmin_ = isDeleteAdmin_(data.key);
+
+    // 動作確認用：削除ロックの有効/無効と、この端末が管理者かどうかを返す（データは変更しない）
+    if (data.action === 'whoami') {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', deleteLock: deleteLockOn_(), admin: isAdmin_, gasVersion: GAS_VERSION })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // 1. 個別セッション保存・更新
     if (data.action === 'save' && data.entry) {
@@ -395,7 +405,7 @@ function doGet(e) {
     var sheet = getDataSheet_();
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [] })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [], deleteLock: deleteLockOn_(), gasVersion: GAS_VERSION })).setMimeType(ContentService.MimeType.JSON);
     }
     // getDisplayValues を使用して画面表示そのままの文字列を取得（Date型変換やタイムゾーン・LMTずれを完全回避）
     var values = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
@@ -443,7 +453,7 @@ function doGet(e) {
         notes: clean(row[20]) || null
       };
     });
-    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries, deleteLock: deleteLockOn_(), gasVersion: GAS_VERSION })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   } finally {

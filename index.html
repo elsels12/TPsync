@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.07 — PIT WALL LOG</title>
+<title>TPSync Ver1.08 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1029,7 +1029,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.07</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.08</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -4860,6 +4860,8 @@ async function quickCloudSync(isSilent){
     // 2. Pull all entries from cloud
     const res = await gasFetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
     const json = await res.json();
+    noteGasGetResponse_(json);
+    if(json && json.status === 'ok'){ checkGasAdmin_(); }
     if(json && json.status === 'ok' && Array.isArray(json.entries)){
       if(json.entries.length === 0){
         if(!isSilent) showToast('スプレッドシートにデータがありませんでした');
@@ -4890,6 +4892,7 @@ async function restoreFromCloud(){
   try {
     const res = await gasFetch(gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=getAll');
     const json = await res.json();
+    noteGasGetResponse_(json);
     if(json && json.status === 'ok' && Array.isArray(json.entries)){
       if(json.entries.length === 0){
         showToast('スプレッドシートにデータがありませんでした');
@@ -4973,6 +4976,45 @@ function copyCurrentGasUrl(){
 }
 window.copyCurrentGasUrl = copyCurrentGasUrl;
 
+// GASの状態（削除ロックの有無・この端末が管理者か）を覚えておき、「共有使用」に表示する
+const GAS_STATUS_KEY = 'tire_gas_status';
+function getGasStatus_(){
+  try{
+    const s = JSON.parse(localStorage.getItem(GAS_STATUS_KEY) || 'null');
+    return (s && s.url === gasKeyBase_(getGasUrl())) ? s : null;
+  }catch(e){ return null; }
+}
+function saveGasStatus_(patch){
+  try{
+    const url = gasKeyBase_(getGasUrl());
+    const cur = getGasStatus_() || { url };
+    localStorage.setItem(GAS_STATUS_KEY, JSON.stringify(Object.assign(cur, patch, { url, at: Date.now() })));
+  }catch(e){}
+}
+function noteGasGetResponse_(json){
+  if(!json || json.status !== 'ok') return;
+  saveGasStatus_({ ver: json.gasVersion || null, lock: json.deleteLock === true });
+}
+async function checkGasAdmin_(){
+  const gasUrl = getGasUrl();
+  if(!gasUrl) return;
+  try{
+    const res = await gasFetch(gasUrl, { method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify({ action:'whoami' }) });
+    const j = await res.json().catch(() => null);
+    if(j && j.status === 'ok'){ saveGasStatus_({ ver: j.gasVersion || null, lock: j.deleteLock === true, admin: j.admin === true }); }
+  }catch(e){}
+  updateCloudStatusUI();
+}
+function gasLockStatusHtml_(){
+  const st = getGasStatus_();
+  if(!st) return '<div style="font-size:11px;color:#94a3b8;margin-top:4px;">削除ロック：未確認（上部の「更新」を押すと確認できます）</div>';
+  if(!st.ver) return '<div style="font-size:11px;color:#f87171;margin-top:4px;">⚠️ GASのコードが古いままです（削除ロック非対応）。最新の Code.gs を貼り替えて「新バージョン」でデプロイしてください</div>';
+  if(!st.lock) return '<div style="font-size:11px;color:#f87171;margin-top:4px;">🔓 削除ロック：無効（GASに <code>DELETE_KEY</code> が未設定、または名前が違います。全員が全員分を削除できます）</div>';
+  if(st.admin === true) return '<div style="font-size:11px;color:#4ade80;margin-top:4px;">🔒 削除ロック：有効 ／ 👑 この端末は管理者（全員分を削除できます）</div>';
+  if(st.admin === false) return '<div style="font-size:11px;color:#cbd5e1;margin-top:4px;">🔒 削除ロック：有効 ／ 👤 この端末は仲間（自分の記録だけ削除できます）</div>';
+  return '<div style="font-size:11px;color:#cbd5e1;margin-top:4px;">🔒 削除ロック：有効</div>';
+}
+
 function updateCloudStatusUI(){
   const statusEl = document.getElementById('cloudStatusIndicator');
   const url = getGasUrl();
@@ -4991,6 +5033,7 @@ function updateCloudStatusUI(){
       } else {
         statusEl.innerHTML = '<span style="color:#4ade80;">● 連携中（クラウド自動保存 有効）</span>';
       }
+      statusEl.innerHTML += gasLockStatusHtml_();
     } else {
       statusEl.innerHTML = '<span style="color:#94a3b8;">○ 未連携（端末ローカル保存のみ）</span>';
     }
@@ -5023,7 +5066,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync Ver1.07 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.08 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -5133,6 +5176,11 @@ function parseTime_(v, fallback) {
   return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
 }
 
+var GAS_VERSION = '1.08';
+function deleteLockOn_() {
+  return !!PropertiesService.getScriptProperties().getProperty('DELETE_KEY');
+}
+
 // 削除ロック（任意）。スクリプトプロパティ DELETE_KEY を設定すると、管理者の合言葉が一致しない要求は
 // 「その端末（端末ID）が記録した行」だけを削除できる（他の人の記録は削除されず、skipped に件数が返る）。
 // 管理者（合言葉が一致）は全件削除可能。閲覧・記録の追加・編集は誰でも従来どおり。
@@ -5206,6 +5254,11 @@ function doPost(e) {
 
     var data = JSON.parse(e.postData.contents);
     var isAdmin_ = isDeleteAdmin_(data.key);
+
+    // 動作確認用：削除ロックの有効/無効と、この端末が管理者かどうかを返す（データは変更しない）
+    if (data.action === 'whoami') {
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', deleteLock: deleteLockOn_(), admin: isAdmin_, gasVersion: GAS_VERSION })).setMimeType(ContentService.MimeType.JSON);
+    }
 
     // 1. 個別セッション保存・更新
     if (data.action === 'save' && data.entry) {
@@ -5419,7 +5472,7 @@ function doGet(e) {
     var sheet = getDataSheet_();
     var lastRow = sheet.getLastRow();
     if (lastRow <= 1) {
-      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [] })).setMimeType(ContentService.MimeType.JSON);
+      return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: [], deleteLock: deleteLockOn_(), gasVersion: GAS_VERSION })).setMimeType(ContentService.MimeType.JSON);
     }
     // getDisplayValues を使用して画面表示そのままの文字列を取得（Date型変換やタイムゾーン・LMTずれを完全回避）
     var values = sheet.getRange(2, 1, lastRow - 1, 24).getDisplayValues();
@@ -5467,7 +5520,7 @@ function doGet(e) {
         notes: clean(row[20]) || null
       };
     });
-    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries })).setMimeType(ContentService.MimeType.JSON);
+    return ContentService.createTextOutput(JSON.stringify({ status: 'ok', entries: entries, deleteLock: deleteLockOn_(), gasVersion: GAS_VERSION })).setMimeType(ContentService.MimeType.JSON);
   } catch (err) {
     return ContentService.createTextOutput(JSON.stringify({ status: 'error', message: err.toString() })).setMimeType(ContentService.MimeType.JSON);
   } finally {
@@ -6585,7 +6638,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.07').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.08').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
