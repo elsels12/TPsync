@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.12 — PIT WALL LOG</title>
+<title>TPSync Ver1.14 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1029,7 +1029,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.12</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.14</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -4931,7 +4931,7 @@ async function restoreFromCloud(){
 }
 
 // === 接続診断：原因の切り分け用。結果をそのままコピーして共有できる ===
-const APP_VERSION = '1.12';
+const APP_VERSION = '1.14';
 async function runGasDiagnosis(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -5736,8 +5736,9 @@ function doGet(e) {
           💡 <strong>準備はチームの代表者1人が最初の1回だけ</strong>行えばOKです。他のメンバーは、代表者からURLをもらってアプリに登録するだけで参加できます。
         </div>
 
-                <details class="acc"><summary><span class="chev">▶</span> 📌 代表者：最初の1回だけ</summary>
+                <details class="acc"><summary><span class="chev">▶</span> 📌 共有使用設定</summary>
           <div class="acc-body">
+<div style="font-size:12px;font-weight:700;color:#94a3b8;margin:4px 0 0;">【最初の1回だけ】代表者の人が行います</div>
 
         <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">📌 ステップ1：スプレッドシートを作る（1分）</div>
 <div>
@@ -5784,7 +5785,7 @@ function doGet(e) {
         </div>
         </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 👥 仲間に参加してもらう</summary>
+        <details class="acc"><summary><span class="chev">▶</span> 👥 参加者追加／1台シェア説明</summary>
           <div class="acc-body">
 
         <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">👥 URLを仲間に渡す／URLを再確認する</div>
@@ -5809,16 +5810,28 @@ function doGet(e) {
             画面上部の「<strong>更新</strong>」（くるくるアイコン）を押すと、仲間のデータも読み込まれます。
           </div>
 
-        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">🏎️ 1台をシェア／各自の車で分ける</div>
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">🏎️ 1台のシェア（車両名のルール）</div>
 <div>
-            ・<strong>1台をシェアする場合：</strong>全員で同じ車両名（例：<code>GR86</code>）にすると、別々のスマホで測った冷間・温間が1つのカードに合体します。<br>
-            ・<strong>別々の車で走る場合：</strong><code>ロードスター_佐藤</code>、<code>GR86_山田</code> のように名前を付けると、データが混ざりません。
+            車両名が<strong>同じ</strong>かどうかで、データのまとまり方が決まります。自分の状況に近いほうを選んでください。<br><br>
+            <strong>【A】みんなで1台の車を使う（シェアする）</strong><br>
+            例：チームで共有しているGR86を、交代で走らせる。<br>
+            ① 全員が、同じ車両名（例：<code>GR86</code>）を使います。<br>
+            ② 各自のスマホで測って記録します。<br>
+            ③ 「更新」を押すと、別々のスマホで測った<strong>冷間・温間が1つのカードに合体</strong>します。<br>
+            ※ 1文字でも違うと別の車として分かれます（<code>GR86</code> と <code>gr86</code>、全角・半角の違いなど）。全員で表記をそろえてください。<br><br>
+            <strong>【B】それぞれ自分の車で走る</strong><br>
+            例：Aさんは GR86、Bさんはロードスター。同じ車種でも別々の車の場合も同様です。<br>
+            ① 車両名の後ろに名前を付けます（例：<code>GR86_山田</code>、<code>ロードスター_佐藤</code>）。<br>
+            ② 他の人の記録と混ざらず、車ごとにきれいに分かれます。<br>
+            ③ 同じシートを使っていても、見たい車だけを「表示車両」で選べます。<br><br>
+            <strong>迷ったときは：</strong>「この車は、複数人で乗り回すか？」で決めます。乗り回す→【A】、自分専用→【B】です。<br>
+            <strong>あとから変えたいとき：</strong>「車両管理」の「名前変更」で車両名を直せます（記録は引き継がれます）。
           </div>
 
         </div>
         </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> ⚙️ 便利な設定</summary>
+        <details class="acc"><summary><span class="chev">▶</span> 🔒 削除ロック／複数共有</summary>
           <div class="acc-body">
 
         <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">🔒 削除ロック（管理者だけ全員分を削除できる）</div>
@@ -6745,7 +6758,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.12').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.14').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
