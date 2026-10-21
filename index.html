@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.14 — PIT WALL LOG</title>
+<title>TPSync Ver1.15 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1029,7 +1029,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.14</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.15</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1435,6 +1435,19 @@
 
   <div id="logSectionAnchor"></div>
   <div class="section-title" style="margin:24px 0 10px;">履歴 / SESSION LOG</div>
+  <div id="logSortBar" style="display:flex;gap:6px;align-items:center;margin:0 0 10px;">
+    <label for="logSortKey" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--paper-dim);white-space:nowrap;">並び替え</label>
+    <select id="logSortKey" onchange="onLogSortChange()" style="flex:1;min-width:0;padding:8px;border-radius:6px;font-size:13px;">
+      <option value="date">日時（標準）</option>
+      <option value="ambientTemp">気温</option>
+      <option value="trackTemp">路面温度</option>
+      <option value="cold">冷間エア（4輪平均）</option>
+      <option value="hot">温間エア（4輪平均）</option>
+      <option value="width">タイヤ幅（前）</option>
+      <option value="lap">タイム</option>
+    </select>
+    <button type="button" id="logSortDir" onclick="toggleLogSortDir()" style="padding:8px 12px;border-radius:6px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">↓ 降順</button>
+  </div>
   <div id="logList"></div>
 
   <div class="migration-note" onclick="openMigration()">
@@ -4082,9 +4095,70 @@ function safeCardHtml(e){
   }
 }
 
+// ---- 履歴の並び替え ----
+const LOG_SORT_KEY = 'tire_history_sort';
+let logSort = { key: 'date', dir: 'desc' };
+try{
+  const s = JSON.parse(localStorage.getItem(LOG_SORT_KEY) || 'null');
+  if(s && ['date','ambientTemp','trackTemp','cold','hot','width','lap'].includes(s.key) && (s.dir === 'asc' || s.dir === 'desc')) logSort = s;
+}catch(e){}
+
+function logSortValue_(e, key){
+  const num = v => (v === null || v === undefined || v === '' || isNaN(parseFloat(v))) ? null : parseFloat(v);
+  const avg = p => {
+    if(!p) return null;
+    const v = [p.FL, p.FR, p.RL, p.RR].map(num).filter(x => x !== null);
+    return v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  };
+  switch(key){
+    case 'date': { const t = entryTime(e); return (typeof t === 'number' && !isNaN(t)) ? t : null; }
+    case 'ambientTemp': return num(e.ambientTemp);
+    case 'trackTemp': return num(e.trackTemp);
+    case 'cold': return avg(e.coldPressures || (e.mode === 'cold' ? e.pressures : null));
+    case 'hot': return avg(e.hotPressures || (e.mode === 'hot' ? e.pressures : null));
+    case 'width': {
+      const s = parseSizeString(e.sizeFront) || parseSizeString(e.sizeRear);
+      return s ? parseInt(s.width, 10) : null;
+    }
+    case 'lap': return parseLapTime(e.lapTime);
+  }
+  return null;
+}
+
+// 値が無い記録は、昇順・降順どちらでも最後に回す。同値は元の並びを維持。
+function sortLogData_(data){
+  if(!logSort || (logSort.key === 'date' && logSort.dir === 'desc')) return data;
+  const sign = logSort.dir === 'asc' ? 1 : -1;
+  return data.map((e, i) => ({ e, i, v: logSortValue_(e, logSort.key) })).sort((a, b) => {
+    if(a.v === null && b.v === null) return a.i - b.i;
+    if(a.v === null) return 1;
+    if(b.v === null) return -1;
+    return (a.v - b.v) * sign || (a.i - b.i);
+  }).map(x => x.e);
+}
+
+function updateLogSortUI_(){
+  const k = document.getElementById('logSortKey'), d = document.getElementById('logSortDir');
+  if(k) k.value = logSort.key;
+  if(d) d.textContent = logSort.dir === 'asc' ? '↑ 昇順' : '↓ 降順';
+}
+function saveLogSort_(){ try{ localStorage.setItem(LOG_SORT_KEY, JSON.stringify(logSort)); }catch(e){} }
+function onLogSortChange(){
+  const k = document.getElementById('logSortKey');
+  logSort.key = k ? k.value : 'date';
+  saveLogSort_(); updateLogSortUI_(); applyFilters();
+}
+function toggleLogSortDir(){
+  logSort.dir = logSort.dir === 'asc' ? 'desc' : 'asc';
+  saveLogSort_(); updateLogSortUI_(); applyFilters();
+}
+window.onLogSortChange = onLogSortChange;
+window.toggleLogSortDir = toggleLogSortDir;
+
 function renderLog(list_){
   const carEntries = getCarEntries();
-  const data = list_ || carEntries;
+  const data = sortLogData_(list_ || carEntries);
+  updateLogSortUI_();
   const activeCars = getActiveDisplayCars();
   const displayCount = (activeCars.length > 1) ? entries.filter(e => activeCars.includes(e.car || 'マイカー')).length : carEntries.length;
   document.getElementById('entryCount').textContent = displayCount + ' SESSIONS';
@@ -4931,7 +5005,7 @@ async function restoreFromCloud(){
 }
 
 // === 接続診断：原因の切り分け用。結果をそのままコピーして共有できる ===
-const APP_VERSION = '1.14';
+const APP_VERSION = '1.15';
 async function runGasDiagnosis(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -6758,7 +6832,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.14').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.15').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
