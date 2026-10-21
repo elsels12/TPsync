@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.16 — PIT WALL LOG</title>
+<title>TPSync Ver1.00 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -553,6 +553,12 @@
     -webkit-appearance:none;appearance:none;outline:none;cursor:pointer;
   }
   .sort-sel:focus{border-color:var(--amber);}
+  /* 視認性・押しやすさの微調整（見た目のみ。動作は変更なし） */
+  .log-actions{gap:10px !important;}
+  .log-actions button{padding-top:9px !important;padding-bottom:9px !important;}
+  .topbar-csv-btn{padding-top:8px;padding-bottom:8px;}
+  .temp-clear-btn{padding-top:6px;padding-bottom:6px;}
+  .sticky-sync-btn .sticky-sync-txt,.sticky-jump-btn .jump-txt{font-size:11px;}
   .sort-sel option{background:#20252b;color:#ffffff;}
   .acc-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.04em;margin:12px 0 6px;}
   .acc{background:#1b212b;border:1px solid #2d3542;border-radius:8px;margin-bottom:6px;}
@@ -1038,7 +1044,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.16</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.00</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1455,7 +1461,7 @@
       <option value="width">タイヤ幅（前）</option>
       <option value="widthR">タイヤ幅（後）</option>
       <option value="wheel">ホイールサイズ（インチ）</option>
-      <option value="feel">体感（A→E）</option>
+      <option value="feel">体感</option>
       <option value="lap">タイム</option>
     </select>
     <button type="button" id="logSortDir" onclick="toggleLogSortDir()" style="padding:8px 12px;border-radius:6px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">↓ 降順</button>
@@ -5029,7 +5035,7 @@ async function restoreFromCloud(){
 }
 
 // === 接続診断：原因の切り分け用。結果をそのままコピーして共有できる ===
-const APP_VERSION = '1.16';
+const APP_VERSION = '1.00';
 async function runGasDiagnosis(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -6856,7 +6862,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.16').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.00').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
