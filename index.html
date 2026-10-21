@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.15 — PIT WALL LOG</title>
+<title>TPSync Ver1.16 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -545,6 +545,15 @@
   .size-preset-select option{background:#20252b;color:#ffffff;}
   /* 絞り込み欄: プリセットの選択肢がカードの右端からはみ出さないよう、幅に合わせて縮める */
   /* 共有使用タブの折りたたみ説明 */
+  .sort-sel{
+    flex:1;min-width:0;padding:9px 28px 9px 12px;border-radius:8px;
+    background:var(--panel) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%239aa0a8' d='M0 0l5 5 5-5'/%3E%3C/svg%3E") no-repeat right 10px center;
+    background-size:10px;border:1px solid #3a4555;color:#e6e9ee;
+    font-family:'Inter',sans-serif;font-size:14px;font-weight:600;
+    -webkit-appearance:none;appearance:none;outline:none;cursor:pointer;
+  }
+  .sort-sel:focus{border-color:var(--amber);}
+  .sort-sel option{background:#20252b;color:#ffffff;}
   .acc-label{font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:.04em;margin:12px 0 6px;}
   .acc{background:#1b212b;border:1px solid #2d3542;border-radius:8px;margin-bottom:6px;}
   .acc>summary{list-style:none;cursor:pointer;padding:10px 12px;font-size:13px;font-weight:700;color:var(--amber);display:flex;gap:8px;align-items:center;-webkit-tap-highlight-color:transparent;}
@@ -1029,7 +1038,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.15</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.16</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1437,13 +1446,16 @@
   <div class="section-title" style="margin:24px 0 10px;">履歴 / SESSION LOG</div>
   <div id="logSortBar" style="display:flex;gap:6px;align-items:center;margin:0 0 10px;">
     <label for="logSortKey" style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--paper-dim);white-space:nowrap;">並び替え</label>
-    <select id="logSortKey" onchange="onLogSortChange()" style="flex:1;min-width:0;padding:8px;border-radius:6px;font-size:13px;">
+    <select id="logSortKey" class="sort-sel" onchange="onLogSortChange()">
       <option value="date">日時（標準）</option>
       <option value="ambientTemp">気温</option>
       <option value="trackTemp">路面温度</option>
       <option value="cold">冷間エア（4輪平均）</option>
       <option value="hot">温間エア（4輪平均）</option>
       <option value="width">タイヤ幅（前）</option>
+      <option value="widthR">タイヤ幅（後）</option>
+      <option value="wheel">ホイールサイズ（インチ）</option>
+      <option value="feel">体感（A→E）</option>
       <option value="lap">タイム</option>
     </select>
     <button type="button" id="logSortDir" onclick="toggleLogSortDir()" style="padding:8px 12px;border-radius:6px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;">↓ 降順</button>
@@ -4100,7 +4112,7 @@ const LOG_SORT_KEY = 'tire_history_sort';
 let logSort = { key: 'date', dir: 'desc' };
 try{
   const s = JSON.parse(localStorage.getItem(LOG_SORT_KEY) || 'null');
-  if(s && ['date','ambientTemp','trackTemp','cold','hot','width','lap'].includes(s.key) && (s.dir === 'asc' || s.dir === 'desc')) logSort = s;
+  if(s && ['date','ambientTemp','trackTemp','cold','hot','width','widthR','wheel','feel','lap'].includes(s.key) && (s.dir === 'asc' || s.dir === 'desc')) logSort = s;
 }catch(e){}
 
 function logSortValue_(e, key){
@@ -4119,6 +4131,18 @@ function logSortValue_(e, key){
     case 'width': {
       const s = parseSizeString(e.sizeFront) || parseSizeString(e.sizeRear);
       return s ? parseInt(s.width, 10) : null;
+    }
+    case 'widthR': {
+      const s = parseSizeString(e.sizeRear) || parseSizeString(e.sizeFront);
+      return s ? parseInt(s.width, 10) : null;
+    }
+    case 'wheel': {
+      const s = parseSizeString(e.sizeFront) || parseSizeString(e.sizeRear);
+      return s ? parseInt(s.diam, 10) : null;
+    }
+    case 'feel': {
+      const f = String(e.feel || '').trim().toUpperCase();
+      return /^[A-E]$/.test(f) ? f.charCodeAt(0) : null;
     }
     case 'lap': return parseLapTime(e.lapTime);
   }
@@ -5005,7 +5029,7 @@ async function restoreFromCloud(){
 }
 
 // === 接続診断：原因の切り分け用。結果をそのままコピーして共有できる ===
-const APP_VERSION = '1.15';
+const APP_VERSION = '1.16';
 async function runGasDiagnosis(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -6832,7 +6856,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.15').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.16').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
