@@ -1,5 +1,5 @@
 /**
- * TPSync Ver1.08 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.09 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -109,7 +109,7 @@ function parseTime_(v, fallback) {
   return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
 }
 
-var GAS_VERSION = '1.08';
+var GAS_VERSION = '1.09';
 function deleteLockOn_() {
   return !!PropertiesService.getScriptProperties().getProperty('DELETE_KEY');
 }
