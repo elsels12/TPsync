@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tpsync-v1.00c';
+const CACHE_NAME = 'tpsync-v1.00';
 const ASSETS = [
   './',
   './index.html',
