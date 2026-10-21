@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.11 — PIT WALL LOG</title>
+<title>TPSync Ver1.12 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1029,7 +1029,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.11</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.12</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -4931,7 +4931,7 @@ async function restoreFromCloud(){
 }
 
 // === 接続診断：原因の切り分け用。結果をそのままコピーして共有できる ===
-const APP_VERSION = '1.11';
+const APP_VERSION = '1.12';
 async function runGasDiagnosis(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -5704,7 +5704,7 @@ function doGet(e) {
         <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
           <button type="button" onclick="runGasDiagnosis()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🩺 接続診断</button>
           <button type="button" onclick="disconnectGas()" style="padding:6px 10px;border-radius:6px;border:1px solid #4a5568;background:transparent;color:#cbd5e1;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">連携を解除</button>
-          <button type="button" onclick="removeGasConnection()" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.5);background:transparent;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">連携削除（解除＋一覧から消す）</button>
+          <button type="button" onclick="removeGasConnection()" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.5);background:transparent;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">連携削除</button>
         </div>
         <!-- 仲間に渡す連携URLの1タップコピー枠 -->
         <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:10px;margin-bottom:12px;">
@@ -5736,18 +5736,18 @@ function doGet(e) {
           💡 <strong>準備はチームの代表者1人が最初の1回だけ</strong>行えばOKです。他のメンバーは、代表者からURLをもらってアプリに登録するだけで参加できます。
         </div>
 
-        <div class="acc-label">【代表者：最初の1回だけ】</div>
-
-        <details class="acc"><summary><span class="chev">▶</span> 📌 ステップ1：スプレッドシートを作る（1分）</summary>
+                <details class="acc"><summary><span class="chev">▶</span> 📌 代表者：最初の1回だけ</summary>
           <div class="acc-body">
+
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">📌 ステップ1：スプレッドシートを作る（1分）</div>
+<div>
             1. スマホやPCで <a href="https://drive.google.com/" target="_blank" style="color:var(--amber);text-decoration:underline;">Googleドライブ</a> を開きます。<br>
             2. 「<strong>＋（新規）</strong>」→「<strong>Google スプレッドシート</strong>」を作成します。<br>
             3. ファイル名を「TPSyncデータ」等に変更します（中身は空のままでOK）。
           </div>
-        </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 📌 ステップ2：コードを貼る（1分）</summary>
-          <div class="acc-body">
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">📌 ステップ2：コードを貼る（1分）</div>
+<div>
             1. スプレッドシートのメニュー「<strong>拡張機能</strong>」→「<strong>Apps Script</strong>」を開きます。<br>
             2. 最初から出ている英語（function myFunction...）を<strong>すべて消して真っ白</strong>にします。<br>
             3. 下の「<strong>コードをコピー</strong>」を押し、コピーしたコードを<strong>そのまま貼り付け</strong>ます。<br>
@@ -5760,10 +5760,9 @@ function doGet(e) {
               <textarea id="gasCodeTextarea" readonly style="width:100%;height:80px;background:transparent;border:none;color:#94a3b8;font-family:'JetBrains Mono',monospace;font-size:10px;resize:none;">${escapeHtml(gasCodeEscaped)}</textarea>
             </div>
           </div>
-        </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 📌 ステップ3：ウェブアプリとして公開（最重要）</summary>
-          <div class="acc-body">
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">📌 ステップ3：ウェブアプリとして公開（最重要）</div>
+<div>
             1. 右上の青い「<strong>デプロイ</strong>」→「<strong>新しいデプロイ</strong>」をタップします。<br>
             2. 歯車アイコン⚙ →「<strong>ウェブアプリ</strong>」を選びます。<br>
             3. 次のように設定します：<br>
@@ -5774,30 +5773,31 @@ function doGet(e) {
             5. Googleの承認画面が出たら、アカウントを選んで「アクセスを許可」します。<br>
             6. 完了画面の「<strong>ウェブアプリのURL</strong>」の「<strong>コピー</strong>」を押します。
           </div>
-        </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 📌 ステップ4：このアプリに登録する（完了）</summary>
-          <div class="acc-body">
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">📌 ステップ4：このアプリに登録する（完了）</div>
+<div>
             1. このアプリの「共有使用」で、上の「<strong>＋ 接続先を追加</strong>」を押します。<br>
             2. 表示名（例：チーム名）と、コピーしたURLを入れて「<strong>登録して切り替え</strong>」を押します。<br>
             3. これ以降、記録するたびに自動でスプレッドシートへ送信・保存されます。
           </div>
+
+        </div>
         </details>
 
-        <div class="acc-label">【仲間に参加してもらう】</div>
-
-        <details class="acc"><summary><span class="chev">▶</span> 👥 URLを仲間に渡す／URLを再確認する</summary>
+        <details class="acc"><summary><span class="chev">▶</span> 👥 仲間に参加してもらう</summary>
           <div class="acc-body">
+
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">👥 URLを仲間に渡す／URLを再確認する</div>
+<div>
             <strong>渡し方：</strong>上の「📋 URLをコピー」で取得したURLをLINE等で送ります。仲間は自分のTPSyncで「＋ 接続先を追加」にそのURLを入れて登録するだけで、全員がつながります。<br><br>
             <strong>URLを忘れたとき（代表者）：</strong><br>
             1. スプレッドシートの「<strong>拡張機能</strong>」→「<strong>Apps Script</strong>」を開きます。<br>
             2. 右上の「<strong>デプロイ</strong>」→「<strong>デプロイを管理</strong>」を押します。<br>
             3. 最新の「<strong>ウェブアプリ</strong>」を選び、「<strong>ウェブアプリのURL</strong>」の「<strong>コピー</strong>」を押します。
           </div>
-        </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 📱 すでにデータがある人が、後から参加するとき</summary>
-          <div class="acc-body">
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">📱 すでにデータがある人が、後から参加するとき</div>
+<div>
             これまでの記録は<strong>消えません</strong>。次の順に操作してください。<br><br>
             <strong>① 車両名を区別できる名前にする（推奨）：</strong><br>
             「車両切替」→「車両管理」で、「マイカー」のままなら「<code>GR86_山田</code>」のようにドライバー名を付けると、他の人の記録と混ざりません。<br><br>
@@ -5808,19 +5808,21 @@ function doGet(e) {
             <strong>④ 仲間のデータを取得：</strong><br>
             画面上部の「<strong>更新</strong>」（くるくるアイコン）を押すと、仲間のデータも読み込まれます。
           </div>
-        </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 🏎️ 1台をシェア／各自の車で分ける</summary>
-          <div class="acc-body">
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">🏎️ 1台をシェア／各自の車で分ける</div>
+<div>
             ・<strong>1台をシェアする場合：</strong>全員で同じ車両名（例：<code>GR86</code>）にすると、別々のスマホで測った冷間・温間が1つのカードに合体します。<br>
             ・<strong>別々の車で走る場合：</strong><code>ロードスター_佐藤</code>、<code>GR86_山田</code> のように名前を付けると、データが混ざりません。
           </div>
+
+        </div>
         </details>
 
-        <div class="acc-label">【便利な設定】</div>
-
-        <details class="acc"><summary><span class="chev">▶</span> 🔒 削除ロック（管理者だけ全員分を削除できる）</summary>
+        <details class="acc"><summary><span class="chev">▶</span> ⚙️ 便利な設定</summary>
           <div class="acc-body">
+
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">🔒 削除ロック（管理者だけ全員分を削除できる）</div>
+<div>
             仲間が他人の記録を間違えて／わざと全削除するのを防ぎます。<br>
             ・<strong>仲間：</strong>自分の端末で記録した分だけ削除できます。<br>
             ・<strong>管理者：</strong>全員分を削除できます。<br>
@@ -5834,14 +5836,14 @@ function doGet(e) {
             6. <strong>管理者の端末だけ</strong>、「＋ 接続先を追加」（登録済みは「編集」）の「管理者の合言葉」に、同じ合言葉を入れて保存します。仲間は空欄のままにします。
             <div style="margin-top:8px;font-size:11px;color:#94a3b8;">※機種変更や再インストールをすると、以前の自分の記録は「他人の記録」扱いになり、管理者しか削除できません。</div>
           </div>
-        </details>
 
-        <details class="acc"><summary><span class="chev">▶</span> 🔀 複数のスプレッドシートを使い分けたい</summary>
-          <div class="acc-body">
+        <div style="font-weight:700;color:var(--amber);margin:14px 0 6px;">🔀 複数のスプレッドシートを使い分けたい</div>
+<div>
             個人用とチーム用、Aチーム・Bチームなど、複数のシートを使うときの方法です。<br><br>
             ・<strong>同じブラウザで切り替える：</strong>「＋ 接続先を追加」で複数登録し、上の接続先ボタンをタップして切り替えます。切り替えると、表示される記録は切替先シートの内容に入れ替わります（元に戻すと再表示されます）。<br><br>
             ・<strong>ブラウザを分ける（いちばん確実）：</strong>iPhoneでは、<strong>Safari</strong>にシートA、<strong>Chrome</strong>にシートBを登録し、それぞれ「ホーム画面に追加」します。ブラウザごとにデータの保存領域が完全に別なので、混ざりません。
           </div>
+</div>
         </details>
       </div>
     </div>
@@ -6743,7 +6745,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.11').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.12').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
