@@ -11,7 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <meta name="theme-color" content="#15181c">
-<title>TPSync Ver1.10 — PIT WALL LOG</title>
+<title>TPSync Ver1.11 — PIT WALL LOG</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -1029,7 +1029,7 @@
 <body>
 
 <div class="topbar">
-  <div class="eyebrow"><span>TPSync Ver1.10</span><span id="entryCount">0 SESSIONS</span></div>
+  <div class="eyebrow"><span>TPSync Ver1.11</span><span id="entryCount">0 SESSIONS</span></div>
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
     <h1>TPSync</h1>
     <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -1852,7 +1852,7 @@ function openCloudPresetModal(){
         </button>
         <div style="display:flex;gap:4px;flex-shrink:0;">
           <button type="button" onclick="openAddPresetModal(${JSON.stringify(p).replace(/"/g, '&quot;')})" style="background:transparent;border:1px solid #384252;color:#94a3b8;border-radius:4px;padding:4px 6px;font-size:11px;cursor:pointer;" title="編集">✏️</button>
-          ${presets.length > 1 ? `<button type="button" onclick="deleteGasPreset('${p.id}')" style="background:transparent;border:1px solid rgba(239,68,68,0.4);color:#f87171;border-radius:4px;padding:4px 6px;font-size:11px;cursor:pointer;" title="削除">🗑️</button>` : ''}
+          ${true ? `<button type="button" onclick="deleteGasPreset('${p.id}')" style="background:transparent;border:1px solid rgba(239,68,68,0.4);color:#f87171;border-radius:4px;padding:4px 6px;font-size:11px;cursor:pointer;" title="削除">🗑️</button>` : ''}
         </div>
       </div>
     `;
@@ -1895,30 +1895,48 @@ function openCloudPresetModal(){
 }
 window.openCloudPresetModal = openCloudPresetModal;
 
-function deleteGasPreset(id){
+// 連携削除：接続を解除したうえで、接続先の一覧から消す（この端末の記録は残る）。
+// id を省略すると「いま使用中の接続先」が対象。使用中でない接続先を指定したときは、一覧から消すだけ。
+function removeGasConnection(presetId){
+  const url = getGasUrl();
   const presets = getGasPresets();
-  const target = presets.find(p => p.id === id);
-  if(!target) return;
-  if(!confirm(`接続先「${target.name}」を削除しますか？`)) return;
-
-  const remaining = presets.filter(p => p.id !== id);
-  // 削除「前」に接続中かどうかを判定する（削除後に調べると、別の接続先が接続中に見えてしまい URL が切り替わらない）
-  const activeBefore = getActivePreset();
-  saveGasPresets(remaining);
-
-  if(activeBefore && activeBefore.id === id && remaining.length > 0){
-    switchToGasPreset(remaining[0].id);
-  } else {
-    updateCloudStatusUI();
-    updatePresetUI();
+  const target = presetId ? presets.find(p => p.id === presetId) : getActivePreset();
+  if(!target && !url){ showToast('削除する接続先がありません'); return; }
+  const isCur = target ? (!!url && gasKeyBase_(url) === gasKeyBase_(target.url)) : !!url;
+  const name = target ? target.name : 'カスタム接続';
+  const pendingN = Object.keys(getPendingSyncMap()).length + Object.keys(getPendingDeletesMap()).length;
+  let msg = isCur
+    ? `「${name}」との連携を解除して、接続先の一覧から削除します。\nこの端末の記録は消えません。`
+    : `接続先「${name}」を一覧から削除します。\n（現在の連携や、この端末の記録には影響しません）`;
+  if(isCur && pendingN > 0){
+    msg += `\n※未送信の${pendingN}件は、スプレッドシートには送られません（この端末には残ります）。`;
   }
+  msg += '\nよろしいですか？';
+  if(!confirm(msg)) return;
 
+  if(target){
+    saveGasPresets(presets.filter(p => p.id !== target.id));
+    setGasKey(target.url, '');
+    if(localStorage.getItem(ACTIVE_PRESET_ID_KEY) === target.id){
+      try{ localStorage.removeItem(ACTIVE_PRESET_ID_KEY); }catch(e){}
+    }
+  }
+  if(isCur){
+    setGasUrl('__DISABLED__');
+    try{ localStorage.removeItem(GAS_STATUS_KEY); }catch(e){}
+  }
+  updateCloudStatusUI();
+  updatePresetUI();
   const modal = document.getElementById('cloudPresetModalOverlay');
   if(modal){
     document.body.removeChild(modal);
     openCloudPresetModal();
   }
+  showToast(isCur ? '連携を解除し、一覧から削除しました' : '接続先を削除しました');
 }
+window.removeGasConnection = removeGasConnection;
+
+function deleteGasPreset(id){ removeGasConnection(id); }
 window.deleteGasPreset = deleteGasPreset;
 
 function getGasUrl(){
@@ -4913,7 +4931,7 @@ async function restoreFromCloud(){
 }
 
 // === 接続診断：原因の切り分け用。結果をそのままコピーして共有できる ===
-const APP_VERSION = '1.10';
+const APP_VERSION = '1.11';
 async function runGasDiagnosis(){
   const ov = document.createElement('div');
   ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:300;display:flex;align-items:center;justify-content:center;padding:16px;';
@@ -5682,10 +5700,11 @@ function doGet(e) {
         <div style="font-size:12px;color:#cbd5e1;line-height:1.5;margin-bottom:10px;">
           ウェブアプリURLを設定すると、記録時に自動でスプレッドシートへリアルタイム追記されます（オフライン時もローカルに安全保持）。
         </div>
-        <div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;">
-          <div style="flex:1;font-size:11px;color:#94a3b8;line-height:1.5;">接続先の追加・URLの変更は、上の「＋ 接続先を追加」（登録済みはタップで編集）から行います。</div>
+        <div style="font-size:11px;color:#94a3b8;line-height:1.5;margin-bottom:6px;">接続先の追加・URLの変更は、上の「＋ 接続先を追加」（登録済みはタップで編集）から行います。</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
           <button type="button" onclick="runGasDiagnosis()" style="padding:6px 10px;border-radius:6px;border:1px solid var(--amber);background:transparent;color:var(--amber);font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">🩺 接続診断</button>
           <button type="button" onclick="disconnectGas()" style="padding:6px 10px;border-radius:6px;border:1px solid #4a5568;background:transparent;color:#cbd5e1;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">連携を解除</button>
+          <button type="button" onclick="removeGasConnection()" style="padding:6px 10px;border-radius:6px;border:1px solid rgba(239,68,68,0.5);background:transparent;color:#f87171;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;">連携削除（解除＋一覧から消す）</button>
         </div>
         <!-- 仲間に渡す連携URLの1タップコピー枠 -->
         <div style="background:#14171b;border:1px solid #2d3542;border-radius:8px;padding:10px;margin-bottom:12px;">
@@ -6724,7 +6743,7 @@ loadEntries();
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js?v=1.10').then((reg) => {
+    navigator.serviceWorker.register('sw.js?v=1.11').then((reg) => {
       function notifyUpdate() {
         showToast('🚀 新バージョンがあります（タップして更新）', 15000, () => {
           window.location.reload();
