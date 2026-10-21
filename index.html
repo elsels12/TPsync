@@ -5273,7 +5273,7 @@ function openGuideModal(initialTab = 'usage'){
   box.style.cssText = 'background:#191d23;border:1px solid #384252;border-radius:14px;padding:18px 16px;max-width:500px;width:100%;max-height:90vh;overflow-y:auto;color:#e9e6df;box-shadow:0 8px 32px rgba(0,0,0,0.8);';
 
   const gasCodeEscaped = `/**
- * TPSync Ver1.09 - Google Apps Script (GAS) バックエンド
+ * TPSync Ver1.00 - Google Apps Script (GAS) バックエンド
  * 
  * 【特徴】
  * 1. LockService による同時書き込み排他制御（doPost: 最大15秒、doGet: 最大10秒待機で安全な読み書き分離）
@@ -5383,7 +5383,7 @@ function parseTime_(v, fallback) {
   return isNaN(t) ? (fallback !== undefined ? fallback : 0) : t;
 }
 
-var GAS_VERSION = '1.09';
+var GAS_VERSION = '1.00';
 function deleteLockOn_() {
   return !!PropertiesService.getScriptProperties().getProperty('DELETE_KEY');
 }
